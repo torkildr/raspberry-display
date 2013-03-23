@@ -77,6 +77,7 @@ int main()
     setup_curses();
 
     int done = 0;
+    int offset = 0;
     char * (*get_text)();
 
     get_text = &time_string;
@@ -98,15 +99,32 @@ int main()
                 case 'a':
                     get_text = &abc_string;
                     break;
+                case '0':
+                case KEY_HOME:
+                    offset = 0;
+                    break;
+                case KEY_LEFT:
+                    offset -= 1;
+                    break;
+                case KEY_RIGHT:
+                    offset += 1;
+                    break;
+                case KEY_NPAGE:
+                    offset -= 128;
+                    break;
+                case KEY_PPAGE:
+                    offset += 128;
+                    break;
             }
         }
 
         memset(display_memory, 0, sizeof(display_memory));
 
-        render_string(get_text(), 0);
+        render_string(get_text(), offset);
 
         clear();
         render_memory();
+        addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset\nq: exit");
         halfdelay(1);
     }
 
