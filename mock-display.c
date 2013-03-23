@@ -60,11 +60,26 @@ void setup_curses()
     keypad(stdscr, TRUE);
 }
 
+char *time_string()
+{
+    time_t current_time = time(NULL);
+    struct tm *local_time = localtime(&current_time);
+    return asctime(local_time);
+}
+
+char *abc_string()
+{
+    return " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
+}
+
 int main()
 {
     setup_curses();
 
     int done = 0;
+    char * (*get_text)();
+
+    get_text = &time_string;
 
     while (!done)
     {
@@ -77,16 +92,18 @@ int main()
                 case 'q':
                     done = 1;
                     break;
+                case 't':
+                    get_text = &time_string;
+                    break;
+                case 'a':
+                    get_text = &abc_string;
+                    break;
             }
         }
 
         memset(display_memory, 0, sizeof(display_memory));
 
-        time_t current_time = time(NULL);
-        struct tm *local_time = localtime(&current_time);
-        char *time_string = asctime(local_time);
-
-        render_string(time_string, 0);
+        render_string(get_text(), 0);
 
         clear();
         render_memory();
