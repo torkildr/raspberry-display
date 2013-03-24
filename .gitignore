@@ -16,4 +16,5 @@
 *.out
 *.app
 
-mock-display
+curses-client
+mock-curses-client
