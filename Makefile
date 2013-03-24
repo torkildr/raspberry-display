@@ -5,7 +5,7 @@ default: mock-display
 font_render.o: display.c $(HEADERS)
 	cc -g -Wall -o display.o -c display.c
 
-mock-display: mock-display.c display.o
+mock-display: mock-display.c display.o $(HEADERS)
 	cc -g -Wall $< display.o -lncurses -o $@
 
 clean:

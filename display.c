@@ -13,14 +13,11 @@ int render_char(char c, int x)
     int width = font_variable[index][0];
 
     int col;
-    for (col = 0; col <= width; col++) {
+    for (col = 0; col < width; col++) {
         // dont write to the display buffer if the location is out of range
         if((x + col) >= 0 && (x + col) < X_MAX){
-            // reads entire row of glyph, jams it into memory
-            if (col != width)
-                display_memory[x+col] = font_variable[index][col+1];
-            else
-                display_memory[x+col] = 0;
+            // reads entire column of the glyph, jams it into memory
+            display_memory[x+col] = font_variable[index][col+1];
         }
     }
 
