@@ -38,15 +38,13 @@ int main()
     char * (*get_text)();
 
     get_text = &time_string;
+    timer_enable();
 
-    while (!done)
-    {
+    while (!done) {
         int c;
 
-        if ((c = getch()) != ERR)
-        {
-            switch (c)
-            {
+        if ((c = getch()) != ERR) {
+            switch (c) {
                 case 'q':
                     done = 1;
                     break;
@@ -76,11 +74,10 @@ int main()
         }
 
         render_text(get_text(), offset);
-
-        addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset\nq: exit");
-        halfdelay(1);
+        halfdelay(2);
     }
 
+    timer_disable();
     endwin();
     return 0;
 }
@@ -89,12 +86,12 @@ int main()
 // mocked stuff from display.h
 //
 //
-void clear_display()
+void display_clear()
 {
     clear();
 }
 
-void update_display()
+void display_update()
 {
     int row, i;
     for (row = -1; row <= 8; row++)
@@ -134,5 +131,7 @@ void update_display()
         addch(ACS_VLINE);
         addch('\n');
     }
+
+    addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset\nq: exit");
 }
 

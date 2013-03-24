@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "display.h"
 #include "font.h"
 
@@ -15,7 +17,7 @@ int render_char(char c, int x)
     int col;
     for (col = 0; col < width; col++) {
         // dont write to the display buffer if the location is out of range
-        if((x + col) >= 0 && (x + col) < X_MAX){
+        if((x + col) >= 0 && (x + col) < X_MAX) {
             // reads entire column of the glyph, jams it into memory
             display_memory[x+col] = font_variable[index][col+1];
         }
@@ -24,24 +26,52 @@ int render_char(char c, int x)
     return width;
 }
 
-void render_string(char *text, int x)
+void render_text(char *text, int offset)
 {
+    memset(display_memory, 0, sizeof(display_memory));
+
     int length = strlen(text);
     int i;
-    for (i=0; i < length; i++)
-    {
-        int width = render_char(text[i], x);
-        x += width + 1;
+    for (i=0; i < length; i++) {
+        int width = render_char(text[i], offset);
+        offset += width + 1;
     }
 }
 
-void render_text(char *text, int offset)
+void display_redraw()
 {
-   memset(display_memory, 0, sizeof(display_memory));
+    display_clear();
+    display_update();
+}
 
-   render_string(text, offset);
+void alarm_wakeup(int i)
+{
+    signal(SIGALRM, alarm_wakeup);
+    display_redraw();
+}
 
-   clear_display();
-   update_display();
+void timer_disable()
+{
+    struct itimerval timer_val = {
+        .it_interval.tv_sec = 0,
+        .it_interval.tv_usec = 0,
+        .it_value.tv_sec = 0,
+        .it_value.tv_usec = 0
+    };
+
+    setitimer(ITIMER_REAL, &timer_val, NULL);
+}
+
+void timer_enable()
+{
+    struct itimerval timer_val = {
+        .it_interval.tv_sec = INTERVAL_SEC,
+        .it_interval.tv_usec = INTERVAL_USEC,
+        .it_value.tv_sec = INTERVAL_SEC,
+        .it_value.tv_usec = INTERVAL_USEC
+    };
+
+    signal(SIGALRM, alarm_wakeup);
+    setitimer(ITIMER_REAL, &timer_val, 0);
 }
 
