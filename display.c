@@ -31,7 +31,7 @@ int render_char(char c, int x)
 
 void render_text(char *text, int offset)
 {
-    memset(display_memory, 0, sizeof(display_memory));
+    memset(display_memory, '\0', sizeof(display_memory));
 
     if (scroll_direction != SCROLL_DISABLED) {
         scroll_offset += scroll_direction;

@@ -7,6 +7,23 @@
 // mocked stuff from display.h
 //
 
+void display_enable()
+{
+    initscr();
+    timeout(0);
+    cbreak();
+    noecho();
+
+    nonl();
+    intrflush(stdscr, FALSE);
+    keypad(stdscr, TRUE);
+}
+
+void display_disable()
+{
+    endwin();
+}
+
 void display_clear()
 {
     clear();
@@ -83,8 +100,9 @@ void display_update()
 
     show_elapsed_time(elapsed);
 
-    addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset");
-    addstr("\nr/l: scroll left/right\nd: disable scroll");
-    addstr("\nq: exit");
+    if (display_update_callback != NULL)
+        display_update_callback();
+
+    refresh();
 }
 

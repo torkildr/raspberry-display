@@ -18,3 +18,5 @@
 
 curses-client
 mock-curses-client
+pipe-client
+mock-pipe-client

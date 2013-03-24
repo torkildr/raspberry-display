@@ -5,18 +5,6 @@
 #include <time.h>
 #include "display.h"
 
-void setup_curses()
-{
-    initscr();
-    timeout(0);
-    cbreak();
-    noecho();
-
-    nonl();
-    intrflush(stdscr, FALSE);
-    keypad(stdscr, TRUE);
-}
-
 char *time_string()
 {
     time_t current_time = time(NULL);
@@ -29,15 +17,24 @@ char *abc_string()
     return " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 }
 
+void print_help_text()
+{
+    addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset");
+    addstr("\nr/l: scroll left/right\nd: disable scroll");
+    addstr("\nq: exit");
+}
+
 int main()
 {
-    setup_curses();
-
     int done = 0;
     int offset = 0;
     char * (*get_text)();
 
     get_text = &time_string;
+
+    display_update_callback = &print_help_text;
+
+    display_enable();
     timer_enable();
 
     while (!done) {
@@ -88,7 +85,8 @@ int main()
     }
 
     timer_disable();
-    endwin();
+    display_disable();
+
     return 0;
 }
 
