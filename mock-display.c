@@ -54,8 +54,18 @@ int main()
                 case 'a':
                     get_text = &abc_string;
                     break;
+                case 'l':
+                    display_scroll(SCROLL_LEFT);
+                    break;
+                case 'r':
+                    display_scroll(SCROLL_RIGHT);
+                    break;
+                case 'd':
+                    display_scroll(SCROLL_DISABLED);
+                    break;
                 case '0':
                 case KEY_HOME:
+                    display_scroll(SCROLL_DISABLED);
                     offset = 0;
                     break;
                 case KEY_LEFT:
@@ -93,6 +103,8 @@ void display_clear()
 
 void display_update()
 {
+    clear();
+
     int row, i;
     for (row = -1; row <= 8; row++)
     {
@@ -132,6 +144,8 @@ void display_update()
         addch('\n');
     }
 
-    addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset\nq: exit");
+    addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset");
+    addstr("\nr/l: scroll left/right\nd: disable scroll");
+    addstr("\nq: exit");
 }
 

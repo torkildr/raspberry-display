@@ -5,6 +5,9 @@
 #include "display.h"
 #include "font.h"
 
+int scroll_direction = SCROLL_DISABLED;
+int scroll_offset = 0;
+
 int render_char(char c, int x)
 {
     char *substr = strchr(charLookup, c);
@@ -30,6 +33,11 @@ void render_text(char *text, int offset)
 {
     memset(display_memory, 0, sizeof(display_memory));
 
+    if (scroll_direction != SCROLL_DISABLED) {
+        scroll_offset += scroll_direction;
+        offset = scroll_offset;
+    }
+
     int length = strlen(text);
     int i;
     for (i=0; i < length; i++) {
@@ -38,16 +46,16 @@ void render_text(char *text, int offset)
     }
 }
 
-void display_redraw()
+void display_scroll(int direction)
 {
-    display_clear();
-    display_update();
+    scroll_direction = direction;
+    scroll_offset = 0;
 }
 
 void alarm_wakeup(int i)
 {
     signal(SIGALRM, alarm_wakeup);
-    display_redraw();
+    display_update();
 }
 
 void timer_disable()
