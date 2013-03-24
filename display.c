@@ -2,6 +2,7 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
 #include "display.h"
 #include "font.h"
 
@@ -52,34 +53,42 @@ void display_scroll(enum scrolling direction)
     scroll_offset = 0;
 }
 
-void alarm_wakeup(int i)
+void timer_disable()
 {
-    signal(SIGALRM, alarm_wakeup);
+}
+
+static void timerHandler( int sig, siginfo_t *si, void *uc )
+{
     display_update();
 }
 
-void timer_disable()
-{
-    struct itimerval timer_val = {
-        .it_interval.tv_sec = 0,
-        .it_interval.tv_usec = 0,
-        .it_value.tv_sec = 0,
-        .it_value.tv_usec = 0
-    };
-
-    setitimer(ITIMER_REAL, &timer_val, NULL);
-}
+timer_t update_timer;
 
 void timer_enable()
 {
-    struct itimerval timer_val = {
-        .it_interval.tv_sec = INTERVAL_SEC,
-        .it_interval.tv_usec = INTERVAL_USEC,
-        .it_value.tv_sec = INTERVAL_SEC,
-        .it_value.tv_usec = INTERVAL_USEC
-    };
+    struct sigevent         te;
+    struct itimerspec       its;
+    struct sigaction        sa;
+    int                     sigNo = SIGALRM;
 
-    signal(SIGALRM, alarm_wakeup);
-    setitimer(ITIMER_REAL, &timer_val, 0);
+    /* Set up signal handler. */
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = timerHandler;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(sigNo, &sa, NULL) == -1)
+    {
+        exit(-1);
+    }
+
+    /* Set and enable alarm */
+    te.sigev_notify = SIGEV_SIGNAL;
+    te.sigev_signo = sigNo;
+    timer_create(CLOCK_REALTIME, &te, &update_timer);
+
+    its.it_interval.tv_sec = 0;
+    its.it_interval.tv_nsec = 50 * 1000000;
+    its.it_value.tv_sec = 0;
+    its.it_value.tv_nsec = 50 * 1000000;
+    timer_settime(update_timer, 0, &its, NULL);
 }
 
