@@ -3,50 +3,7 @@
 #include <curses.h>
 #include <string.h>
 #include <time.h>
-#include "font_render.h"
 #include "display.h"
-
-void render_memory()
-{
-    int row, i;
-    for (row = -1; row <= 8; row++)
-    {
-        if (row == -1)
-        {
-            addch(ACS_ULCORNER);
-            for(i = 0; i < X_MAX + 2; i++) addch(ACS_HLINE);
-            addch(ACS_URCORNER);
-            addch('\n');
-            continue;
-        }
-
-        if (row == 8)
-        {
-            addch(ACS_LLCORNER);
-            for(i = 0; i < X_MAX + 2; i++) addch(ACS_HLINE);
-            addch(ACS_LRCORNER);
-            addch('\n');
-            continue;
-            continue;
-        }
-
-        addch(ACS_VLINE);
-        addch(' ');
-
-        int col;
-        for (col = 0; col < X_MAX; col++)
-        {
-            if (display_memory[col] & (1 << row))
-                addch(ACS_CKBOARD);
-            else
-                addch(' ');
-        }
-
-        addch(' ');
-        addch(ACS_VLINE);
-        addch('\n');
-    }
-}
 
 void setup_curses()
 {
@@ -110,25 +67,72 @@ int main()
                     offset += 1;
                     break;
                 case KEY_NPAGE:
-                    offset -= 128;
+                    offset -= X_MAX;
                     break;
                 case KEY_PPAGE:
-                    offset += 128;
+                    offset += X_MAX;
                     break;
             }
         }
 
-        memset(display_memory, 0, sizeof(display_memory));
+        render_text(get_text(), offset);
 
-        render_string(get_text(), offset);
-
-        clear();
-        render_memory();
         addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset\nq: exit");
         halfdelay(1);
     }
 
     endwin();
     return 0;
+}
+
+//
+// mocked stuff from display.h
+//
+//
+void clear_display()
+{
+    clear();
+}
+
+void update_display()
+{
+    int row, i;
+    for (row = -1; row <= 8; row++)
+    {
+        if (row == -1)
+        {
+            addch(ACS_ULCORNER);
+            for(i = 0; i < X_MAX + 2; i++) addch(ACS_HLINE);
+            addch(ACS_URCORNER);
+            addch('\n');
+            continue;
+        }
+
+        if (row == 8)
+        {
+            addch(ACS_LLCORNER);
+            for(i = 0; i < X_MAX + 2; i++) addch(ACS_HLINE);
+            addch(ACS_LRCORNER);
+            addch('\n');
+            continue;
+            continue;
+        }
+
+        addch(ACS_VLINE);
+        addch(' ');
+
+        int col;
+        for (col = 0; col < X_MAX; col++)
+        {
+            if (display_memory[col] & (1 << row))
+                addch(ACS_CKBOARD);
+            else
+                addch(' ');
+        }
+
+        addch(' ');
+        addch(ACS_VLINE);
+        addch('\n');
+    }
 }
 

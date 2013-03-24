@@ -6,5 +6,14 @@
 // 128 columns of 8 bit pixel rows
 unsigned char display_memory[X_MAX];
 
+// render display memory on device
+void update_display();
+
+// clear device
+void clear_display();
+
+// put text in memory
+void render_text(char *text, int offset);
+
 #endif
 

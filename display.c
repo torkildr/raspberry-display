@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include "font_render.h"
 #include "display.h"
 #include "font.h"
 
@@ -28,7 +27,7 @@ int render_char(char c, int x)
     return width;
 }
 
-void render_string(char * text, int x)
+void render_string(char *text, int x)
 {
     int length = strlen(text);
     int i;
@@ -37,5 +36,15 @@ void render_string(char * text, int x)
         int width = render_char(text[i], x);
         x += width + 1;
     }
+}
+
+void render_text(char *text, int offset)
+{
+   memset(display_memory, 0, sizeof(display_memory));
+
+   render_string(text, offset);
+
+   clear_display();
+   update_display();
 }
 

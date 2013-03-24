@@ -1,12 +1,12 @@
-HEADERS = font.h font_render.h display.h
+HEADERS = font.h display.h
 
 default: mock-display
 
-font_render.o: font_render.c $(HEADERS)
-	cc -g -Wall -o font_render.o -c font_render.c
+font_render.o: display.c $(HEADERS)
+	cc -g -Wall -o display.o -c display.c
 
-mock-display: mock-display.c font_render.o
-	cc -g -Wall $< font_render.o -lncurses -o $@
+mock-display: mock-display.c display.o
+	cc -g -Wall $< display.o -lncurses -o $@
 
 clean:
 	rm -f mock-display
