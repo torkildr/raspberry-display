@@ -1,4 +1,6 @@
+#include <string.h>
 #include <curses.h>
+#include <sys/time.h>
 #include "display.h"
 
 //
@@ -10,8 +12,34 @@ void display_clear()
     clear();
 }
 
+struct timeval last_updated;
+
+long get_elapsed_time()
+{
+    struct timeval current_time;
+    gettimeofday(&current_time, NULL);
+
+    long elapsed = (current_time.tv_sec - last_updated.tv_sec) * 1000000 + \
+                   current_time.tv_usec - last_updated.tv_usec;
+
+    gettimeofday(&last_updated, NULL);
+
+    return elapsed;
+}
+
+void show_elapsed_time(long elapsed)
+{
+    char buffer[X_MAX+5];
+    memset(buffer, ' ', X_MAX+4);
+    buffer[X_MAX+3] = '\n';
+    buffer[X_MAX+4] = '\0';
+    snprintf(buffer+X_MAX+4-9, 9, "%.2f sec", (float) elapsed / 1000000);
+    addstr(buffer);
+}
+
 void display_update()
 {
+    long elapsed = get_elapsed_time();
     clear();
 
     int row, i;
@@ -52,6 +80,8 @@ void display_update()
         addch(ACS_VLINE);
         addch('\n');
     }
+
+    show_elapsed_time(elapsed);
 
     addstr("\nnavigate with left/right, page up/down\nt: time\na: supported characters\n0: reset offset");
     addstr("\nr/l: scroll left/right\nd: disable scroll");

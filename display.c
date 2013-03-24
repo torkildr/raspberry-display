@@ -46,7 +46,7 @@ void render_text(char *text, int offset)
     }
 }
 
-void display_scroll(int direction)
+void display_scroll(enum scrolling direction)
 {
     scroll_direction = direction;
     scroll_offset = 0;
