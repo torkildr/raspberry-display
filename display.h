@@ -1,8 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#define INTERVAL_SEC  0      // second
-#define INTERVAL_USEC 100000 // microseconds
+#define INTERVAL_SEC  0   // second
+#define INTERVAL_MS   100 // microseconds
 
 #define X_MAX 128
 
@@ -10,6 +10,11 @@ enum scrolling {
     SCROLL_DISABLED = 0,
     SCROLL_LEFT = -1,
     SCROLL_RIGHT = 1
+};
+
+enum format {
+    TEXT_DATA,
+    TIME_FORMAT
 };
 
 // 128 columns of 8 bit pixel rows
@@ -24,8 +29,8 @@ void display_update();
 void display_clear();
 void display_scroll(enum scrolling direction);
 
-// put text in memory
-void render_text(char *text, int offset);
+void display_text(char *text);
+void display_time(char *format);
 
 // timer stuff
 void timer_enable();
