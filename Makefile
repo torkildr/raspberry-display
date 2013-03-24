@@ -1,13 +1,19 @@
-HEADERS = font.h display.h
+HEADERS=font.h display.h
+CFLAGS=-Wall -g
 
-default: mock-display
+default: mock-curses-client
 
 font_render.o: display.c $(HEADERS)
-	cc -g -Wall -o display.o -c display.c
+	cc $(CFLAGS) -o display.o -c display.c
 
-mock-display: mock-display.c display.o $(HEADERS)
-	cc -g -Wall $< display.o -lncurses -o $@
+mock-display.o: mock-display.c $(HEADERS)
+	cc $(CFLAGS) -o mock-display.o -c mock-display.c
+
+mock-curses-client: curses-client.c display.o mock-display.o $(HEADERS)
+	cc $(CFLAGS) $< display.o mock-display.o -lncurses -o $@
 
 clean:
-	rm -f mock-display
+	rm -f mock-curses-client
+	rm -f curses-client
 	rm -f *.o
+
