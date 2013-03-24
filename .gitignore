@@ -18,5 +18,5 @@
 
 curses-client
 mock-curses-client
-pipe-client
-mock-pipe-client
+fifo-client
+mock-fifo-client
