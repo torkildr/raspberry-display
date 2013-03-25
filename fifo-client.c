@@ -80,7 +80,6 @@ int main()
             else
                 input[len] = '\0';
 
-            sleep(1);
             handle_input(input);
         }
     }
