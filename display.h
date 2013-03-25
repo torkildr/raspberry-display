@@ -26,13 +26,13 @@ unsigned char display_memory[X_MAX];
 void (*display_pre_update)();
 void (*display_post_update)();
 
+// these needs device specific implentation
 void display_enable();
 void display_disable();
-
 void display_update();
 void display_clear();
-void display_scroll(enum scrolling direction);
 
+void display_scroll(enum scrolling direction);
 void display_text(char *text);
 void display_time(char *format);
 

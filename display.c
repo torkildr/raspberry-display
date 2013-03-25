@@ -83,7 +83,7 @@ void display_scroll(enum scrolling direction)
     scroll_offset = 0;
 }
 
-static void timer_handler( int sig, siginfo_t *si, void *uc )
+static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
     if (display_pre_update != NULL)
         display_pre_update();
@@ -98,7 +98,7 @@ static void timer_handler( int sig, siginfo_t *si, void *uc )
 
 void timer_disable()
 {
-    /* TODO */
+    timer_delete(update_timer);
 }
 
 void timer_enable()
