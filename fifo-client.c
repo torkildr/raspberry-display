@@ -13,7 +13,7 @@
 
 char *extract_command(char *input, char *command)
 {
-    // stop at first newline
+    /* Stop at first newline */
     char *substr = strchr(input, '\n');
     if (substr != NULL)
         substr[0] = '\0';
@@ -22,6 +22,7 @@ char *extract_command(char *input, char *command)
     if (substr == NULL)
         return input;
 
+    /* Split command and text */
     int index = substr - input;
     strncpy(command, input, index);
     command[index] = '\0';
@@ -70,11 +71,11 @@ int main()
 
         if (len <= 0) {
             if (len == -1) {
-                // call was interrupted, don't worry
+                /* Call was interrupted, don't worry */
                 if (errno == EINTR)
                     continue;
 
-                // ignore these
+                /* Ignore these */
                 if (errno != EBADF)
                     printf("Read error: %s\n", strerror(errno));
             }

@@ -1,8 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#define INTERVAL_SEC  0   // second
-#define INTERVAL_MS   100 // microseconds
+#define INTERVAL_SEC  0   /* second */
+#define INTERVAL_MS   100 /* microseconds */
 
 #define X_MAX 128
 #define BUFFER_SIZE 1024
@@ -22,23 +22,25 @@ enum format {
 char text_buffer[BUFFER_SIZE];
 char time_format[BUFFER_SIZE];
 
-// 128 columns of 8 bit pixel rows
+/* X_MAX columns of 8 bit pixel rows */
 unsigned char display_memory[X_MAX];
 
+/* Callback functions */
 void (*display_pre_update)();
 void (*display_post_update)();
 
-// these needs device specific implentation
+/* These needs device specific implentation */
 void display_enable();
 void display_disable();
 void display_update();
 void display_clear();
 
+/* Set/manipulate text on display */
 void display_scroll(enum scrolling direction);
 void display_text(char *text);
 void display_time(char *format);
 
-// timer stuff
+/* Timer stuff */
 void timer_enable();
 void timer_disable();
 

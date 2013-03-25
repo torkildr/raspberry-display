@@ -6,50 +6,11 @@
 #include "display.h"
 #include "font.h"
 
+/* Text/time display stuff */
+
 int scroll_direction = SCROLL_DISABLED;
 int scroll_offset = 0;
-
 int format_kind = TEXT_DATA;
-
-timer_t update_timer;
-
-int char_index(char c)
-{
-    char *substr = strchr(charLookup, c);
-    if (substr == NULL)
-        return 0;
-
-    return substr - charLookup;
-}
-
-int text_width(char* text) {
-    int width = 0, i = 0;
-    int length = strlen(text);
-
-    for(i = 0; i < length; i++){
-        int index = char_index(text[i]);
-        width += font_variable[index][0] + 1;
-    }
-
-    return width;
-}
-
-int render_char(char c, int x)
-{
-    int index = char_index(c);
-    int width = font_variable[index][0];
-
-    int col;
-    for (col = 0; col < width; col++) {
-        // dont write to the display buffer if the location is out of range
-        if((x + col) >= 0 && (x + col) < X_MAX) {
-            // reads entire column of the glyph, jams it into memory
-            display_memory[x+col] = font_variable[index][col+1];
-        }
-    }
-
-    return width;
-}
 
 void display_text(char *text)
 {
@@ -75,6 +36,49 @@ void make_time(char *buffer, char *format)
     strftime(buffer, BUFFER_SIZE, format, local_time);
 }
 
+/* Font stuff  */
+
+int char_index(char c)
+{
+    char *substr = strchr(charLookup, c);
+    if (substr == NULL)
+        return 0;
+
+    return substr - charLookup;
+}
+
+int text_width(char* text)
+{
+    int width = 0, i = 0;
+    int length = strlen(text);
+
+    for(i = 0; i < length; i++){
+        int index = char_index(text[i]);
+        width += font_variable[index][0] + 1;
+    }
+
+    return width;
+}
+
+/* Render display memory */
+
+int render_char(char c, int x)
+{
+    int index = char_index(c);
+    int width = font_variable[index][0];
+
+    int col;
+    for (col = 0; col < width; col++) {
+        /* Don't write to the display buffer if the location is out of range */
+        if((x + col) >= 0 && (x + col) < X_MAX) {
+            /* reads entire column of the glyph, jams it into memory */
+            display_memory[x+col] = font_variable[index][col+1];
+        }
+    }
+
+    return width;
+}
+
 void render_text(char *text)
 {
     int offset = 0;
@@ -84,7 +88,7 @@ void render_text(char *text)
         scroll_offset += scroll_direction;
         offset = scroll_offset;
 
-        // text is totally outside visible area, reset offset
+        /* Text is totally outside visible area, reset offset */
         int width = text_width(text);
         if (scroll_direction == SCROLL_LEFT && offset < (0- width))
             display_scroll(SCROLL_RESET);
@@ -116,6 +120,10 @@ void display_scroll(enum scrolling direction)
     if (scroll_direction == SCROLL_DISABLED)
         scroll_offset = 0;
 }
+
+/* Timer */
+
+timer_t update_timer;
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
 {

@@ -3,9 +3,9 @@
 #include <sys/time.h>
 #include "display.h"
 
-//
-// mocked stuff from display.h
-//
+/*
+ * Mocked stuff from display.h
+ */
 
 void display_enable()
 {
