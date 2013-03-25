@@ -10,7 +10,8 @@
 enum scrolling {
     SCROLL_DISABLED = 0,
     SCROLL_LEFT = -1,
-    SCROLL_RIGHT = 1
+    SCROLL_RIGHT = 1,
+    SCROLL_RESET = -99
 };
 
 enum format {
@@ -19,6 +20,7 @@ enum format {
 };
 
 char text_buffer[BUFFER_SIZE];
+char time_format[BUFFER_SIZE];
 
 // 128 columns of 8 bit pixel rows
 unsigned char display_memory[X_MAX];

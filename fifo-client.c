@@ -13,7 +13,12 @@
 
 char *extract_command(char *input, char *command)
 {
-    char *substr = strchr(input, ':');
+    // stop at first newline
+    char *substr = strchr(input, '\n');
+    if (substr != NULL)
+        substr[0] = '\0';
+
+    substr = strchr(input, ':');
     if (substr == NULL)
         return input;
 
@@ -30,17 +35,19 @@ void handle_input(char *input)
     char *text = extract_command(input, command);
 
     if (!strcmp("time", command)) {
-        display_time("");
-        return;
-    }
-    else if (!strcmp("scroll-left", command))
+        display_time(text);
+        display_scroll(SCROLL_RESET);
+    } else if (!strcmp("scroll-left", command)) {
         display_scroll(SCROLL_LEFT);
-    else if (!strcmp("scroll-right", command))
+    } else if (!strcmp("scroll-right", command)) {
         display_scroll(SCROLL_RIGHT);
-    else if (!strcmp("text", command))
+    } else if (!strcmp("scroll-none", command)) {
         display_scroll(SCROLL_DISABLED);
-
-    display_text(text);
+        display_scroll(SCROLL_RESET);
+    } else {
+        display_text(text);
+        display_scroll(SCROLL_RESET);
+    }
 }
 
 int main()

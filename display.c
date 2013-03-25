@@ -11,17 +11,32 @@ int scroll_offset = 0;
 
 int format_kind = TEXT_DATA;
 
-char time_format[101];
-
 timer_t update_timer;
 
-int render_char(char c, int x)
+int char_index(char c)
 {
     char *substr = strchr(charLookup, c);
     if (substr == NULL)
         return 0;
 
-    int index = substr - charLookup;
+    return substr - charLookup;
+}
+
+int text_width(char* text) {
+    int width = 0, i = 0;
+    int length = strlen(text);
+
+    for(i = 0; i < length; i++){
+        int index = char_index(text[i]);
+        width += font_variable[index][0] + 1;
+    }
+
+    return width;
+}
+
+int render_char(char c, int x)
+{
+    int index = char_index(c);
     int width = font_variable[index][0];
 
     int col;
@@ -39,21 +54,25 @@ int render_char(char c, int x)
 void display_text(char *text)
 {
     format_kind = TEXT_DATA;
-    strcpy(text_buffer, text);
+    strncpy(text_buffer, text, BUFFER_SIZE - 1);
 }
 
 void display_time(char *format)
 {
     format_kind = TIME_FORMAT;
-    time_format[100] = '\0';
-    strncpy(time_format, format, 100);
+
+    if (!strcmp("", format))
+        strcpy(time_format, "%A, %b %-d %H:%M");
+    else
+        strncpy(time_format, format, BUFFER_SIZE - 1);
 }
 
-char *get_time()
+void make_time(char *buffer, char *format)
 {
     time_t current_time = time(NULL);
     struct tm *local_time = localtime(&current_time);
-    return asctime(local_time);
+
+    strftime(buffer, BUFFER_SIZE, format, local_time);
 }
 
 void render_text(char *text)
@@ -64,10 +83,17 @@ void render_text(char *text)
     if (scroll_direction != SCROLL_DISABLED) {
         scroll_offset += scroll_direction;
         offset = scroll_offset;
+
+        // text is totally outside visible area, reset offset
+        int width = text_width(text);
+        if (scroll_direction == SCROLL_LEFT && offset < (0- width))
+            display_scroll(SCROLL_RESET);
+        if (scroll_direction == SCROLL_RIGHT && offset > X_MAX)
+            display_scroll(SCROLL_RESET);
     }
 
     if (format_kind == TIME_FORMAT)
-        strcpy(text, get_time());
+        make_time(text_buffer, time_format);
 
     int length = strlen(text);
     int i;
@@ -79,8 +105,16 @@ void render_text(char *text)
 
 void display_scroll(enum scrolling direction)
 {
-    scroll_direction = direction;
-    scroll_offset = 0;
+    if (direction != SCROLL_RESET) {
+        scroll_direction = direction;
+    }
+
+    if (scroll_direction == SCROLL_LEFT)
+        scroll_offset = X_MAX;
+    if (scroll_direction == SCROLL_RIGHT)
+        scroll_offset = 0 - text_width(text_buffer);
+    if (scroll_direction == SCROLL_DISABLED)
+        scroll_offset = 0;
 }
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
