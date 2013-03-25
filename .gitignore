@@ -16,7 +16,12 @@
 *.out
 *.app
 
+# binaries
 curses-client
 mock-curses-client
 fifo-client
 mock-fifo-client
+
+# python
+*.pyc
+

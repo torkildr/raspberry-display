@@ -45,9 +45,10 @@ void handle_input(char *input)
     } else if (!strcmp("scroll-none", command)) {
         display_scroll(SCROLL_DISABLED);
         display_scroll(SCROLL_RESET);
+    } else if (!strcmp("scroll-reset", command)) {
+        display_scroll(SCROLL_RESET);
     } else {
         display_text(text);
-        display_scroll(SCROLL_RESET);
     }
 }
 
