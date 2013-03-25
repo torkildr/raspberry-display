@@ -5,6 +5,7 @@
 #define INTERVAL_MS   100 // microseconds
 
 #define X_MAX 128
+#define BUFFER_SIZE 1024
 
 enum scrolling {
     SCROLL_DISABLED = 0,
@@ -16,6 +17,8 @@ enum format {
     TEXT_DATA,
     TIME_FORMAT
 };
+
+char text_buffer[BUFFER_SIZE];
 
 // 128 columns of 8 bit pixel rows
 unsigned char display_memory[X_MAX];

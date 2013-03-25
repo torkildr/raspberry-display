@@ -11,7 +11,6 @@ int scroll_offset = 0;
 
 int format_kind = TEXT_DATA;
 
-char text_buffer[1024];
 char time_format[101];
 
 timer_t update_timer;

@@ -62,11 +62,18 @@ int main()
         len = read(fd, input, MAX_BUF);
 
         if (len <= 0) {
+            if (len == -1) {
+                // call was interrupted, don't worry
+                if (errno == EINTR)
+                    continue;
+
+                // ignore these
+                if (errno != EBADF)
+                    printf("Read error: %s\n", strerror(errno));
+            }
+
             close(fd);
             fd = open(display_fifo, O_RDONLY);
-
-            if (len < 0)
-                printf("%s\n", strerror(errno));
         } else {
             if (len >= MAX_BUF)
                 input[MAX_BUF - 1] = '\0';
