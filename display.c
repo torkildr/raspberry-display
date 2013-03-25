@@ -85,7 +85,14 @@ void display_scroll(enum scrolling direction)
 
 static void timer_handler( int sig, siginfo_t *si, void *uc )
 {
+    if (display_pre_update != NULL)
+        display_pre_update();
+
     display_update();
+
+    if (display_post_update != NULL)
+        display_post_update();
+
     render_text(text_buffer);
 }
 

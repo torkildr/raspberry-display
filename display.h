@@ -23,7 +23,8 @@ char text_buffer[BUFFER_SIZE];
 // 128 columns of 8 bit pixel rows
 unsigned char display_memory[X_MAX];
 
-void (*display_update_callback)();
+void (*display_pre_update)();
+void (*display_post_update)();
 
 void display_enable();
 void display_disable();

@@ -100,9 +100,6 @@ void display_update()
 
     show_elapsed_time(elapsed);
 
-    if (display_update_callback != NULL)
-        display_update_callback();
-
     refresh();
 }
 

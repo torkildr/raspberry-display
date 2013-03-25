@@ -9,18 +9,39 @@ char *abc_string()
     return " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 }
 
+void clear_text()
+{
+    clear();
+}
+
 void print_help_text()
 {
     addstr("\nt: time\na: supported characters\n0: reset offset");
     addstr("\nr/l: scroll left/right\nd: disable scroll");
     addstr("\nq: exit");
+    refresh();
+}
+
+void init_curses()
+{
+    initscr();
+    timeout(0);
+    cbreak();
+    noecho();
+
+    nonl();
+    intrflush(stdscr, FALSE);
+    keypad(stdscr, TRUE);
 }
 
 int main()
 {
     int done = 0;
 
-    display_update_callback = &print_help_text;
+    display_pre_update = clear_text;
+    display_post_update = print_help_text;
+
+    init_curses();
 
     display_enable();
     timer_enable();
@@ -60,6 +81,7 @@ int main()
     timer_disable();
     display_disable();
 
+    endwin();
     return 0;
 }
 
