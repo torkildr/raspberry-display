@@ -37,9 +37,6 @@ void handle_input(char *input)
     char command[MAX_BUF];
     char *text = extract_command(input, command);
 
-    printf("command: %s\n", command);
-    printf("text: %s\n", text);
-
     if (!strcmp("time", command)) {
         display_time(text);
         display_scroll(SCROLL_RESET);

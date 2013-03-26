@@ -142,9 +142,9 @@ void make_text(char *text)
         /* Text is totally outside visible area, reset offset */
         int width = text_width(text);
         if (scroll_direction == SCROLL_LEFT && offset < (0 - width))
-            display_scroll(SCROLL_RESET);
+            scroll_offset = text_block_width;
         if (scroll_direction == SCROLL_RIGHT && offset > X_MAX)
-            display_scroll(SCROLL_RESET);
+            scroll_offset = 0 - width;
     }
 
     render_string(text_block, text_block_width, text_buffer, offset);
