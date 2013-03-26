@@ -13,7 +13,8 @@ enum scrolling {
     SCROLL_DISABLED = 0,
     SCROLL_LEFT = -1,
     SCROLL_RIGHT = 1,
-    SCROLL_RESET = -99
+    SCROLL_RESET = -99,
+    SCROLL_AUTO = -98,
 };
 
 enum format {

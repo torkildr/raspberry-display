@@ -44,9 +44,10 @@ void handle_input(char *input)
         display_scroll(SCROLL_RIGHT);
     } else if (!strcmp("scroll-none", command)) {
         display_scroll(SCROLL_DISABLED);
-        display_scroll(SCROLL_RESET);
     } else if (!strcmp("scroll-reset", command)) {
         display_scroll(SCROLL_RESET);
+    } else if (!strcmp("scroll-auto", command)) {
+        display_scroll(SCROLL_AUTO);
     } else if (!strcmp("text-time", command)) {
         display_text(text, 1);
     } else {
