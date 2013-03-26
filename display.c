@@ -130,7 +130,7 @@ void make_text(char *text)
     if (format_kind == TIME_TEXT_COMBINED) {
         char left_text[10];
         make_time(left_text, "%H:%M");
-        render_string(display_memory, X_MAX, left_text, 0);
+        render_string(display_memory, TIME_WIDTH - 1, left_text, 0);
         display_memory[TIME_WIDTH-2] = 0xff;
     }
 
