@@ -47,8 +47,10 @@ void handle_input(char *input)
         display_scroll(SCROLL_RESET);
     } else if (!strcmp("scroll-reset", command)) {
         display_scroll(SCROLL_RESET);
+    } else if (!strcmp("text-time", command)) {
+        display_text(text, 1);
     } else {
-        display_text(text);
+        display_text(text, 0);
     }
 }
 
@@ -61,7 +63,7 @@ int main()
     display_enable();
     timer_enable();
 
-    display_text("Waiting for input...");
+    display_text("Waiting for input...", 0);
 
     mkfifo(display_fifo, 0666);
     fd = open(display_fifo, O_RDONLY);

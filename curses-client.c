@@ -16,8 +16,12 @@ void clear_text()
 
 void print_help_text()
 {
-    addstr("\nt: time\na: supported characters\n0: reset offset");
-    addstr("\nr/l: scroll left/right\nd: disable scroll");
+    addstr("\nt: time");
+    addstr("\na: supported characters");
+    addstr("\nb: supported characters + time");
+    addstr("\n0: reset offset");
+    addstr("\nr/l: scroll left/right");
+    addstr("\nd: disable scroll");
     addstr("\nq: exit");
     refresh();
 }
@@ -59,7 +63,10 @@ int main()
                     display_time("");
                     break;
                 case 'a':
-                    display_text(abc_string());
+                    display_text(abc_string(), 0);
+                    break;
+                case 'b':
+                    display_text(abc_string(), 1);
                     break;
                 case 'l':
                     display_scroll(SCROLL_LEFT);

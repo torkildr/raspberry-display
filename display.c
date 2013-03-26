@@ -12,15 +12,29 @@ int scroll_direction = SCROLL_DISABLED;
 int scroll_offset = 0;
 int format_kind = TEXT_DATA;
 
-void display_text(char *text)
+unsigned char *text_block;
+int text_block_width;
+
+void display_text(char *text, int includeTime)
 {
-    format_kind = TEXT_DATA;
+    if (!includeTime) {
+        format_kind = TEXT_DATA;
+        text_block = display_memory;
+        text_block_width = X_MAX;
+    } else {
+        format_kind = TIME_TEXT_COMBINED;
+        text_block = display_memory + TIME_WIDTH;
+        text_block_width = X_MAX - TIME_WIDTH;
+    }
+
     strncpy(text_buffer, text, BUFFER_SIZE - 1);
 }
 
 void display_time(char *format)
 {
     format_kind = TIME_FORMAT;
+    text_block = display_memory;
+    text_block_width = X_MAX;
 
     if (!strcmp("", format))
         strcpy(time_format, "%A, %b %-d %H:%M");
@@ -62,7 +76,7 @@ int text_width(char* text)
 
 /* Render display memory */
 
-int render_char(char c, int x)
+int render_char(unsigned char *display_buffer, int display_width, char c, int x)
 {
     int index = char_index(c);
     int width = font_variable[index][0];
@@ -70,16 +84,26 @@ int render_char(char c, int x)
     int col;
     for (col = 0; col < width; col++) {
         /* Don't write to the display buffer if the location is out of range */
-        if((x + col) >= 0 && (x + col) < X_MAX) {
+        if((x + col) >= 0 && (x + col) < display_width) {
             /* reads entire column of the glyph, jams it into memory */
-            display_memory[x+col] = font_variable[index][col+1];
+            display_buffer[x+col] = font_variable[index][col+1];
         }
     }
 
     return width;
 }
 
-void render_text(char *text)
+void render_string(unsigned char *display_buffer, int display_width, char *text, int offset)
+{
+    int length = strlen(text);
+    int i;
+    for (i=0; i < length; i++) {
+        int width = render_char(display_buffer, display_width, text[i], offset);
+        offset += width + 1;
+    }
+}
+
+void make_text(char *text)
 {
     int offset = 0;
     memset(display_memory, '\0', sizeof(display_memory));
@@ -90,7 +114,7 @@ void render_text(char *text)
 
         /* Text is totally outside visible area, reset offset */
         int width = text_width(text);
-        if (scroll_direction == SCROLL_LEFT && offset < (0- width))
+        if (scroll_direction == SCROLL_LEFT && offset < (0 - width))
             display_scroll(SCROLL_RESET);
         if (scroll_direction == SCROLL_RIGHT && offset > X_MAX)
             display_scroll(SCROLL_RESET);
@@ -98,13 +122,14 @@ void render_text(char *text)
 
     if (format_kind == TIME_FORMAT)
         make_time(text_buffer, time_format);
-
-    int length = strlen(text);
-    int i;
-    for (i=0; i < length; i++) {
-        int width = render_char(text[i], offset);
-        offset += width + 1;
+    if (format_kind == TIME_TEXT_COMBINED) {
+        char left_text[10];
+        make_time(left_text, "%H:%M");
+        render_string(display_memory, X_MAX, left_text, 0);
+        display_memory[TIME_WIDTH-2] = 0xff;
     }
+
+    render_string(text_block, text_block_width, text_buffer, offset);
 }
 
 void display_scroll(enum scrolling direction)
@@ -114,7 +139,7 @@ void display_scroll(enum scrolling direction)
     }
 
     if (scroll_direction == SCROLL_LEFT)
-        scroll_offset = X_MAX;
+        scroll_offset = text_block_width;
     if (scroll_direction == SCROLL_RIGHT)
         scroll_offset = 0 - text_width(text_buffer);
     if (scroll_direction == SCROLL_DISABLED)
@@ -135,7 +160,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     if (display_post_update != NULL)
         display_post_update();
 
-    render_text(text_buffer);
+    make_text(text_buffer);
 }
 
 void timer_disable()
