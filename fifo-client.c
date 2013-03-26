@@ -14,16 +14,18 @@
 char *extract_command(char *input, char *command)
 {
     /* Stop at first newline */
-    char *substr = strchr(input, '\n');
-    if (substr != NULL)
-        substr[0] = '\0';
+    char *newline = strchr(input, '\n');
+    if (newline != NULL)
+        newline[0] = '\0';
 
-    substr = strchr(input, ':');
-    if (substr == NULL)
+    char *split = strchr(input, ':');
+    if (split == NULL) {
+        command[0] = '\0';
         return input;
+    }
 
     /* Split command and text */
-    int index = substr - input;
+    int index = split - input;
     strncpy(command, input, index);
     command[index] = '\0';
 
@@ -34,6 +36,9 @@ void handle_input(char *input)
 {
     char command[MAX_BUF];
     char *text = extract_command(input, command);
+
+    printf("command: %s\n", command);
+    printf("text: %s\n", text);
 
     if (!strcmp("time", command)) {
         display_time(text);
@@ -50,7 +55,7 @@ void handle_input(char *input)
         display_scroll(SCROLL_AUTO);
     } else if (!strcmp("text-time", command)) {
         display_text(text, 1);
-    } else {
+    } else if (!strcmp("text", command)) {
         display_text(text, 0);
     }
 }
