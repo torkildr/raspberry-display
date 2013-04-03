@@ -1,6 +1,8 @@
 RaspberryPi Wall mounted display
 ================================
 
+[![Build Status](https://travis-ci.org/torkildr/raspberry-display.png?branch=master)](https://travis-ci.org/torkildr/raspberry-display)
+
 This project is a "rehash" of the project written for the [Arduino UNO] [2].
 
 Simply put, this will enable you (at least when finished) to controll the [Sure
