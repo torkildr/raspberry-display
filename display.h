@@ -5,18 +5,22 @@
 #define INTERVAL_MS   100 /* microseconds */
 
 #define X_MAX 128
+#define TIME_WIDTH 29
+
 #define BUFFER_SIZE 1024
 
 enum scrolling {
     SCROLL_DISABLED = 0,
     SCROLL_LEFT = -1,
     SCROLL_RIGHT = 1,
-    SCROLL_RESET = -99
+    SCROLL_RESET = -99,
+    SCROLL_AUTO = -98,
 };
 
 enum format {
     TEXT_DATA,
-    TIME_FORMAT
+    TIME_FORMAT,
+    TIME_TEXT_COMBINED
 };
 
 char text_buffer[BUFFER_SIZE];
@@ -37,7 +41,7 @@ void display_clear();
 
 /* Set/manipulate text on display */
 void display_scroll(enum scrolling direction);
-void display_text(char *text);
+void display_text(char *text, int includeTime);
 void display_time(char *format);
 
 /* Timer stuff */

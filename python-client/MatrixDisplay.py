@@ -13,11 +13,15 @@ class MatrixDisplay(object):
     def scroll_reset(self):
         self.__write("scroll-left:")
 
+    def scroll_auto(self):
+        self.__write("scroll-auto:")
+
     def scroll_disable(self):
         self.__write("scroll-none:")
 
-    def text(self, text):
-        self.__write("text:%s" % text)
+    def text(self, text, showTime = False):
+        command = "text-time" if showTime else "text"
+        self.__write("%s:%s" % (command, text))
 
     def time(self, format):
         self.__write("time:%s" % format)

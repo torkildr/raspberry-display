@@ -14,16 +14,18 @@
 char *extract_command(char *input, char *command)
 {
     /* Stop at first newline */
-    char *substr = strchr(input, '\n');
-    if (substr != NULL)
-        substr[0] = '\0';
+    char *newline = strchr(input, '\n');
+    if (newline != NULL)
+        newline[0] = '\0';
 
-    substr = strchr(input, ':');
-    if (substr == NULL)
+    char *split = strchr(input, ':');
+    if (split == NULL) {
+        command[0] = '\0';
         return input;
+    }
 
     /* Split command and text */
-    int index = substr - input;
+    int index = split - input;
     strncpy(command, input, index);
     command[index] = '\0';
 
@@ -44,11 +46,14 @@ void handle_input(char *input)
         display_scroll(SCROLL_RIGHT);
     } else if (!strcmp("scroll-none", command)) {
         display_scroll(SCROLL_DISABLED);
-        display_scroll(SCROLL_RESET);
     } else if (!strcmp("scroll-reset", command)) {
         display_scroll(SCROLL_RESET);
-    } else {
-        display_text(text);
+    } else if (!strcmp("scroll-auto", command)) {
+        display_scroll(SCROLL_AUTO);
+    } else if (!strcmp("text-time", command)) {
+        display_text(text, 1);
+    } else if (!strcmp("text", command)) {
+        display_text(text, 0);
     }
 }
 
@@ -61,7 +66,7 @@ int main()
     display_enable();
     timer_enable();
 
-    display_text("Waiting for input...");
+    display_text("Waiting for input...", 0);
 
     mkfifo(display_fifo, 0666);
     fd = open(display_fifo, O_RDONLY);

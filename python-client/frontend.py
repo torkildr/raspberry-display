@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 
 import time
 from MatrixDisplay import MatrixDisplay
@@ -11,9 +12,19 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    disp.scroll_left()
+    disp.scroll_disable()
 
-    for i in xrange(1000):
+    for i in xrange(100):
         disp.text("Counting, %d " % i)
         time.sleep(0.05)
+
+    time.sleep(2)
+
+    disp.scroll_auto()
+
+    disp.text("This shouldn't scroll", True)
+
+    time.sleep(4)
+
+    disp.text("This is quite a long text, and should scroll...", True)
 
