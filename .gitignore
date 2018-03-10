@@ -1,27 +1,4 @@
-# Object files
-*.o
-
-# Libraries
-*.lib
-*.a
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# binaries
-curses-client
-mock-curses-client
-fifo-client
-mock-fifo-client
-
-# python
 *.pyc
-
+bin/
+obj/
+.*.swp
