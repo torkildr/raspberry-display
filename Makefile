@@ -1,4 +1,4 @@
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -std=gnu99
 
 LDFLAGS=-lrt -lwiringPi -lncurses
 
