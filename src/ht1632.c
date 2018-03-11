@@ -20,9 +20,9 @@ static int spifd = -1;
 void select_chip(int pin)
 {
     for (int i=0; i < panel_count; ++i) {
-        if (pin & HT1632_PANEL_ALL) {
+        if (pin == HT1632_PANEL_ALL) {
             digitalWrite(cs_pins[i], 1);
-        } else if (pin & HT1632_PANEL_NONE) {
+        } else if (pin == HT1632_PANEL_NONE) {
             digitalWrite(cs_pins[i], 0);
         } else {
             digitalWrite(cs_pins[i], cs_pins[i] == pin ? 1 : 0);
@@ -123,7 +123,7 @@ void display_update()
     for (int i = 0; i < panel_count; ++i) {
         unsigned char *pos = display_memory + (i * HT1632_PANEL_WIDTH);
 
-        select_chip(i);
+        select_chip(cs_pins[i]);
         write(spifd, pos, HT1632_PANEL_WIDTH);
         select_chip(HT1632_PANEL_NONE);
     }
