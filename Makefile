@@ -22,14 +22,8 @@ $(OBJDIR)/:
 $(BINDIR)/:
 	mkdir -p $@
 
-$(OBJDIR)/display.o: $(SRCDIR)/display.c $(INCLUDES) $(OBJDIR)/
-	cc $(CFLAGS) $< -c -o $@
-
-$(OBJDIR)/ht1632.o: $(SRCDIR)/ht1632.c $(INCLUDES) $(OBJDIR)/
-	cc $(CFLAGS) $< -c -o $@
-
-$(OBJDIR)/mock-display.o: $(SRCDIR)/mock-display.c $(INCLUDES) $(OBJDIR)/
-	cc $(CFLAGS) $< -c -o $@
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCLUDES) $(OBJDIR)/
+	cc $(CFLAGS) $< $(LDFLAGS) -c -o $@
 
 $(BINDIR)/curses-client: $(SRCDIR)/curses-client.c $(DRIVER) $(INCLUDES) $(BINDIR)/
 	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@

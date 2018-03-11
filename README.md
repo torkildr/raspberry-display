@@ -8,6 +8,8 @@ This project is a restart of the project written for the [Arduino UNO](https://g
 Simply put, this will enable you (at least when finished) to controll the Sure P4 32x8 display,
 and probably any other display using the *ht1632* controller.
 
+Much of the ht1632 driver is adapted from [the repo](https://github.com/DerBer/ht1632clib).
+
 Author: Torkild Retvedt
 
 License
