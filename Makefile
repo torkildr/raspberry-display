@@ -1,6 +1,6 @@
 CFLAGS=-Wall -g -std=gnu99
 
-LDFLAGS=-lrt -lwiringPi -lncurses
+LDFLAGS=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
 
 default: all
 all: mock real
