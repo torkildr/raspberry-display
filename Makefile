@@ -1,7 +1,6 @@
 CFLAGS=-Wall -g
 
-LIBS=-lrt
-INTERACTIVE_LIBS=-lncurses
+LDFLAGS=-lrt -lwiringPi -lncurses
 
 default: all
 all: mock real
@@ -33,16 +32,16 @@ $(OBJDIR)/mock-display.o: $(SRCDIR)/mock-display.c $(INCLUDES) $(OBJDIR)/
 	cc $(CFLAGS) $< -c -o $@
 
 $(BINDIR)/curses-client: $(SRCDIR)/curses-client.c $(DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(DRIVER) $(LIBS) $(INTERACTIVE_LIBS) -o $@
+	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
 
 $(BINDIR)/fifo-client: $(SRCDIR)/fifo-client.c $(DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(DRIVER) $(LIBS) -o $@
+	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
 
 $(BINDIR)/mock-curses-client: $(SRCDIR)/curses-client.c $(MOCK_DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LIBS) $(INTERACTIVE_LIBS) -o $@
+	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LDFLAGS) -o $@
 
 $(BINDIR)/mock-fifo-client: $(SRCDIR)/fifo-client.c $(MOCK_DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LIBS) $(INTERACTIVE_LIBS) -o $@
+	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LDFLAGS) -o $@
 
 clean:
 	rm -Rf $(OBJDIR)

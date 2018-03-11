@@ -2,5 +2,6 @@ language: c
 compiler:
   - gcc
 
+before_script: ./install-wiringPi.sh
 script: make
 
