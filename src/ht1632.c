@@ -21,11 +21,11 @@ void select_chip(int pin)
 {
     for (int i=0; i < panel_count; ++i) {
         if (pin == HT1632_PANEL_ALL) {
-            digitalWrite(cs_pins[i], 1);
+            digitalWrite(cs_pins[i], LOW);
         } else if (pin == HT1632_PANEL_NONE) {
-            digitalWrite(cs_pins[i], 0);
+            digitalWrite(cs_pins[i], HIGH);
         } else {
-            digitalWrite(cs_pins[i], cs_pins[i] == pin ? 1 : 0);
+            digitalWrite(cs_pins[i], cs_pins[i] == pin ? LOW : HIGH);
         }
     }
 }
@@ -116,6 +116,27 @@ void display_clear()
      */
 }
 
+void update_write_buffer(int panel)
+{
+    memset(ht1632_write_buffer, 0, sizeof(ht1632_write_buffer));
+
+    /* start buffer with write command and zero address */
+    ht1632_write_buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
+
+    /* start bitcount after initial command */
+    int n = HT1632_LENGTH_ID + HT1632_LENGTH_ADDR;
+
+    for(int i=0; i < HT1632_PANEL_WIDTH*8; ++i, ++n) {
+        uint8_t src_pos = i / 8;
+        uint8_t src_bit = 7 - (i % 8);
+        uint8_t dst_pos = n / 8;
+        uint8_t dst_bit = 7 - (n % 8);
+
+        uint8_t src_val = (display_memory[src_pos] >> src_bit) & 1;
+        ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
+    }
+}
+
 void display_update()
 {
     piLock(HT1632_WIREPI_LOCK_ID);
@@ -124,7 +145,10 @@ void display_update()
         unsigned char *pos = display_memory + (i * HT1632_PANEL_WIDTH);
 
         select_chip(cs_pins[i]);
+
+        update_write_buffer(i);
         write(spifd, pos, HT1632_PANEL_WIDTH);
+
         select_chip(HT1632_PANEL_NONE);
     }
 

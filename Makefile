@@ -3,11 +3,14 @@ CFLAGS=-Wall -g -std=gnu99
 LDFLAGS=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
 
 default: all
-all: mock real
+all: mock real tests
+
+.PHONY: all mock real tests
 
 SRCDIR   = src
 OBJDIR   = obj
 BINDIR   = bin
+TESTDIR  = tests
 INCLUDES = $(wildcard $(SRCDIR)/*.h)
 
 DRIVER      = $(OBJDIR)/display.o $(OBJDIR)/ht1632.o
@@ -15,11 +18,15 @@ MOCK_DRIVER = $(OBJDIR)/display.o $(OBJDIR)/mock-display.o
 
 real: $(BINDIR)/curses-client $(BINDIR)/fifo-client
 mock: $(BINDIR)/mock-curses-client $(BINDIR)/mock-fifo-client
+tests: $(TESTDIR)/ht1632
 
 $(OBJDIR)/:
 	mkdir -p $@
 
 $(BINDIR)/:
+	mkdir -p $@
+
+$(TESTDIR)/:
 	mkdir -p $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCLUDES) $(OBJDIR)/
@@ -36,6 +43,9 @@ $(BINDIR)/mock-curses-client: $(SRCDIR)/curses-client.c $(MOCK_DRIVER) $(INCLUDE
 
 $(BINDIR)/mock-fifo-client: $(SRCDIR)/fifo-client.c $(MOCK_DRIVER) $(INCLUDES) $(BINDIR)/
 	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LDFLAGS) -o $@
+
+$(TESTDIR)/ht1632: $(SRCDIR)/test_ht1632.c $(DRIVER) $(INCLUDES) $(TESTDIR)/
+	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
 
 clean:
 	rm -Rf $(OBJDIR)
