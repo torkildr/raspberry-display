@@ -5,8 +5,8 @@
 
 /* Display settings */
 #define HT1632_PANEL_WIDTH      32              /* column/pixel width of each panel */
-#define HT1632_PANEL_PINS       10, 11, 12, 13  /* wiringPi pins */
-#define HT1632_SPI_FREQ         2560000         /* Hz */
+#define HT1632_PANEL_PINS       8, 9, 15, 16    /* wiringPi pins */
+#define HT1632_SPI_FREQ         100000          /* Hz */
 
 #define HT1632_PANEL_NONE       -1
 #define HT1632_PANEL_ALL        0xff

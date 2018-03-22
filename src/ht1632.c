@@ -27,6 +27,7 @@ void select_chip(int pin)
         } else {
             digitalWrite(cs_pins[i], cs_pins[i] == pin ? LOW : HIGH);
         }
+        delayMicroseconds(10);
     }
 }
 
@@ -50,6 +51,7 @@ void send_cmd(int pin, uint8_t cmd)
     data <<= (16 - HT1632_LENGTH_DATA - HT1632_LENGTH_ID);
     reverse_endian(&data, sizeof(data));
 
+    // this should probably be done a common place, and handle errors
     piLock(HT1632_WIREPI_LOCK_ID);
 
     select_chip(pin);
@@ -86,15 +88,14 @@ void display_enable()
     for (int i = 0; i < panel_count; ++i) {
         pinMode(cs_pins[i], OUTPUT);
     }
+    
 
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_MASTER);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_RC);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + 5);
 
     printf("Display initialized\n");
 }
@@ -122,7 +123,7 @@ void update_write_buffer(int panel)
 
     /* start buffer with write command and zero address */
     ht1632_write_buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
-
+    
     /* start bitcount after initial command */
     int n = HT1632_LENGTH_ID + HT1632_LENGTH_ADDR;
 
@@ -142,12 +143,10 @@ void display_update()
     piLock(HT1632_WIREPI_LOCK_ID);
 
     for (int i = 0; i < panel_count; ++i) {
-        unsigned char *pos = display_memory + (i * HT1632_PANEL_WIDTH);
-
         select_chip(cs_pins[i]);
 
         update_write_buffer(i);
-        write(spifd, pos, HT1632_PANEL_WIDTH);
+        write(spifd, ht1632_write_buffer, sizeof(ht1632_write_buffer));
 
         select_chip(HT1632_PANEL_NONE);
     }
