@@ -4,3 +4,4 @@ obj/
 .*.swp
 wiringPi/
 tests/
+src/*.o

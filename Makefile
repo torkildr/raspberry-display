@@ -1,53 +1,45 @@
-CFLAGS=-Wall -g -std=gnu99
+BINDIR:=bin
 
-LDFLAGS=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
+PROGRAM_CURSES:=$(BINDIR)/curses-client
+PROGRAM_FIFO:=$(BINDIR)/fifo-client
+PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
+PROGRAM_MOCK_FIFO:=$(BINDIR)/mock-fifo-client
 
-default: all
-all: mock real tests
+WARNINGS:=-Wall
+LDFLAGS:=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
+CFLAGS:=-std=gnu99 $(WARNINGS) $(LDFLAGS)
 
-.PHONY: all mock real tests
+C_SRCS:=$(wildcard src/*.c)
+DEPFILES:=${C_SRCS:.c=.d}
+OBJECTS:=${C_SRCS:.c=.o}
 
-SRCDIR   = src
-OBJDIR   = obj
-BINDIR   = bin
-TESTDIR  = tests
-INCLUDES = $(wildcard $(SRCDIR)/*.h)
+REAL_DISPLAY:=src/display.o src/ht1632.o
+MOCK_DISPLAY:=src/display.o src/mock-display.o
 
-DRIVER      = $(OBJDIR)/display.o $(OBJDIR)/ht1632.o
-MOCK_DRIVER = $(OBJDIR)/display.o $(OBJDIR)/mock-display.o
+.PHONY: build clean
 
-real: $(BINDIR)/curses-client $(BINDIR)/fifo-client
-mock: $(BINDIR)/mock-curses-client $(BINDIR)/mock-fifo-client
-tests: $(TESTDIR)/ht1632
+build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_FIFO) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_FIFO)
 
-$(OBJDIR)/:
-	mkdir -p $@
+debug: CFLAGS += -DDEBUG_ENABLED -g
+debug: build
+
+clean:
+	$(RM) -R $(BINDIR)
+	$(RM) $(OBJECTS)
 
 $(BINDIR)/:
 	mkdir -p $@
 
-$(TESTDIR)/:
-	mkdir -p $@
+$(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY)
+	cc -o $@ $^ $(CFLAGS)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCLUDES) $(OBJDIR)/
-	cc $(CFLAGS) $< $(LDFLAGS) -c -o $@
+$(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY)
+	cc -o $@ $^ $(CFLAGS)
 
-$(BINDIR)/curses-client: $(SRCDIR)/curses-client.c $(DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
+$(PROGRAM_FIFO): src/fifo-client.o $(REAL_DISPLAY)
+	cc -o $@ $^ $(CFLAGS)
 
-$(BINDIR)/fifo-client: $(SRCDIR)/fifo-client.c $(DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
+$(PROGRAM_MOCK_FIFO): src/fifo-client.o $(MOCK_DISPLAY)
+	cc -o $@ $^ $(CFLAGS)
 
-$(BINDIR)/mock-curses-client: $(SRCDIR)/curses-client.c $(MOCK_DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LDFLAGS) -o $@
-
-$(BINDIR)/mock-fifo-client: $(SRCDIR)/fifo-client.c $(MOCK_DRIVER) $(INCLUDES) $(BINDIR)/
-	cc $(CFLAGS) $< $(MOCK_DRIVER) $(LDFLAGS) -o $@
-
-$(TESTDIR)/ht1632: $(SRCDIR)/test_ht1632.c $(DRIVER) $(INCLUDES) $(TESTDIR)/
-	cc $(CFLAGS) $< $(DRIVER) $(LDFLAGS) -o $@
-
-clean:
-	rm -Rf $(OBJDIR)
-	rm -Rf $(BINDIR)
-
+-include $(DEPFILES)
