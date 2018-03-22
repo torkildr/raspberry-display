@@ -95,7 +95,7 @@ void display_enable()
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + 5);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + 8);
 
     printf("Display initialized\n");
 }
@@ -119,6 +119,7 @@ void display_clear()
 
 void update_write_buffer(int panel)
 {
+    uint8_t offset = panel * HT1632_PANEL_WIDTH;
     memset(ht1632_write_buffer, 0, sizeof(ht1632_write_buffer));
 
     /* start buffer with write command and zero address */
@@ -129,11 +130,11 @@ void update_write_buffer(int panel)
 
     for(int i=0; i < HT1632_PANEL_WIDTH*8; ++i, ++n) {
         uint8_t src_pos = i / 8;
-        uint8_t src_bit = 7 - (i % 8);
+        uint8_t src_bit = i % 8;
         uint8_t dst_pos = n / 8;
         uint8_t dst_bit = 7 - (n % 8);
 
-        uint8_t src_val = (display_memory[src_pos] >> src_bit) & 1;
+        uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
         ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
     }
 }
