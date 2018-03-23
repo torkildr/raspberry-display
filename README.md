@@ -23,6 +23,23 @@ for test setups or debugging the API usage.
 
 ## API
 
+The API for the `fifo-client` is, as default, exposed through `/tmp/matrix_display`.
+
+All commands are on the format, `command:argument`. Some commands do not take an argument, in this case, it will simply
+be omitted, e.g `command:`.
+
+Command     | Argument  | Details
+------------|-----------|---------
+text        | *text to display* | This command changes the text to render. It will not change other parameters, like scroll mode.
+text-time   | *text to display* | This will show the current time, together with a user supplied text
+time        | *optional format* | Display a dynamic time, using `strftime` formatting.
+scroll-left  | n/a | Scroll text from right to left
+scroll-right | n/a | Scroll text from left to right
+scroll-auto  | n/a | Scroll text if it exceeds the display area
+scroll-none  | n/a | Disable scrolling
+scroll-reset | n/a | Restart scrolling, typically useful when changing text
+brightness   | 0-15 | Set display brightness 
+
 ## Building
 First install the system pre-requisites and the WiringPi library.
 
@@ -56,7 +73,7 @@ Pin | Usage
 19  | MOSI/Data
 23  | SCLK/WR
 
-![Example Wiring](https://raw.githubusercontent.com/torkildr/raspberry-display/master/mages/raspberry-wiring.png)
+![Example Wiring](https://raw.githubusercontent.com/torkildr/raspberry-display/master/images/raspberry-wiring.png)
 
 ## Acknowledgements
 This project is written by Torkild Retvedt, as a rewrite of a similar project for the [Arduino UNO](https://github.com/torkildr/display)
