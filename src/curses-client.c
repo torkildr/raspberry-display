@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <curses.h>
 #include <string.h>
+
 #include "display.h"
+
+static uint8_t brightness = 0;
 
 char *abc_string()
 {
@@ -21,6 +25,7 @@ void print_help_text()
     addstr("\nb: supported characters + time");
     addstr("\n0: reset offset");
     addstr("\nr/l: scroll left/right");
+    addstr("\n+/-: change brightness");
     addstr("\nd: disable scroll");
     addstr("\nq: exit");
     refresh();
@@ -50,6 +55,7 @@ int main()
     display_enable();
     timer_enable();
     display_time("");
+    display_brightness(brightness);
 
     while (!done) {
         int c;
@@ -73,6 +79,16 @@ int main()
                     break;
                 case 'r':
                     display_scroll(SCROLL_RIGHT);
+                    break;
+                case '+':
+                    if (brightness < 0xF) {
+                      display_brightness(++brightness);
+                    }
+                    break;
+                case '-':
+                    if (brightness > 1) {
+                      display_brightness(--brightness);
+                    }
                     break;
                 case 'd':
                 case '0':

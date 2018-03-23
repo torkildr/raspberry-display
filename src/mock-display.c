@@ -7,6 +7,8 @@
  * Mocked stuff from display.h
  */
 
+static uint8_t brightness = 0;
+
 void display_enable()
 {
     initscr();
@@ -44,14 +46,34 @@ long get_elapsed_time()
     return elapsed;
 }
 
+void left_aligned_text(char *text)
+{
+    int width = X_MAX + 4;
+    char buffer[width + 1];
+    memset(buffer, ' ', width);
+
+    int length = strlen(text) + 1;
+    snprintf(buffer + width - length, length + 1, "%s\n", text);
+    addstr(buffer);
+}
+
 void show_elapsed_time(long elapsed)
 {
-    char buffer[X_MAX+5];
-    memset(buffer, ' ', X_MAX+4);
-    buffer[X_MAX+3] = '\n';
-    buffer[X_MAX+4] = '\0';
-    snprintf(buffer+X_MAX+4-9, 9, "%.2f sec", (float) elapsed / 1000000);
-    addstr(buffer);
+    char buffer[50];
+    snprintf(buffer, 49, "Update frequency: %.2f sec", (float) elapsed / 1000000);
+    left_aligned_text(buffer);
+}
+
+void show_brightness()
+{
+    char buffer[50];
+    snprintf(buffer, 49, "Brightness: %d", brightness & 0xF);
+    left_aligned_text(buffer);
+}
+
+void display_brightness(uint8_t new_brightness)
+{
+    brightness = new_brightness;
 }
 
 void display_update()
@@ -99,6 +121,7 @@ void display_update()
     }
 
     show_elapsed_time(elapsed);
+    show_brightness();
 
     refresh();
 }

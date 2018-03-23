@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
@@ -38,6 +40,7 @@ void display_enable();
 void display_disable();
 void display_update();
 void display_clear();
+void display_brightness(uint8_t brightness);
 
 /* Set/manipulate text on display */
 void display_scroll(enum scrolling direction);

@@ -3,18 +3,19 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
+
 #include "display.h"
 #include "font.h"
 
 /* Text/time display stuff */
 
-int scroll_direction = SCROLL_DISABLED;
-int scroll_offset = 0;
-int format_kind = TEXT_DATA;
+static int scroll_direction = SCROLL_DISABLED;
+static int scroll_offset = 0;
+static int format_kind = TEXT_DATA;
 
-unsigned char *text_block;
-int text_block_width;
-int autoscroll = 0;
+static unsigned char *text_block;
+static int text_block_width;
+static int autoscroll = 0;
 
 /* Font stuff  */
 

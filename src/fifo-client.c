@@ -1,15 +1,19 @@
-#include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <stdio.h>
-#include <string.h>
 #include <time.h>
-#include <signal.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include "display.h"
 
 #define MAX_BUF 1024
+
+static char *display_fifo = "/tmp/matrix_display";
 
 char *extract_command(char *input, char *command)
 {
@@ -50,6 +54,11 @@ void handle_input(char *input)
         display_scroll(SCROLL_RESET);
     } else if (!strcmp("scroll-auto", command)) {
         display_scroll(SCROLL_AUTO);
+    } else if (!strcmp("brightness", command)) {
+        int brightness = atoi(text);
+        if (brightness >= 0 && brightness <= 0xF) {
+          display_brightness(brightness);
+        }
     } else if (!strcmp("text-time", command)) {
         display_text(text, 1);
     } else if (!strcmp("text", command)) {
@@ -61,7 +70,6 @@ int main()
 {
     int fd;
     char input[MAX_BUF];
-    char *display_fifo = "/tmp/matrix_display";
 
     display_enable();
     timer_enable();

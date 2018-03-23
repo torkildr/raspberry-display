@@ -95,9 +95,15 @@ void display_enable()
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + 8);
+
+    display_brightness(8);
 
     printf("Display initialized\n");
+}
+
+void display_brightness(uint8_t brightness)
+{
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + (brightness & 0xF));
 }
 
 void display_disable()
