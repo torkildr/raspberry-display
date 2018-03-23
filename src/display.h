@@ -4,7 +4,7 @@
 #define DISPLAY_H
 
 #define INTERVAL_SEC  0   /* second */
-#define INTERVAL_MS   100 /* microseconds */
+#define INTERVAL_MS   70 /* microseconds */
 
 #define X_MAX 128
 #define TIME_WIDTH 29

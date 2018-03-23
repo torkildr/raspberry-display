@@ -4,7 +4,7 @@
 #include "display.h"
 
 /* Display settings */
-#define HT1632_PANEL_WIDTH      32              /* column/pixel width of each panel */
+#define HT1632_PANEL_WIDTH      X_MAX / 4       /* column/pixel width of each panel */
 #define HT1632_PANEL_PINS       8, 9, 15, 16    /* wiringPi pins */
 #define HT1632_SPI_FREQ         256000          /* Hz */
 

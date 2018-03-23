@@ -126,13 +126,15 @@ void display_clear()
 void update_write_buffer(int panel)
 {
     uint8_t offset = panel * HT1632_PANEL_WIDTH;
-    memset(ht1632_write_buffer, 0, sizeof(ht1632_write_buffer));
+    int buffer_size = sizeof(ht1632_write_buffer);
+    memset(ht1632_write_buffer, 0, buffer_size);
 
     /* start buffer with write command and zero address */
     ht1632_write_buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
     
     /* start bitcount after initial command */
     int n = HT1632_LENGTH_ID + HT1632_LENGTH_ADDR;
+    int excess_bits = ((buffer_size * 8) - n) % 8;
 
     for(int i=0; i < HT1632_PANEL_WIDTH*8; ++i, ++n) {
         uint8_t src_pos = i / 8;
@@ -141,7 +143,22 @@ void update_write_buffer(int panel)
         uint8_t dst_bit = 7 - (n % 8);
 
         uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
+        //uint8_t src_val = 1;
         ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
+
+        /*
+         * Hack to work around Raspberry Pi's 8-bit SPI write.
+         *
+         * Since the Pi will write SPI data in chunks of 8 bits, and the ht1632
+         * write command and adress is 10 bits wide, we will in most cases end up
+         * with excess bits in the end of the buffer. It tours out that these
+         * bits are written back at the first address. To work around this, we
+         * simple write the first couple of bits both at the start and at the end
+         * of the SPI data. No biggie...
+         */
+        if (i < excess_bits) {
+            ht1632_write_buffer[buffer_size - 1] |= src_val << (excess_bits - i - 1);
+        }
     }
 }
 
