@@ -132,7 +132,7 @@ void make_text(char *text)
         char left_text[10];
         make_time(left_text, "%H:%M");
         render_string(display_memory, TIME_WIDTH - 1, left_text, 0);
-        display_memory[TIME_WIDTH-2] = 0xff;
+        display_memory[TIME_WIDTH-2] = 0xFF;
     }
 
     /* Prepare scroll stuff */

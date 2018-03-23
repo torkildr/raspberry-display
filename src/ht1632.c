@@ -88,7 +88,6 @@ void display_enable()
     for (int i = 0; i < panel_count; ++i) {
         pinMode(cs_pins[i], OUTPUT);
     }
-    
 
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
     send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
@@ -131,7 +130,7 @@ void update_write_buffer(int panel)
 
     /* start buffer with write command and zero address */
     ht1632_write_buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
-    
+
     /* start bitcount after initial command */
     int n = HT1632_LENGTH_ID + HT1632_LENGTH_ADDR;
     int excess_bits = ((buffer_size * 8) - n) % 8;
