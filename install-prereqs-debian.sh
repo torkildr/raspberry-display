@@ -3,5 +3,5 @@
 set -ex
 
 sudo apt update
-sudo apt install libncurses5-dev 
+sudo apt install libncurses5-dev build-essential
 
