@@ -37,6 +37,27 @@ Once this is done, you should be able to build the project with
 make
 ```
 
+## Hardware
+
+The application is designed to use `spi0` on the rasperry pi, and four generic GPIO pins. This can be changed, but for a basic
+setup, just follow the reference connection.
+
+All pins referenced are [physical pins](https://pinout.xyz/pinout#). The application uses WiringPi-numbering for CS-pins. These
+will be different from the physical pins (use [this guide](https://pinout.xyz/pinout/wiringpi) for WiringPi numbering).
+
+Pin | Usage
+--- | -----
+2   | 5V
+6   | Ground
+3   | CS1
+5   | CS2
+8   | CS3
+10  | CS4
+19  | MOSI/Data
+23  | SCLK/WR
+
+![Example Wiring](https://raw.githubusercontent.com/torkildr/raspberry-display/master/mages/raspberry-wiring.png)
+
 ## Acknowledgements
 This project is written by Torkild Retvedt, as a rewrite of a similar project for the [Arduino UNO](https://github.com/torkildr/display)
 
