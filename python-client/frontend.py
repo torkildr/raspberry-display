@@ -2,10 +2,10 @@
 # coding=utf-8
 
 import time
-from MatrixDisplay import MatrixDisplay
+from RaspberryDisplay import RaspberryDisplay
 
 if __name__ == "__main__":
-    disp = MatrixDisplay("/tmp/matrix_display")
+    disp = RaspberryDisplay("/tmp/raspberry-display")
 
     disp.scroll_disable()
     disp.time("Today is a %A")

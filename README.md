@@ -25,7 +25,7 @@ Take a look at the [reference Python client](python-client), for typical usage.
 
 ## API
 
-The API for the `fifo-client` is exposed through the named pipe at `/tmp/matrix_display`.
+The API for the `fifo-client` is exposed through the named pipe at `/tmp/raspberry-display`.
 
 All commands are on the format, `command:argument`. Some commands do not take an argument, in this case, it will simply
 be omitted, e.g `command:`.

@@ -13,7 +13,7 @@
 
 #define MAX_BUF 1024
 
-static char *display_fifo = "/tmp/matrix_display";
+static char *display_fifo = "/tmp/raspberry-display";
 
 char *extract_command(char *input, char *command)
 {

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class MatrixDisplay(object):
+class RaspberryDisplay(object):
     def __init__(self, filename):
         self.filename = filename
 
