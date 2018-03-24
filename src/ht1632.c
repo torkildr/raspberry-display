@@ -43,6 +43,16 @@ void *reverse_endian(void *p, size_t size) {
     return p;
 }
 
+void ht1632_write(const void *buffer, size_t size)
+{
+    ssize_t length = write(spifd, buffer, size);
+
+    if (length == -1) {
+        printf("Device write failed!: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
 void send_cmd(int pin, uint8_t cmd)
 {
     uint16_t data = HT1632_ID_CMD;
@@ -51,11 +61,10 @@ void send_cmd(int pin, uint8_t cmd)
     data <<= (16 - HT1632_LENGTH_DATA - HT1632_LENGTH_ID);
     reverse_endian(&data, sizeof(data));
 
-    // this should probably be done a common place, and handle errors
     piLock(HT1632_WIREPI_LOCK_ID);
 
     select_chip(pin);
-    write(spifd, &data, 2);
+    ht1632_write(&data, 2);
     select_chip(HT1632_PANEL_NONE);
 
     piUnlock(HT1632_WIREPI_LOCK_ID);
@@ -142,16 +151,15 @@ void update_write_buffer(int panel)
         uint8_t dst_bit = 7 - (n % 8);
 
         uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
-        //uint8_t src_val = 1;
         ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
 
         /*
          * Hack to work around Raspberry Pi's 8-bit SPI write.
          *
          * Since the Pi will write SPI data in chunks of 8 bits, and the ht1632
-         * write command and adress is 10 bits wide, we will in most cases end up
-         * with excess bits in the end of the buffer. It tours out that these
-         * bits are written back at the first address. To work around this, we
+         * write command and address is 10 bits wide, we will in most cases end up
+         * with excess bits at the end of the buffer. It tourns out that these
+         * bits wrap around and are written to the starting address. To work around this, we
          * simple write the first couple of bits both at the start and at the end
          * of the SPI data. No biggie...
          */
@@ -169,7 +177,7 @@ void display_update()
         select_chip(cs_pins[i]);
 
         update_write_buffer(i);
-        write(spifd, ht1632_write_buffer, sizeof(ht1632_write_buffer));
+        ht1632_write(ht1632_write_buffer, sizeof(ht1632_write_buffer));
 
         select_chip(HT1632_PANEL_NONE);
     }
