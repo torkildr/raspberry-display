@@ -3,7 +3,7 @@ RaspberryPi Wall mounted display
 [![Build Status](https://travis-ci.org/torkildr/raspberry-display.svg?branch=master)](https://travis-ci.org/torkildr/raspberry-display)
 
 ## Overview
-This project allows to control the Sure P4 32x8 displays. Though, it is written for this specific version, it should
+This project allows you to control the Sure P4 32x8 displays. Though, it is written for this specific version, it should
 pretty much work for all Holtek HT1632 based matrix displays.
  
 The main goal is to give a generic, pluggable way to interface different kinds of applications with the display, without having to
@@ -11,27 +11,29 @@ bother with the driver stuff.
 
 ## Usage
 
-The application is basically two parts.
+The application consists of two two basic parts:
 
 `curses-client`, an interactive client, probably best used to test the hardware setup and display capabilites.
 
-`fifo-client`, this client will listen for API commands on a fifo-queue. This queue is what you will interface with from
+`fifo-client`, this client will listen for API queued commands on named pipe. This queue is what you will interface with from
 your own application.
 
 Both of these applications also come in a `mock-` version. These will work without the physical hardware, and is perfect
 for test setups or debugging the API usage.
 
+Take a look at the [reference Python client](python-client), for typical usage.
+
 ## API
 
-The API for the `fifo-client` is, as default, exposed through `/tmp/matrix_display`.
+The API for the `fifo-client` is exposed through the named pipe at `/tmp/matrix_display`.
 
 All commands are on the format, `command:argument`. Some commands do not take an argument, in this case, it will simply
 be omitted, e.g `command:`.
 
 Command     | Argument  | Details
 ------------|-----------|---------
-text        | *text to display* | This command changes the text to render. It will not change other parameters, like scroll mode.
-text-time   | *text to display* | This will show the current time, together with a user supplied text
+text        | *text to display* | Changes the text to render. It will not change other parameters, like scroll mode.
+text-time   | *text to display* | Shows the current time, together with a user supplied text
 time        | *optional format* | Display a dynamic time, using `strftime` formatting.
 scroll-left  | n/a | Scroll text from right to left
 scroll-right | n/a | Scroll text from left to right
@@ -54,6 +56,12 @@ Once this is done, you should be able to build the project with
 make
 ```
 
+## Installation
+
+TODO: In the future, `make install` will install binaries and systemd files.
+
+For now, run `fifo-client` in the `bin` output directory.
+
 ## Hardware
 
 The application is designed to use `spi0` on the rasperry pi, and four generic GPIO pins. This can be changed, but for a basic
@@ -73,7 +81,7 @@ Pin | Usage
 19  | MOSI/Data
 23  | SCLK/WR
 
-![Example Wiring](https://raw.githubusercontent.com/torkildr/raspberry-display/master/images/raspberry-wiring.png)
+![Example Wiring](images/raspberry-wiring.png)
 
 ## Acknowledgements
 This project is written by Torkild Retvedt, as a rewrite of a similar project for the [Arduino UNO](https://github.com/torkildr/display)
