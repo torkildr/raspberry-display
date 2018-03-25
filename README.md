@@ -28,7 +28,7 @@ works together is running `./bin/mock-fifo-client` and `python python-client/fro
 
 The API for the `fifo-client` is exposed through the named pipe at `/tmp/raspberry-display`.
 
-All commands are on the format, `command:argument`. Some commands do not take an argument, in this case, it will simply
+All commands are on the format, `command:argument`, terminated by `\n`. Some commands do not take an argument, in this case, it will simply
 be omitted, e.g `command:`.
 
 Command     | Argument  | Details
