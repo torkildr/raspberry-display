@@ -46,16 +46,18 @@ void handle_input(char *input)
     if (!strcmp("time", command)) {
         display_time(text);
         display_scroll(SCROLL_RESET);
-    } else if (!strcmp("scroll-left", command)) {
-        display_scroll(SCROLL_LEFT);
-    } else if (!strcmp("scroll-right", command)) {
-        display_scroll(SCROLL_RIGHT);
-    } else if (!strcmp("scroll-none", command)) {
-        display_scroll(SCROLL_DISABLED);
-    } else if (!strcmp("scroll-reset", command)) {
-        display_scroll(SCROLL_RESET);
-    } else if (!strcmp("scroll-auto", command)) {
-        display_scroll(SCROLL_AUTO);
+    } else if (!strcmp("scroll", command)) {
+        if (!strcmp("left", text)) {
+            display_scroll(SCROLL_LEFT);
+        } else if (!strcmp("right", text)) {
+            display_scroll(SCROLL_RIGHT);
+        } else if (!strcmp("none", text)) {
+            display_scroll(SCROLL_DISABLED);
+        } else if (!strcmp("reset", text)) {
+            display_scroll(SCROLL_RESET);
+        } else if (!strcmp("auto", text)) {
+            display_scroll(SCROLL_AUTO);
+        }
     } else if (!strcmp("brightness", command)) {
         int brightness = atoi(text);
         if (brightness >= 0 && brightness <= 0xF) {

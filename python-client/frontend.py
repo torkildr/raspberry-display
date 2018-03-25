@@ -7,7 +7,7 @@ from RaspberryDisplay import RaspberryDisplay
 if __name__ == "__main__":
     disp = RaspberryDisplay("/tmp/raspberry-display", debug=True)
 
-    disp.scroll_disable()
+    disp.scroll("none")
     disp.time("Today is a %A")
 
     time.sleep(2)
@@ -19,15 +19,13 @@ if __name__ == "__main__":
     
     time.sleep(2)
 
-    disp.scroll_disable()
-
     for i in xrange(100):
         disp.text("Counting, %d " % i)
         time.sleep(0.05)
 
     time.sleep(2)
 
-    disp.scroll_auto()
+    disp.scroll("auto")
 
     disp.text("This shouldn't scroll", True)
 

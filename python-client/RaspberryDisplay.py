@@ -15,21 +15,9 @@ class RaspberryDisplay(object):
     def __close_pipe(self):
         self.fifo.close()
 
-    def scroll_left(self):
-        self.__write("scroll-left:")
-
-    def scroll_right(self):
-        self.__write("scroll-right:")
-
-    def scroll_reset(self):
-        self.__write("scroll-left:")
-
-    def scroll_auto(self):
-        self.__write("scroll-auto:")
-
-    def scroll_disable(self):
-        self.__write("scroll-none:")
-
+    def scroll(self, value):
+        self.__write("scroll:%s" % value)
+    
     def text(self, text, showTime = False):
         command = "text-time" if showTime else "text"
         self.__write("%s:%s" % (command, text))

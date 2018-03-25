@@ -21,7 +21,8 @@ your own application.
 Both of these applications also come in a `mock-` version. These will work without the physical hardware, and is perfect
 for test setups or debugging the API usage.
 
-Take a look at the [reference Python client](python-client), for typical usage.
+Take a look at the [reference Python client](python-client), for typical usage. A good starting point to understand how stuff
+works together is running `./bin/mock-fifo-client` and `python python-client/frontend.py`
 
 ## API
 
@@ -35,12 +36,12 @@ Command     | Argument  | Details
 text        | *text to display* | Changes the text to render. It will not change other parameters, like scroll mode.
 text-time   | *text to display* | Shows the current time, together with a user supplied text
 time        | *optional format* | Display a dynamic time, using `strftime` formatting.
-scroll-left  | n/a | Scroll text from right to left
-scroll-right | n/a | Scroll text from left to right
-scroll-auto  | n/a | Scroll text if it exceeds the display area
-scroll-none  | n/a | Disable scrolling
-scroll-reset | n/a | Restart scrolling, typically useful when changing text
-brightness   | 0-15 | Set display brightness 
+scroll      | left  | Scroll text from right to left
+scroll      | right | Scroll text from left to right
+scroll      | auto  | Scroll text if it exceeds the display area
+scroll      | none  | Disable scrolling
+scroll      | reset | Restart scrolling, typically useful when changing text
+brightness  | 0-15  | Set display brightness 
 
 ## Building
 First install the system pre-requisites and the WiringPi library.
