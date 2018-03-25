@@ -5,7 +5,7 @@ import time
 from RaspberryDisplay import RaspberryDisplay
 
 if __name__ == "__main__":
-    disp = RaspberryDisplay("/tmp/raspberry-display", debug=True)
+    disp = RaspberryDisplay(debug=True)
 
     disp.scroll("none")
     disp.time("Today is a %A")
