@@ -42,6 +42,7 @@ scroll      | auto  | Scroll text if it exceeds the display area
 scroll      | none  | Disable scrolling
 scroll      | reset | Restart scrolling, typically useful when changing text
 brightness  | 0-15  | Set display brightness 
+quit        | *n/a*  | Quit client and turn off display 
 
 ## Building
 First install the system pre-requisites and the WiringPi library.
