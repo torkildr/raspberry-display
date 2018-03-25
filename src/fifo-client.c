@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,10 +11,11 @@
 #include <unistd.h>
 
 #include "display.h"
+#include "fifo-client.h"
 
 #define MAX_BUF 1024
 
-static char *display_fifo = "/tmp/raspberry-display";
+static bool running;
 
 char *extract_command(char *input, char *command)
 {
@@ -63,46 +65,70 @@ void handle_input(char *input)
         display_text(text, 1);
     } else if (!strcmp("text", command)) {
         display_text(text, 0);
+    } else if (!strcmp("quit", command)) {
+        running = false;
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    static char *display_fifo;
+    running = true;
+
+    if (argc >= 2) {
+        display_fifo = argv[1];
+    } else {
+        display_fifo = "/tmp/raspberry-display";
+    }
+
+    printf("Reading from pipe: %s\n", display_fifo);
+
     int fd;
-    char input[MAX_BUF];
+
+    unlink(display_fifo);
+    mkfifo(display_fifo, 0666);
+    if ((fd = open(display_fifo, O_RDONLY | O_NONBLOCK)) == -1) {
+        perror("Error opening pipe");
+        exit(EXIT_FAILURE);
+    }
 
     display_enable();
     timer_enable();
 
     display_text("Waiting for input...", 0);
 
-    mkfifo(display_fifo, 0666);
-    fd = open(display_fifo, O_RDONLY);
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(fd, &read_fds);
+    
+    char read_buffer[MAX_BUF];
 
-    int len;
-    for (;;) {
-        len = read(fd, input, MAX_BUF);
+    while (running) {
+        int retval;
+        TEMP_FAILURE_RETRY(retval = select(fd + 1, &read_fds, NULL, NULL, NULL));
 
-        if (len <= 0) {
+        if (retval == -1) {
+            perror("Could not start reading from pipe");
+            exit(EXIT_FAILURE);
+        } if (retval) {
+            int len;
+            TEMP_FAILURE_RETRY(len = read(fd, read_buffer, MAX_BUF - 1));
+
             if (len == -1) {
-                /* Call was interrupted, don't worry */
-                if (errno == EINTR)
-                    continue;
-
-                /* Ignore these */
-                if (errno != EBADF)
-                    printf("Read error: %s\n", strerror(errno));
+                perror("Error during read from pipe");
+                exit(EXIT_FAILURE);
             }
 
-            close(fd);
-            fd = open(display_fifo, O_RDONLY);
-        } else {
-            if (len >= MAX_BUF)
-                input[MAX_BUF - 1] = '\0';
-            else
-                input[len] = '\0';
+            read_buffer[len] = '\0';
 
-            handle_input(input);
+            const char *token = strtok(read_buffer, "\n");
+            while (token != NULL) {
+                char *input = strdup(token);
+                handle_input(input);
+                free(input);                
+
+                token = strtok(NULL, "\n");
+            }
         }
     }
 
@@ -111,6 +137,8 @@ int main()
 
     close(fd);
     unlink(display_fifo);
+
+    printf("Exiting\n");
 
     return 0;
 }

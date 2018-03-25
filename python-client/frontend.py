@@ -5,11 +5,18 @@ import time
 from RaspberryDisplay import RaspberryDisplay
 
 if __name__ == "__main__":
-    disp = RaspberryDisplay("/tmp/raspberry-display")
+    disp = RaspberryDisplay("/tmp/raspberry-display", debug=True)
 
     disp.scroll_disable()
     disp.time("Today is a %A")
 
+    time.sleep(2)
+
+    for i in xrange(16):
+        disp.brightness(i)
+        disp.text("Brightness: %d" % i)
+        time.sleep(0.1)
+    
     time.sleep(2)
 
     disp.scroll_disable()

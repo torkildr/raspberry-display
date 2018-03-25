@@ -1,8 +1,19 @@
 #!/usr/bin/env python
 
+import sys
+
 class RaspberryDisplay(object):
-    def __init__(self, filename):
+    def __init__(self, filename, debug=False):
         self.filename = filename
+        self.debug = debug
+
+        self.__open_pipe()
+    
+    def __open_pipe(self):
+        self.fifo = open(self.filename, 'w')
+
+    def __close_pipe(self):
+        self.fifo.close()
 
     def scroll_left(self):
         self.__write("scroll-left:")
@@ -26,12 +37,21 @@ class RaspberryDisplay(object):
     def time(self, format):
         self.__write("time:%s" % format)
 
+    def brightness(self, brightness):
+        if not brightness >= 0 and brightness <= 15:
+            raise Exception("Brightness must be 0-15")
+        self.__write("brightness:%d" % brightness)
+
     def clear(self):
         self.scroll_disable()
         self.text("")
 
     def __write(self, text):
-        fifo = open(self.filename, 'w')
-        fifo.write(text.decode('utf-8').encode('iso-8859-1'))
-        fifo.close()
+        payload = text.decode('utf-8').encode('iso-8859-1') + "\n"
+
+        if self.debug:
+            sys.stdout.write(payload)
+
+        self.fifo.write(payload)
+        self.fifo.flush()
 
