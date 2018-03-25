@@ -5,7 +5,7 @@ PROGRAM_FIFO:=$(BINDIR)/fifo-client
 PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
 PROGRAM_MOCK_FIFO:=$(BINDIR)/mock-fifo-client
 
-WARNINGS:=-Wall
+WARNINGS:=-Wall -Werror
 LDFLAGS:=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
 CFLAGS:=-std=gnu99 $(WARNINGS) $(LDFLAGS)
 
