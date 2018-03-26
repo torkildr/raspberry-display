@@ -15,7 +15,20 @@
 
 #define MAX_BUF 1024
 
-static bool running;
+void exit_clean()
+{
+    timer_disable();
+    display_disable();
+
+    printf("Exiting\n");
+    exit(EXIT_SUCCESS);
+}
+
+void exit_handler(int sig)
+{
+    printf("Caught exit signal: %d\n", sig);
+    exit_clean();
+}
 
 char *extract_command(char *input, char *command)
 {
@@ -68,14 +81,16 @@ void handle_input(char *input)
     } else if (!strcmp("text", command)) {
         display_text(text, 0);
     } else if (!strcmp("quit", command)) {
-        running = false;
+        exit_clean();
     }
 }
 
 int main(int argc, char *argv[])
 {
     static char *display_fifo;
-    running = true;
+
+    signal(SIGINT, exit_handler);
+    signal(SIGTERM, exit_handler);
 
     if (argc >= 2) {
         display_fifo = argv[1];
@@ -105,7 +120,7 @@ int main(int argc, char *argv[])
     
     char read_buffer[MAX_BUF];
 
-    while (running) {
+    for(;;) {
         int retval;
         TEMP_FAILURE_RETRY(retval = select(fd + 1, &read_fds, NULL, NULL, NULL));
 
