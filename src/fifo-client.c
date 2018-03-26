@@ -92,6 +92,9 @@ int main(int argc, char *argv[])
     signal(SIGINT, exit_handler);
     signal(SIGTERM, exit_handler);
 
+    /* we want unbuffered output to make it easier to debug potential issues */
+    setbuf(stdout, NULL);
+
     if (argc >= 2) {
         display_fifo = argv[1];
     } else {
