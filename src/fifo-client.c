@@ -15,13 +15,13 @@
 
 #define MAX_BUF 1024
 
+static int fd;
+static volatile sig_atomic_t stop = 0;
+
 void exit_clean()
 {
-    timer_disable();
-    display_disable();
-
-    printf("Exiting\n");
-    exit(EXIT_SUCCESS);
+    stop = 1;
+    close(fd);
 }
 
 void exit_handler(int sig)
@@ -103,8 +103,6 @@ int main(int argc, char *argv[])
 
     printf("Reading from pipe: %s\n", display_fifo);
 
-    int fd;
-
     unlink(display_fifo);
     mkfifo(display_fifo, 0666);
     if ((fd = open(display_fifo, O_RDONLY | O_NONBLOCK)) == -1) {
@@ -123,11 +121,12 @@ int main(int argc, char *argv[])
     
     char read_buffer[MAX_BUF];
 
-    for(;;) {
+    while(!stop) {
         int retval;
         TEMP_FAILURE_RETRY(retval = select(fd + 1, &read_fds, NULL, NULL, NULL));
 
         if (retval == -1) {
+            if (stop) continue;
             perror("Could not start reading from pipe");
             exit(EXIT_FAILURE);
         } if (retval) {
@@ -135,6 +134,7 @@ int main(int argc, char *argv[])
             TEMP_FAILURE_RETRY(len = read(fd, read_buffer, MAX_BUF - 1));
 
             if (len == -1) {
+                if (stop) continue;
                 perror("Error during read from pipe");
                 exit(EXIT_FAILURE);
             }
