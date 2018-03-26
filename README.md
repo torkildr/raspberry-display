@@ -60,9 +60,28 @@ make
 
 ## Installation
 
-TODO: In the future, `make install` will install binaries and systemd files.
+Installing the application will place the binary in a system wide location, and create SystemD service files to make sure the process
+is always running.
 
-For now, run `fifo-client` in the `bin` output directory.
+After you have built the application, you can install it with
+```bash
+sudo make install
+```
+
+This will install the `fifo-client` to `/usr/bin/fifo-client` and create SystemD service files. To (re)start the service, run
+```bash
+sudo systemctl restart raspberry-display
+```
+
+To view log files, you can use the systemd journal
+```bash
+sudo journalctl -f -u raspberry-display
+```
+
+To uninstall
+```bash
+sudo make uninstall
+```
 
 ## Hardware
 
@@ -83,6 +102,7 @@ Pin | Usage
 19  | MOSI/Data
 23  | SCLK/WR
 
+### Reference hardware
 ![Example Wiring](images/raspberry-wiring.png)
 
 ## Acknowledgements
