@@ -60,15 +60,17 @@ make
 
 ## Installation
 
-Installing the application will place the binary in a system wide location, and create SystemD service files to make sure the process
+Installing the application will place the binary in a system wide location, and create systemd service files to make sure the process
 is always running.
+
+**NB:** The service will be installed as the current running user. For this to work, the user needs access to the SPI-device.
 
 After you have built the application, you can install it with
 ```bash
 sudo make install
 ```
 
-This will install the `fifo-client` to `/usr/bin/fifo-client` and create SystemD service files. To (re)start the service, run
+This will install the `fifo-client` to `/usr/bin/fifo-client` and create systemd service files. To (re)start the service, run
 ```bash
 sudo systemctl restart raspberry-display
 ```
