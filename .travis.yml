@@ -4,5 +4,7 @@ compiler:
   - gcc
 
 before_script: ./install-wiringPi.sh
-script: make
+script:
+  - make
+  - sudo make install
 
