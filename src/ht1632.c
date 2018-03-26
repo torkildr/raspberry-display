@@ -48,7 +48,7 @@ void ht1632_write(const void *buffer, size_t size)
     ssize_t length = write(spifd, buffer, size);
 
     if (length == -1) {
-        printf("Device write failed!: %s\n", strerror(errno));
+        perror("Device write failed");
         exit(EXIT_FAILURE);
     }
 }
@@ -73,13 +73,13 @@ void send_cmd(int pin, uint8_t cmd)
 void display_enable()
 {
     if (wiringPiSetup() == -1) {
-        printf("WiringPi Setup Failed: %s\n", strerror(errno));
+        printf("WiringPi Setup Failed");
         exit(EXIT_FAILURE);
     }
 
     spifd = wiringPiSPISetup(0, HT1632_SPI_FREQ);
     if (!spifd) {
-        printf("SPI Setup Failed: %s\n", strerror(errno));
+        printf("SPI Setup Failed");
         exit(EXIT_FAILURE);
     }
 
