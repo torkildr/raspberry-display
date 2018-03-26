@@ -1,0 +1,12 @@
+[Unit]
+Description = Led display driver with fifo client
+After = network.target
+
+[Service]
+ExecStart = /usr/bin/fifo-client
+Restart = always
+User = PLACEHOLDER_USER
+
+[Install]
+WantedBy = multi-user.target
+
