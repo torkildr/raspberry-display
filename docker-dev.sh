@@ -8,6 +8,8 @@ else
   docker="sudo docker"
 fi
 
+current_dir="$PWD/${1#./}"
+
 $docker build --tag "$tag" .
-$docker run -it -v $(realpath .):/code $tag
+$docker run -it -v "${current_dir}:/code" $tag
 
