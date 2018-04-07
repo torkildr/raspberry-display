@@ -150,7 +150,12 @@ void update_write_buffer(int panel)
         uint8_t dst_pos = n / 8;
         uint8_t dst_bit = 7 - (n % 8);
 
-        uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
+        #ifdef HT1632_FLIP_180
+            uint8_t src_val = (display_memory[X_MAX - 1 - src_pos - offset] >> (7 - src_bit)) & 1;
+        #else
+            uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
+        #endif
+
         ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
 
         /*
