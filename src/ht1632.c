@@ -73,13 +73,13 @@ void send_cmd(int pin, uint8_t cmd)
 void display_enable()
 {
     if (wiringPiSetup() == -1) {
-        printf("WiringPi Setup Failed");
+        perror("WiringPi Setup Failed");
         exit(EXIT_FAILURE);
     }
 
     spifd = wiringPiSPISetup(0, HT1632_SPI_FREQ);
     if (!spifd) {
-        printf("SPI Setup Failed");
+        perror("SPI Setup Failed");
         exit(EXIT_FAILURE);
     }
 
