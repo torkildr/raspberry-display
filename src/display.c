@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -16,6 +17,9 @@ static int format_kind = TEXT_DATA;
 static unsigned char *text_block;
 static int text_block_width;
 static int autoscroll = 0;
+
+unsigned char tmp_display_memory[X_MAX];
+static volatile bool display_dirty = false;
 
 /* Font stuff  */
 
@@ -47,11 +51,11 @@ void display_text(char *text, int includeTime)
 {
     if (!includeTime) {
         format_kind = TEXT_DATA;
-        text_block = display_memory;
+        text_block = tmp_display_memory;
         text_block_width = X_MAX;
     } else {
         format_kind = TIME_TEXT_COMBINED;
-        text_block = display_memory + TIME_WIDTH;
+        text_block = tmp_display_memory + TIME_WIDTH;
         text_block_width = X_MAX - TIME_WIDTH;
     }
 
@@ -74,7 +78,7 @@ void display_text(char *text, int includeTime)
 void display_time(char *format)
 {
     format_kind = TIME_FORMAT;
-    text_block = display_memory;
+    text_block = tmp_display_memory;
     text_block_width = X_MAX;
 
     if (!strcmp("", format))
@@ -123,7 +127,7 @@ void render_string(unsigned char *display_buffer, int display_width, char *text,
 void make_text(char *text)
 {
     int offset = 0;
-    memset(display_memory, '\0', sizeof(display_memory));
+    memset(tmp_display_memory, '\0', sizeof(tmp_display_memory));
 
     /* Prepare time stuff */
     if (format_kind == TIME_FORMAT)
@@ -131,8 +135,8 @@ void make_text(char *text)
     if (format_kind == TIME_TEXT_COMBINED) {
         char left_text[10];
         make_time(left_text, "%H:%M");
-        render_string(display_memory, TIME_WIDTH - 1, left_text, 0);
-        display_memory[TIME_WIDTH-2] = 0xFF;
+        render_string(tmp_display_memory, TIME_WIDTH - 1, left_text, 0);
+        tmp_display_memory[TIME_WIDTH-2] = 0xFF;
     }
 
     /* Prepare scroll stuff */
@@ -149,6 +153,11 @@ void make_text(char *text)
     }
 
     render_string(text_block, text_block_width, text_buffer, offset);
+
+    if (memcmp(display_memory, tmp_display_memory, X_MAX) != 0) {
+        memcpy(display_memory, tmp_display_memory, X_MAX);
+        display_dirty = true;
+    }
 }
 
 void display_scroll(enum scrolling direction)
@@ -178,13 +187,17 @@ timer_t update_timer;
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
-    if (display_pre_update != NULL)
-        display_pre_update();
+    if (display_dirty) {
+        if (display_pre_update != NULL)
+            display_pre_update();
 
-    display_update();
+        display_update();
 
-    if (display_post_update != NULL)
-        display_post_update();
+        if (display_post_update != NULL)
+            display_post_update();
+
+        display_dirty = false;
+    }
 
     make_text(text_buffer);
 }
