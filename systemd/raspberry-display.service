@@ -6,6 +6,7 @@ After = network.target
 ExecStart = /usr/bin/fifo-client
 Restart = always
 User = PLACEHOLDER_USER
+Nice = -10
 
 [Install]
 WantedBy = multi-user.target
