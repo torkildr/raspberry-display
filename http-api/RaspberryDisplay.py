@@ -46,7 +46,7 @@ class RaspberryDisplay(object):
         while True:
             try:
                 with Timeout(1):
-                    self.fifo = open(self.filename, 'w')
+                    self.fifo = open(self.filename, 'w', encoding='iso-8859-1')
                     self._debug('\n')
                     break
             except:
@@ -66,7 +66,7 @@ class RaspberryDisplay(object):
                 time.sleep(self.timeout)
 
     def _write(self, text):
-        payload = "{}\n".format(text).encode('iso-8859-1').decode('iso-8859-1')
+        payload = "{}\n".format(text)
         self._write_pipe(payload)
 
     def scroll(self, value):
