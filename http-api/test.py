@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 
 import time
@@ -12,14 +12,14 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    for i in xrange(16):
+    for i in range(16):
         disp.brightness(i)
         disp.text("Brightness: %d" % i)
         time.sleep(0.1)
     
     time.sleep(2)
 
-    for i in xrange(100):
+    for i in range(100):
         disp.text("Counting, %d " % i)
         time.sleep(0.05)
 

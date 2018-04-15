@@ -21,8 +21,8 @@ your own application.
 Both of these applications also come in a `mock-` version. These will work without the physical hardware, and is perfect
 for test setups or debugging the API usage.
 
-Take a look at the [reference Python client](python-client), for typical usage. A good starting point to understand how stuff
-works together is running `./bin/mock-fifo-client` and `python python-client/frontend.py`
+Take a look at the [Server API](http-api), for typical usage. A good starting point to understand how stuff
+works together is running `./bin/mock-fifo-client` and `python http-api/test.py`
 
 ## API
 

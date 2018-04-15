@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import os
 import stat
 import signal
@@ -68,7 +66,7 @@ class RaspberryDisplay(object):
                 time.sleep(self.timeout)
 
     def _write(self, text):
-        payload = text.decode('utf-8').encode('iso-8859-1') + "\n"
+        payload = "{}\n".format(text).encode('iso-8859-1').decode('iso-8859-1')
         self._write_pipe(payload)
 
     def scroll(self, value):
@@ -87,6 +85,6 @@ class RaspberryDisplay(object):
         self._write("brightness:%d" % brightness)
 
     def clear(self):
-        self.scroll_disable()
+        self.scroll('disable')
         self.text("")
 
