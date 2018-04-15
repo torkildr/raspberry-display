@@ -46,16 +46,31 @@ $(PROGRAM_MOCK_FIFO): src/fifo-client.o $(MOCK_DISPLAY)
 
 install:
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
+	# fifo bin
 	install -m0755 $(PROGRAM_FIFO) "/usr/$(PROGRAM_FIFO)"
-	install -m0644 systemd/raspberry-display.service /etc/systemd/system/
-	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display.service
-	$(SYSTEMCTL) reenable raspberry-display.service
-	@echo "\nAll files installed.\nYou can start the service with \"sudo systemctl start raspberry-display\""
+	# http server
+	install -m0755 -d /usr/local/bin/display-http-server
+	install -m0755 -D http-api/*.py /usr/local/bin/display-http-server
+	# systemd files
+	install -m0644 systemd/raspberry-display-driver.service /etc/systemd/system/
+	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display-driver.service
+	install -m0644 systemd/raspberry-display-server.service /etc/systemd/system/
+	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display-server.service
+	$(SYSTEMCTL) reenable raspberry-display-driver.service
+	$(SYSTEMCTL) reenable raspberry-display-server.service
+	@echo "\nAll files installed."
+	@echo "\nYou can start the service with"
+	@echo "  Driver: \"sudo systemctl restart raspberry-display-driver\""
+	@echo "  Server: \"sudo systemctl restart raspberry-display-server\""
 
 uninstall:
-	$(SYSTEMCTL) stop raspberry-display.service
-	$(SYSTEMCTL) disable raspberry-display.service
-	$(RM) /etc/systemd/system/raspberry-display.service
+	$(SYSTEMCTL) stop raspberry-display-driver.service
+	$(SYSTEMCTL) disable raspberry-display-driver.service
+	$(SYSTEMCTL) stop raspberry-display-server.service
+	$(SYSTEMCTL) disable raspberry-display-server.service
+	$(RM) /etc/systemd/system/raspberry-display-driver.service
+	$(RM) /etc/systemd/system/raspberry-display-server.service
+	$(RM) -R "/usr/local/bin/display-http-server"
 	$(RM) "/usr/$(PROGRAM_FIFO)"
 
 -include $(DEPFILES)

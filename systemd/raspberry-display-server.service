@@ -1,0 +1,13 @@
+[Unit]
+Description = Led display HTTP server interface
+After = network.target
+
+[Service]
+ExecStart = /usr/local/bin/display-http-server/server.py
+Restart = always
+User = PLACEHOLDER_USER
+Nice = -10
+
+[Install]
+WantedBy = multi-user.target
+
