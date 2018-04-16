@@ -3,15 +3,15 @@ RaspberryPi Wall mounted display
 [![Build Status](https://travis-ci.org/torkildr/raspberry-display.svg?branch=master)](https://travis-ci.org/torkildr/raspberry-display)
 
 ## Overview
-This project allows you to control the Sure P4 32x8 displays. Though, it is written for this specific version, it should
-pretty much work for all Holtek HT1632 based matrix displays.
+This project allows you to control the Sure P4 32x8 displays. Though, it is written for this specific version, it should pretty much work for all Holtek HT1632 based matrix displays.
  
-The main goal is to give a generic, pluggable way to interface different kinds of applications with the display, without having to
-bother with the driver stuff.
+The main goal is to give a generic, pluggable way to interface different kinds of applications with the display, without having to bother with the driver stuff.
 
-## Usage
+This package also comes with an HTTP-API, making it possible to easilly interface with 3rd party stuff (e.g I'm using it for a [Home Assistant integration](https://github.com/torkildr/appdaemon-conf/blob/master/apps/display.py))
 
-The application consists of two two basic parts:
+## Application Design
+
+Tha main application consists of two two basic parts:
 
 `curses-client`, an interactive client, probably best used to test the hardware setup and display capabilites.
 
@@ -25,6 +25,28 @@ Take a look at the [Server API](http-api), for typical usage. A good starting po
 works together is running `./bin/mock-fifo-client` and `python http-api/test.py`
 
 ## API
+
+### HTTP API
+
+The [HTTP API server](http-api/server.py) is a simple wrapper of the fifo client, and its goal is to expose all the functionality present there as HTTP endpoints.
+
+The server is exposed on port `8080`.
+
+Endpoint    | JSON-payload                   | Example
+------------|--------------------------------|-----------
+/text       | text: string, time: bool       | { "text": "foobar", "time": true }
+/time       | format: string                 | { "format": "%H:%M:%S" }
+/scroll     | arg: string                    | { "arg": "none" }
+/brightness | value: 0-15                    | { "value": 10 }
+/clear      | N/A                            |
+
+To call the HTTP endpoint, simply POST to the endpoint, ie:
+
+```bash
+curl -i http://localhost:8080/time -d '{"format": "%A, %b %-d %H:%M:%S"}'
+```
+
+### FIFO Client
 
 The API for the `fifo-client` is exposed through the named pipe at `/tmp/raspberry-display`.
 
@@ -49,6 +71,8 @@ quit        | *n/a*  | Quit client and turn off display
 ## Building
 First install the system pre-requisites and the WiringPi library.
 
+You might want to change the [display headers](src/ht1632.h) if you have a setup that is different than the reference setup.
+
 If you're on a debian system, like raspbian, this is simply
 ```bash
 ./install-prereqs-debian.sh
@@ -72,14 +96,18 @@ After you have built the application, you can install it with
 sudo make install
 ```
 
-This will install the `fifo-client` to `/usr/bin/fifo-client` and create systemd service files. To (re)start the service, run
+This will install the `fifo-client` to `/usr/bin/fifo-client`, the `http-api` to `/usr/local/bin/display-http-api` and create systemd service files.
+
+To (re)start the services, run
 ```bash
-sudo systemctl restart raspberry-display
+sudo systemctl restart raspberry-display-driver
+sudo systemctl restart raspberry-display-server
 ```
 
 To view log files, you can use the systemd journal
 ```bash
-sudo journalctl -f -u raspberry-display
+sudo journalctl -f -u raspberry-display-driver
+sudo journalctl -f -u raspberry-display-server
 ```
 
 To uninstall
