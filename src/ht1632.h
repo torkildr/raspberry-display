@@ -6,7 +6,7 @@
 /* Display settings */
 #define HT1632_PANEL_WIDTH      X_MAX / 4       /* column/pixel width of each panel */
 #define HT1632_PANEL_PINS       8, 9, 15, 16    /* wiringPi pins */
-#define HT1632_SPI_FREQ         256000          /* Hz */
+#define HT1632_SPI_FREQ         200000          /* Hz */
 
 /* Define HT1632_FLIP_180 to mount the display upside down */
 #define HT1632_FLIP_180
