@@ -11,6 +11,9 @@
 
 #define BUFFER_SIZE 1024
 
+/* force reinit of display */
+#define DISPLAY_REINIT_EVERY_N_SECONDS 20
+
 enum scrolling {
     SCROLL_DISABLED = 0,
     SCROLL_LEFT = -1,

@@ -18,7 +18,7 @@ static unsigned char *text_block;
 static int text_block_width;
 static int autoscroll = 0;
 
-unsigned char tmp_display_memory[X_MAX];
+static unsigned char tmp_display_memory[X_MAX];
 static volatile bool display_dirty = false;
 
 /* Font stuff  */
@@ -183,7 +183,15 @@ void display_scroll(enum scrolling direction)
 
 /* Timer */
 
-timer_t update_timer;
+static timer_t update_timer;
+static timer_t reinit_timer;
+
+static volatile bool update_reinit = false;
+
+static void reinit_handler(int sig, siginfo_t *si, void *uc)
+{
+    update_reinit = true;
+}
 
 static void timer_handler(int sig, siginfo_t *si, void *uc)
 {
@@ -200,14 +208,20 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
     }
 
     make_text(text_buffer);
+
+    if (update_reinit) {
+        update_reinit = false;
+        display_enable();
+    }
 }
 
 void timer_disable()
 {
     timer_delete(update_timer);
+    timer_delete(reinit_timer);
 }
 
-void timer_enable()
+void display_timer_enable()
 {
     struct sigevent te;
     struct itimerspec its;
@@ -232,5 +246,37 @@ void timer_enable()
     timer_settime(update_timer, 0, &its, NULL);
 
     text_buffer[0] = '\0';
+}
+
+void reinit_timer_enable()
+{
+    struct sigevent te;
+    struct itimerspec its;
+    struct sigaction sa;
+    int signal_num = SIGUSR2;
+
+    /* Set up signal handler. */
+    sa.sa_flags = SA_SIGINFO;
+    sa.sa_sigaction = reinit_handler;
+    sigemptyset(&sa.sa_mask);
+    sigaction(signal_num, &sa, NULL);
+
+    /* Set and enable alarm */
+    te.sigev_notify = SIGEV_SIGNAL;
+    te.sigev_signo = signal_num;
+    timer_create(CLOCK_REALTIME, &te, &reinit_timer);
+
+    its.it_interval.tv_sec = DISPLAY_REINIT_EVERY_N_SECONDS;
+    its.it_interval.tv_nsec = 0;
+    its.it_value.tv_sec = DISPLAY_REINIT_EVERY_N_SECONDS;
+    its.it_value.tv_nsec = 0;
+
+    timer_settime(reinit_timer, 0, &its, NULL);
+}
+
+void timer_enable()
+{
+    display_timer_enable();
+    reinit_timer_enable();
 }
 
