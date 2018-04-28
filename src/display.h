@@ -39,6 +39,7 @@ void (*display_pre_update)();
 void (*display_post_update)();
 
 /* These needs device specific implentation */
+void display_init();
 void display_enable();
 void display_disable();
 void display_update();

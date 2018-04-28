@@ -135,8 +135,7 @@ void make_text(char *text)
     if (format_kind == TIME_TEXT_COMBINED) {
         char left_text[10];
         make_time(left_text, "%H:%M");
-        render_string(tmp_display_memory, TIME_WIDTH - 1, left_text, 0);
-        tmp_display_memory[TIME_WIDTH-2] = 0xFF;
+        render_string(tmp_display_memory, TIME_WIDTH - 1, left_text, 1);
     }
 
     /* Prepare scroll stuff */
@@ -211,7 +210,7 @@ static void timer_handler(int sig, siginfo_t *si, void *uc)
 
     if (update_reinit) {
         update_reinit = false;
-        display_enable();
+        display_init();
     }
 }
 

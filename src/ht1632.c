@@ -70,6 +70,19 @@ void send_cmd(int pin, uint8_t cmd)
     piUnlock(HT1632_WIREPI_LOCK_ID);
 }
 
+void display_init() {
+    /* set cs pins to output */
+    for (int i = 0; i < panel_count; ++i) {
+        pinMode(cs_pins[i], OUTPUT);
+    }
+
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
+    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
+}
+
 void display_enable()
 {
     if (wiringPiSetup() == -1) {
@@ -93,20 +106,10 @@ void display_enable()
         exit(EXIT_FAILURE);
     }
 
-    /* set cs pins to output */
-    for (int i = 0; i < panel_count; ++i) {
-        pinMode(cs_pins[i], OUTPUT);
-    }
-
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
-
+    display_init();
     display_brightness(8);
 
-    printf("Display initialized\n");
+    printf("Display enabled\n");
 }
 
 void display_brightness(uint8_t brightness)
