@@ -11,5 +11,5 @@ fi
 current_dir="$PWD/${1#./}"
 
 $docker build --tag "$tag" .
-$docker run -it -v "${current_dir}:/code" $tag
+$docker run -p 8080:8080 -it -v "${current_dir}:/code" $tag
 
