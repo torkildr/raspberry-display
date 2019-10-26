@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     fd_set read_fds;
     FD_ZERO(&read_fds);
     FD_SET(fd, &read_fds);
-    
+
     char read_buffer[MAX_BUF];
 
     while(!stop) {
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
             while (token != NULL) {
                 char *input = strdup(token);
                 handle_input(input);
-                free(input);                
+                free(input);
 
                 token = strtok(NULL, "\n");
             }

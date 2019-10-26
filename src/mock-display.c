@@ -9,7 +9,7 @@
 
 static uint8_t brightness = 0;
 
-void display_init() 
+void display_init()
 {
 }
 
