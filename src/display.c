@@ -134,7 +134,7 @@ void make_text(char *text)
         make_time(text_buffer, time_format);
     if (format_kind == TIME_TEXT_COMBINED) {
         char left_text[10];
-        make_time(left_text, "%H:%M");
+        make_time(left_text, "%H:%M|");
         render_string(tmp_display_memory, TIME_WIDTH - 1, left_text, 1);
     }
 
