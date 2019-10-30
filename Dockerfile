@@ -1,8 +1,9 @@
-FROM buildpack-deps:xenial
+FROM buildpack-deps
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       python3 \
+      valgrind \
       sudo
 
 RUN mkdir setup

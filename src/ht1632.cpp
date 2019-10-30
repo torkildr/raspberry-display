@@ -1,21 +1,21 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <wiringPi.h>
 #include <wiringPiSPI.h>
 #include <unistd.h>
+#include <vector>
 
-#include "display.h"
-#include "ht1632.h"
+#include "display_impl.hpp"
+#include "ht1632.hpp"
 
-#define HT1632_WIREPI_LOCK_ID 0
+namespace ht1632 {
 
-static int cs_pins[] = { HT1632_PANEL_PINS };
-static int panel_count = sizeof(cs_pins) / sizeof(cs_pins[0]);
+int spifd = -1;
 
-static int spifd = -1;
+int cs_pins[] = { HT1632_PANEL_PINS };
+int panel_count = sizeof(cs_pins) / sizeof(cs_pins[0]);
 
 void select_chip(int pin)
 {
@@ -70,82 +70,80 @@ void send_cmd(int pin, uint8_t cmd)
     piUnlock(HT1632_WIREPI_LOCK_ID);
 }
 
-void display_init() {
-    /* set cs pins to output */
-    for (int i = 0; i < panel_count; ++i) {
-        pinMode(cs_pins[i], OUTPUT);
-    }
-
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
 }
 
-void display_enable()
+namespace display {
+
+void init()
+{
+    /* set cs pins to output */
+    for (int i = 0; i < ht1632::panel_count; ++i) {
+        pinMode(ht1632::cs_pins[i], OUTPUT);
+    }
+
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_EN);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_COM);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_ON);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_BLINK_OFF);
+}
+
+DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate)
+    : Display(preUpdate, postUpdate)
 {
     if (wiringPiSetup() == -1) {
         perror("WiringPi Setup Failed");
         exit(EXIT_FAILURE);
     }
 
-    spifd = wiringPiSPISetup(0, HT1632_SPI_FREQ);
-    if (!spifd) {
+    ht1632::spifd = wiringPiSPISetup(0, HT1632_SPI_FREQ);
+    if (!ht1632::spifd) {
         perror("SPI Setup Failed");
         exit(EXIT_FAILURE);
     }
 
-    if (X_MAX != (HT1632_PANEL_WIDTH * panel_count)) {
+    if (X_MAX != (HT1632_PANEL_WIDTH * ht1632::panel_count)) {
         printf("Display area (X_MAX) must be equal to total panel columns.\n");
         printf("X_MAX: %d\n", X_MAX);
         printf("Panel columns: %d, (%d * %d)\n",
-                (HT1632_PANEL_WIDTH * panel_count),
+                (HT1632_PANEL_WIDTH * ht1632::panel_count),
                 HT1632_PANEL_WIDTH,
-                panel_count);
+                ht1632::panel_count);
         exit(EXIT_FAILURE);
     }
 
-    display_init();
-    display_brightness(8);
+    init();
+    setBrightness(8);
 
     printf("Display enabled\n");
 }
 
-void display_brightness(uint8_t brightness)
+DisplayImpl::~DisplayImpl()
 {
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + (brightness & 0xF));
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_OFF);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
+
+    close(ht1632::spifd);
 }
 
-void display_disable()
+void DisplayImpl::setBrightness(int brightness)
 {
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_LED_OFF);
-    send_cmd(HT1632_PANEL_ALL, HT1632_CMD_SYS_DIS);
-
-    close(spifd);
+    ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + (brightness & 0xF));
 }
 
-void display_clear()
+std::array<unsigned char, X_MAX+2> createWriteBuffer(std::array<char, X_MAX> displayBuffer, int panel)
 {
-    /*
-     * There is no need to clear the display, seeing as we render all pixels on
-     * every refresh.
-     * To clear display, you simply empty the buffer, `display_memory`.
-     */
-}
+    const int bufferSize = X_MAX + 2;
+    std::array<unsigned char, bufferSize> buffer = { 0 };
 
-void update_write_buffer(int panel)
-{
     uint8_t offset = panel * HT1632_PANEL_WIDTH;
-    int buffer_size = sizeof(ht1632_write_buffer);
-    memset(ht1632_write_buffer, 0, buffer_size);
 
     /* start buffer with write command and zero address */
-    ht1632_write_buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
+    buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
 
     /* start bitcount after initial command */
     int n = HT1632_LENGTH_ID + HT1632_LENGTH_ADDR;
-    int excess_bits = ((buffer_size * 8) - n) % 8;
+    int excess_bits = ((bufferSize * 8) - n) % 8;
 
     for(int i=0; i < HT1632_PANEL_WIDTH*8; ++i, ++n) {
         uint8_t src_pos = i / 8;
@@ -154,12 +152,12 @@ void update_write_buffer(int panel)
         uint8_t dst_bit = 7 - (n % 8);
 
         #ifdef HT1632_FLIP_180
-            uint8_t src_val = (display_memory[X_MAX - 1 - src_pos - offset] >> (7 - src_bit)) & 1;
+            uint8_t src_val = (displayBuffer[X_MAX - 1 - src_pos - offset] >> (7 - src_bit)) & 1;
         #else
-            uint8_t src_val = (display_memory[src_pos + offset] >> src_bit) & 1;
+            uint8_t src_val = (displayBuffer[src_pos + offset] >> src_bit) & 1;
         #endif
 
-        ht1632_write_buffer[dst_pos] |= src_val << dst_bit;
+        buffer[dst_pos] |= src_val << dst_bit;
 
         /*
          * Hack to work around Raspberry Pi's 8-bit SPI write.
@@ -172,24 +170,27 @@ void update_write_buffer(int panel)
          * of the SPI data. No biggie...
          */
         if (i < excess_bits) {
-            ht1632_write_buffer[buffer_size - 1] |= src_val << (excess_bits - i - 1);
+            buffer[bufferSize - 1] |= src_val << (excess_bits - i - 1);
         }
     }
+
+    return buffer;
 }
 
-void display_update()
+void DisplayImpl::update()
 {
     piLock(HT1632_WIREPI_LOCK_ID);
 
-    for (int i = 0; i < panel_count; ++i) {
-        select_chip(cs_pins[i]);
+    for (int i = 0; i < ht1632::panel_count; ++i) {
+        ht1632::select_chip(ht1632::cs_pins[i]);
 
-        update_write_buffer(i);
-        ht1632_write(ht1632_write_buffer, sizeof(ht1632_write_buffer));
+        auto buffer = createWriteBuffer(displayBuffer, i);
+        ht1632::ht1632_write(&buffer, buffer.size());
 
-        select_chip(HT1632_PANEL_NONE);
+        ht1632::select_chip(HT1632_PANEL_NONE);
     }
 
     piUnlock(HT1632_WIREPI_LOCK_ID);
 }
 
+}

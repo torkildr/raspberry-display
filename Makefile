@@ -5,14 +5,15 @@ PROGRAM_FIFO:=$(BINDIR)/fifo-client
 PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
 PROGRAM_MOCK_FIFO:=$(BINDIR)/mock-fifo-client
 
-WARNINGS:=-Wall -Werror
-LDFLAGS:=-lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
-CFLAGS:=-std=gnu99 $(WARNINGS) $(LDFLAGS)
+WARNINGS:=-Wall -Wextra -Werror
+LDFLAGS:=-lstdc++ -lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
+CXXFLAGS:=-std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
 
-C_SRCS:=$(wildcard src/*.c)
-DEPFILES:=${C_SRCS:.c=.d}
-OBJECTS:=${C_SRCS:.c=.o}
+CPP_SRCS:=$(wildcard src/*.cpp)
+DEPFILES:=${CPP_SRCS:.cpp=.d}
+OBJECTS:=${CPP_SRCS:.cpp=.o}
 
+COMMON:=src/timer.o src/display.o src/font.o
 REAL_DISPLAY:=src/display.o src/ht1632.o
 MOCK_DISPLAY:=src/display.o src/mock-display.o
 
@@ -32,17 +33,17 @@ clean:
 $(BINDIR)/:
 	mkdir -p $@
 
-$(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY)
-	cc -o $@ $^ $(CFLAGS)
+$(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY) $(COMMON)
+	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY)
-	cc -o $@ $^ $(CFLAGS)
+$(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY) $(COMMON)
+	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(PROGRAM_FIFO): src/fifo-client.o $(REAL_DISPLAY)
-	cc -o $@ $^ $(CFLAGS)
+$(PROGRAM_FIFO): src/fifo-client.o $(REAL_DISPLAY) $(COMMON)
+	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(PROGRAM_MOCK_FIFO): src/fifo-client.o $(MOCK_DISPLAY)
-	cc -o $@ $^ $(CFLAGS)
+$(PROGRAM_MOCK_FIFO): src/fifo-client.o $(MOCK_DISPLAY) $(COMMON)
+	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
 install:
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi

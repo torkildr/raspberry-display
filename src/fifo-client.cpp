@@ -4,14 +4,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
-#include "display.h"
-#include "fifo-client.h"
+#include "display.hpp"
+#include "fifo-client.hpp"
 
 #define MAX_BUF 1024
 
@@ -87,7 +86,7 @@ void handle_input(char *input)
 
 int main(int argc, char *argv[])
 {
-    static char *display_fifo;
+    static const char *display_fifo;
 
     signal(SIGINT, exit_handler);
     signal(SIGTERM, exit_handler);

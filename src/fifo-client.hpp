@@ -1,5 +1,5 @@
-#ifndef FIFO_CLIENT_H
-#define FIFO_CLIENT_H
+#ifndef fifo_client_h
+#define fifo_client_h
 
 #include <errno.h>
 

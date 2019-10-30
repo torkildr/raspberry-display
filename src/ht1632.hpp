@@ -1,7 +1,9 @@
-#ifndef HT1632_H
-#define HT1632_H
+#ifndef ht1632_hpp
+#define ht1632_hpp
 
-#include "display.h"
+#include "display.hpp"
+
+#define HT1632_WIREPI_LOCK_ID 0
 
 /* Display settings */
 #define HT1632_PANEL_WIDTH      X_MAX / 4       /* column/pixel width of each panel */
@@ -38,12 +40,4 @@
 #define HT1632_LENGTH_DATA      8
 #define HT1632_LENGTH_ADDR      7
 
-/* write buffer, needs extra space for id + address bits */
-unsigned char ht1632_write_buffer[HT1632_PANEL_WIDTH + 2];
-
-void update_write_buffer();
-
-void *reverse_endian(void *p, size_t size);
-
 #endif
-

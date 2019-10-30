@@ -1,7 +1,7 @@
-#define FONT_COUNT 101
+#ifndef font_h
+#define font_h
 
-#ifndef FONT_H
-#define FONT_H
+#define FONT_COUNT 101
 
 /*
  * This is what we have to work with
