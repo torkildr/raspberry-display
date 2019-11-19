@@ -6,7 +6,7 @@ PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
 PROGRAM_MOCK_FIFO:=$(BINDIR)/mock-fifo-client
 
 WARNINGS:=-Wall -Wextra -Werror
-LDFLAGS:=-lstdc++ -lrt -lwiringPi -lncurses -lcrypt -lpthread -lm
+LDFLAGS:=-lstdc++ -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
 CXXFLAGS:=-std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
 
 CPP_SRCS:=$(wildcard src/*.cpp)
