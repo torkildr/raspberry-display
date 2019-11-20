@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <thread>
+#include <condition_variable>
 
 namespace timer {
 
@@ -15,6 +16,8 @@ class Timer {
 
     private:
         bool m_clear = false;
+        std::condition_variable m_abort;
+
         std::thread m_thread;
 };
 
