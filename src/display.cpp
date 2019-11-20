@@ -45,15 +45,22 @@ void Display::prepare()
     }
 
     auto tmp = createDisplayBuffer(std::move(time));
-    std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
+    if (tmp == displayBuffer) {
+        dirty = false;
+    } else {
+        std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
+        dirty = true;
+    }
 };
 
 void Display::start()
 {
     timers.push_back(std::move(timer::createTimer([=]{
-        preUpdate();
-        update();
-        postUpdate();
+        if (dirty) {
+            preUpdate();
+            update();
+            postUpdate();
+        }
         prepare();
     }, REFRESH_RATE)));
 }

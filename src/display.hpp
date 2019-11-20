@@ -61,6 +61,7 @@ class Display {
         std::vector<char> renderedText;
         std::string timeFormat;
         int scrollDelay = 0;
+        bool dirty = false;
 
         std::vector<std::unique_ptr<timer::Timer>> timers;
 
