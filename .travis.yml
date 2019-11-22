@@ -3,15 +3,13 @@ dist: disco
 compiler:
   - gcc
 
-addons:
-  apt:
-    sources:
-      - boost-latest
-    packages:
-      - libboost-dev
-      - libboost-system-dev
+before install:
+  - ./install-prereqs-debian.sh
 
-before_script: ./install-wiringPi.sh
+install:
+  - ./install-wiringPi.sh
+
 script:
   - make
   - sudo make install
+
