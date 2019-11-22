@@ -1,12 +1,12 @@
 BINDIR:=bin
 
 PROGRAM_CURSES:=$(BINDIR)/curses-client
-PROGRAM_FIFO:=$(BINDIR)/fifo-client
+PROGRAM_WS:=$(BINDIR)/raspberry-display
 PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
-PROGRAM_MOCK_FIFO:=$(BINDIR)/mock-fifo-client
+PROGRAM_MOCK_WS:=$(BINDIR)/mock-raspberry-display
 
 WARNINGS:=-Wall -Wextra -Werror
-LDFLAGS:=-lstdc++ -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
+LDFLAGS:=-lstdc++ -lboost_system -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
 CXXFLAGS:=-std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
 
 CPP_SRCS:=$(wildcard src/*.cpp)
@@ -21,7 +21,7 @@ SYSTEMCTL:=$(shell which systemctl)
 
 .PHONY: build clean
 
-build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_FIFO) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_FIFO)
+build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_WS) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_WS)
 
 debug: CFLAGS += -DDEBUG_ENABLED -g
 debug: build
@@ -39,16 +39,16 @@ $(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY) $(COMMON)
 $(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY) $(COMMON)
 	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(PROGRAM_FIFO): src/fifo-client.o $(REAL_DISPLAY) $(COMMON)
+$(PROGRAM_WS): src/websocket.o $(REAL_DISPLAY) $(COMMON)
 	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
-$(PROGRAM_MOCK_FIFO): src/fifo-client.o $(MOCK_DISPLAY) $(COMMON)
+$(PROGRAM_MOCK_WS): src/websocket.o $(MOCK_DISPLAY) $(COMMON)
 	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
 
 install:
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
 	# fifo bin
-	install -m0755 $(PROGRAM_FIFO) "/usr/$(PROGRAM_FIFO)"
+	install -m0755 $(PROGRAM_WS) "/usr/$(PROGRAM_WS)"
 	# http server
 	install -m0755 -d /usr/local/bin/display-http-server
 	install -m0755 -D http-api/*.py /usr/local/bin/display-http-server
@@ -72,6 +72,6 @@ uninstall:
 	$(RM) /etc/systemd/system/raspberry-display-driver.service
 	$(RM) /etc/systemd/system/raspberry-display-server.service
 	$(RM) -R "/usr/local/bin/display-http-server"
-	$(RM) "/usr/$(PROGRAM_FIFO)"
+	$(RM) "/usr/$(PROGRAM_WS)"
 
 -include $(DEPFILES)
