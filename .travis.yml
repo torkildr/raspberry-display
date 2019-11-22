@@ -3,8 +3,15 @@ dist: disco
 compiler:
   - gcc
 
+addons:
+  apt:
+    sources:
+      - boost-latest
+    packages:
+      - libboost-dev
+      - libboost-system-dev
+
 before_script: ./install-wiringPi.sh
 script:
   - make
   - sudo make install
-
