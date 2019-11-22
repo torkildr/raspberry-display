@@ -1,15 +1,12 @@
 language: c++
-dist: disco
-compiler:
-  - gcc
+
+services:
+  - docker
 
 before_install:
-  - ./install-prereqs-debian.sh
-
-install:
-  - ./install-wiringPi.sh
+  - docker build -t raspberry-display .
 
 script:
-  - make
-  - sudo make install
+  - docker run -v $(pwd):/code raspberry-display:latest make
+  - docker run -v $(pwd):/code raspberry-display:latest make install
 
