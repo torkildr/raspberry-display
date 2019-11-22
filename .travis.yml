@@ -3,7 +3,7 @@ dist: disco
 compiler:
   - gcc
 
-before install:
+before_install:
   - ./install-prereqs-debian.sh
 
 install:
