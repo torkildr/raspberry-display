@@ -47,31 +47,20 @@ $(PROGRAM_MOCK_WS): src/websocket.o $(MOCK_DISPLAY) $(COMMON)
 
 install:
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
-	# fifo bin
+	# websocket program
 	install -m0755 $(PROGRAM_WS) "/usr/$(PROGRAM_WS)"
-	# http server
-	install -m0755 -d /usr/local/bin/display-http-server
-	install -m0755 -D http-api/*.py /usr/local/bin/display-http-server
 	# systemd files
-	install -m0644 systemd/raspberry-display-driver.service /etc/systemd/system/
-	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display-driver.service
-	install -m0644 systemd/raspberry-display-server.service /etc/systemd/system/
-	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display-server.service
-	$(SYSTEMCTL) reenable raspberry-display-driver.service
-	$(SYSTEMCTL) reenable raspberry-display-server.service
+	install -m0644 systemd/raspberry-display.service /etc/systemd/system/
+	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display.service
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) reenable raspberry-display.service; fi
 	@echo "\nAll files installed."
 	@echo "\nYou can start the service with"
-	@echo "  Driver: \"sudo systemctl restart raspberry-display-driver\""
-	@echo "  Server: \"sudo systemctl restart raspberry-display-server\""
+	@echo "  sudo systemctl restart raspberry-display"
 
 uninstall:
-	$(SYSTEMCTL) stop raspberry-display-driver.service
-	$(SYSTEMCTL) disable raspberry-display-driver.service
-	$(SYSTEMCTL) stop raspberry-display-server.service
-	$(SYSTEMCTL) disable raspberry-display-server.service
-	$(RM) /etc/systemd/system/raspberry-display-driver.service
-	$(RM) /etc/systemd/system/raspberry-display-server.service
-	$(RM) -R "/usr/local/bin/display-http-server"
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) stop raspberry-display.service; fi
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) disable raspberry-display.service; fi
+	$(RM) /etc/systemd/system/raspberry-display.service
 	$(RM) "/usr/$(PROGRAM_WS)"
 
 -include $(DEPFILES)

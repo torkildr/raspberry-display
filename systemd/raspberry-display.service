@@ -1,13 +1,12 @@
 [Unit]
-Description = Led display HTTP server interface
+Description = Led display driver with websocket client
 After = network.target
 
 [Service]
-ExecStart = /usr/local/bin/display-http-server/server.py
+ExecStart = /usr/bin/raspberry-display
 Restart = always
 User = PLACEHOLDER_USER
 Nice = -10
 
 [Install]
 WantedBy = multi-user.target
-
