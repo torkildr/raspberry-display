@@ -38,7 +38,7 @@ int main() {
     auto postUpdate = []{
         print_help_text();
     };
-    
+
     init_curses();
 
     auto disp = display::DisplayImpl(preUpdate, postUpdate);
@@ -94,5 +94,5 @@ int main() {
     disp.stop();
     endwin();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

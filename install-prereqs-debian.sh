@@ -8,5 +8,5 @@ sudo apt-get install -y \
   build-essential \
   libboost-dev \
   libboost-system-dev \
+  nlohmann-json3-dev \
   sudo
-

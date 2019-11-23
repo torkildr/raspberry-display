@@ -36,7 +36,7 @@ void Timer::setInterval(std::function<void()> function, nanoseconds interval)
 
         nanoseconds nextInterval = interval;
 
-        while(true) {
+        while (true) {
             if(m_clear) return;
             std::unique_lock<std::mutex> lock(mutex);
             m_abort.wait_for(lock, nextInterval);
