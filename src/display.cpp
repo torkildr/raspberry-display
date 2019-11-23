@@ -144,7 +144,7 @@ void Display::showTime(std::string timeFormat)
     if (!timeFormat.empty()) {
         this->timeFormat = timeFormat;
     } else {
-        this->timeFormat = "%A, %b %d %H:%M";
+        this->timeFormat = TIME_FORMAT_LONG;
     }
 }
 
@@ -155,7 +155,7 @@ void Display::showTime(std::string timeFormat, std::string text)
     if (!timeFormat.empty()) {
         this->timeFormat = timeFormat;
     } else {
-        this->timeFormat = "%H:%M|";
+        this->timeFormat = TIME_FORMAT_SHORT;
     }
 
     showText(text);
