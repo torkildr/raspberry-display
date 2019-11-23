@@ -8,5 +8,5 @@ before_install:
 
 script:
   - docker run -v $(pwd):/code raspberry-display:latest make
-  - docker run -v $(pwd):/code raspberry-display:latest make install
+  - docker run -v $(pwd):/code raspberry-display:latest sudo make install
 
