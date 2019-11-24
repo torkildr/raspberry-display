@@ -55,14 +55,14 @@ void Display::prepare()
 
 void Display::start()
 {
-    timers.push_back(std::move(timer::createTimer([=]{
+    timers.push_back(timer::createTimer([=]{
         if (dirty) {
             preUpdate();
             update();
             postUpdate();
         }
         prepare();
-    }, REFRESH_RATE)));
+    }, REFRESH_RATE));
 }
 
 void Display::stop()
