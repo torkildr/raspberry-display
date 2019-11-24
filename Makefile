@@ -7,7 +7,7 @@ PROGRAM_MOCK_WS:=$(BINDIR)/mock-raspberry-display
 
 WARNINGS:=-Wall -Wextra -Werror
 LDFLAGS:=-lstdc++ -lboost_system -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
-CXXFLAGS:=-std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
+CXXFLAGS:=${CXXFLAGS} -fPIC -std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
 
 CPP_SRCS:=$(wildcard src/*.cpp)
 DEPFILES:=${CPP_SRCS:.cpp=.d}
