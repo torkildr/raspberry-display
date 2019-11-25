@@ -6,8 +6,8 @@ PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
 PROGRAM_MOCK_WS:=$(BINDIR)/mock-raspberry-display
 
 WARNINGS:=-Wall -Wextra -Werror
+override CXXFLAGS+=-std=c++17 -fPIC ${WARNINGS}
 LDFLAGS:=-lstdc++ -lboost_system -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
-CXXFLAGS:=${CXXFLAGS} -fPIC -std=c++17 $(WARNINGS) -DDEBUG_ENABLED -g
 
 CPP_SRCS:=$(wildcard src/*.cpp)
 DEPFILES:=${CPP_SRCS:.cpp=.d}
@@ -21,10 +21,13 @@ SYSTEMCTL:=$(shell which systemctl)
 
 .PHONY: build clean
 
-build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_WS) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_WS)
+production: CXXFLAGS+=-O3
+production: build
 
-debug: CFLAGS += -DDEBUG_ENABLED -g
+debug: CXXFLAGS+=-g -DDEBUG
 debug: build
+
+build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_WS) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_WS)
 
 clean:
 	$(RM) -R $(BINDIR)
@@ -34,16 +37,16 @@ $(BINDIR)/:
 	mkdir -p $@
 
 $(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	cc -o $@ $^ $(LDFLAGS)
 
 $(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	cc -o $@ $^ $(LDFLAGS)
 
 $(PROGRAM_WS): src/websocket.o $(REAL_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	cc -o $@ $^ $(LDFLAGS)
 
 $(PROGRAM_MOCK_WS): src/websocket.o $(MOCK_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(CXXFLAGS) $(LDFLAGS)
+	cc -o $@ $^ $(LDFLAGS)
 
 install:
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
