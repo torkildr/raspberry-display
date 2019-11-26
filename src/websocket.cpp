@@ -15,13 +15,14 @@ namespace websocket = boost::beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using json = nlohmann::json;
 
-void handle_data(std::shared_ptr<display::DisplayImpl> disp, json data)
+void handle_data(display::DisplayImpl * disp, json data)
 {
     std::cout << "data: " << data << std::endl;
     disp->show("foobar");
 }
 
-void do_session(std::shared_ptr<display::DisplayImpl> disp, tcp::socket& socket)
+void do_session(display::DisplayImpl * disp,
+    tcp::socket & socket)
 {
     auto ip = socket.remote_endpoint().address();
     auto port = socket.remote_endpoint().port();
@@ -38,7 +39,6 @@ void do_session(std::shared_ptr<display::DisplayImpl> disp, tcp::socket& socket)
             ws.read(buffer);
 
             auto data = boost::beast::buffers_to_string(buffer.data());
-
             handle_data(disp, json::parse(data));
         }
     }
@@ -65,7 +65,7 @@ int main()
         net::io_context ioc{1};
         tcp::acceptor acceptor{ioc, {address, port}};
 
-        auto disp = std::make_shared<display::DisplayImpl>([]{}, []{});
+        auto disp = std::make_unique<display::DisplayImpl>([]{}, []{});
         disp->start();
 
         while (true)
@@ -73,10 +73,8 @@ int main()
             tcp::socket socket{ioc};
             acceptor.accept(socket);
 
-            std::thread{std::bind(
-                &do_session,
-                disp,
-                std::move(socket))}.detach();
+            std::thread{std::bind(&do_session, disp.get(), std::move(socket))}
+                .detach();
         }
 
         disp->stop();
