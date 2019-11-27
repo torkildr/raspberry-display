@@ -22,15 +22,15 @@ void handle_data(display::DisplayImpl * disp, json data)
 }
 
 void do_session(display::DisplayImpl * disp,
-    tcp::socket & socket)
+    tcp::socket * socket)
 {
-    auto ip = socket.remote_endpoint().address();
-    auto port = socket.remote_endpoint().port();
+    auto ip = socket->remote_endpoint().address();
+    auto port = socket->remote_endpoint().port();
     std::cout << "connection opened: " << ip << ":" << port << std::endl;
 
     try
     {
-        websocket::stream<tcp::socket> ws{std::move(socket)};
+        websocket::stream<tcp::socket &> ws{*socket};
         ws.accept();
 
         while (true)
@@ -68,13 +68,17 @@ int main()
         auto disp = std::make_unique<display::DisplayImpl>([]{}, []{});
         disp->start();
 
+        std::vector<std::unique_ptr<tcp::socket>> sockets{};
+
         while (true)
         {
-            tcp::socket socket{ioc};
-            acceptor.accept(socket);
+            auto socket = std::make_unique<tcp::socket>(ioc);
+            acceptor.accept(*socket);
 
-            std::thread{std::bind(&do_session, disp.get(), std::move(socket))}
-                .detach();
+            auto thread = std::thread{std::bind(&do_session, disp.get(), socket.get())};
+            thread.detach();
+
+            sockets.push_back(std::move(socket));
         }
 
         disp->stop();
