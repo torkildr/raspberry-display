@@ -15,13 +15,13 @@ namespace websocket = boost::beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using json = nlohmann::json;
 
-void handle_data(display::DisplayImpl *disp, json data)
+void handle_data(display::Display *disp, json data)
 {
     std::cout << "data: " << data << std::endl;
     disp->show("foobar");
 }
 
-void do_session(display::DisplayImpl *disp, tcp::socket *socket)
+void do_session(display::Display *disp, tcp::socket *socket)
 {
     auto ip = socket->remote_endpoint().address();
     auto port = socket->remote_endpoint().port();
