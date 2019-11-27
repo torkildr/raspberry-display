@@ -76,8 +76,7 @@ void Display::start()
             postUpdate();
         }
         prepare();
-    },
-                                        REFRESH_RATE));
+    }, REFRESH_RATE));
 }
 
 void Display::stop()

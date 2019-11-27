@@ -17,10 +17,7 @@ std::unique_ptr<Timer> createTimer(std::function<void()> callback, double second
     long long intervalNs = seconds * 1e9;
     nanoseconds interval(intervalNs);
 
-    timer->setInterval([callback] {
-        callback();
-    },
-                       interval);
+    timer->setInterval([=] { callback(); }, interval);
 
     return timer;
 }
