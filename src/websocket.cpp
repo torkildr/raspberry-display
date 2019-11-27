@@ -3,6 +3,7 @@
 #include <iostream>
 #include <ostream>
 #include <map>
+#include <mutex>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -66,9 +67,11 @@ struct Connection {
 };
 
 std::map<int, Connection> connections{};
+std::mutex connection_mutex;
 
 void shutdown()
 {
+    std::unique_lock<std::mutex> lock(connection_mutex);
     DEBUG_LOG("shutdown start");
 
     for (auto &connection : connections)
@@ -107,6 +110,8 @@ int main()
             auto socket = std::make_unique<tcp::socket>(ioc);
             acceptor.accept(*socket);
 
+            std::unique_lock<std::mutex> lock(connection_mutex);
+
             int threadId = threads++;
             auto thread = std::thread{std::bind(&do_session, threadId, disp.get(), socket.get())};
 
@@ -114,6 +119,8 @@ int main()
             connections[threadId] = std::move(connection);
             break;
         }
+
+        acceptor.close();
 
         DEBUG_LOG("waiting");
         std::this_thread::sleep_for(std::chrono::seconds(5));
