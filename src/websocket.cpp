@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <ostream>
+#include <map>
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -24,12 +25,13 @@ void handle_data(display::Display *disp, json data)
     disp->show("foobar");
 }
 
-void do_session(display::Display *disp, tcp::socket *socket)
+void do_session(int threadId, display::Display *disp, tcp::socket *socket)
 {
     auto ip = socket->remote_endpoint().address();
     auto port = socket->remote_endpoint().port();
 
     DEBUG_LOG("connection opened: " << ip << ":" << port);
+    DEBUG_LOG("thread " << threadId);
 
     try
     {
@@ -71,17 +73,19 @@ int main()
         auto disp = std::make_unique<display::DisplayImpl>([] {}, [] {});
         disp->start();
 
-        std::vector<std::unique_ptr<tcp::socket>> sockets{};
+        std::map<int, std::unique_ptr<tcp::socket>> sockets{};
+        int threads = 0;
 
         while (true)
         {
             auto socket = std::make_unique<tcp::socket>(ioc);
             acceptor.accept(*socket);
 
-            auto thread = std::thread{std::bind(&do_session, disp.get(), socket.get())};
+            int threadId = threads++;
+            auto thread = std::thread{std::bind(&do_session, threadId, disp.get(), socket.get())};
             thread.detach();
 
-            sockets.push_back(std::move(socket));
+            sockets.insert(std::pair(threadId, std::move(socket)));
         }
 
         DEBUG_LOG("shutting down");
