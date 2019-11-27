@@ -9,15 +9,18 @@
 
 #include "websocket.hpp"
 #include "display_impl.hpp"
+#include "debug_util.hpp"
 
 namespace net = boost::asio;
 namespace websocket = boost::beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using json = nlohmann::json;
 
+
 void handle_data(display::Display *disp, json data)
 {
-    std::cout << "data: " << data << std::endl;
+    DEBUG_LOG("data: " << data);
+
     disp->show("foobar");
 }
 
@@ -25,7 +28,8 @@ void do_session(display::Display *disp, tcp::socket *socket)
 {
     auto ip = socket->remote_endpoint().address();
     auto port = socket->remote_endpoint().port();
-    std::cout << "connection opened: " << ip << ":" << port << std::endl;
+
+    DEBUG_LOG("connection opened: " << ip << ":" << port);
 
     try
     {
@@ -51,7 +55,7 @@ void do_session(display::Display *disp, tcp::socket *socket)
         std::cerr << "Error: " << e.what() << std::endl;
     }
 
-    std::cout << "connection closed: " << ip << ":" << port << std::endl;
+    DEBUG_LOG("connection closed: " << ip << ":" << port);
 }
 
 int main()
@@ -80,6 +84,7 @@ int main()
             sockets.push_back(std::move(socket));
         }
 
+        DEBUG_LOG("shutting down");
         disp->stop();
     }
     catch (const std::exception &e)

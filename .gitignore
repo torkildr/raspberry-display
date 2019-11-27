@@ -6,3 +6,4 @@ wiringPi/
 tests/
 src/*.o
 .vscode/
+stderr.txt
