@@ -19,6 +19,16 @@ using tcp = boost::asio::ip::tcp;
 using json = nlohmann::json;
 
 
+struct Connection {
+    std::thread thread;
+    std::unique_ptr<tcp::socket> socket;
+};
+
+bool running = true;
+std::map<int, Connection> connections{};
+std::mutex connection_mutex;
+
+
 void handle_data(display::Display *disp, json data)
 {
     DEBUG_LOG("data: " << data);
@@ -32,7 +42,7 @@ void do_session(int threadId, display::Display *disp, tcp::socket *socket)
     auto port = socket->remote_endpoint().port();
 
     DEBUG_LOG("connection opened: " << ip << ":" << port);
-    DEBUG_LOG("thread " << threadId);
+    DEBUG_LOG("thread " << threadId << ": started");
 
     try
     {
@@ -51,7 +61,9 @@ void do_session(int threadId, display::Display *disp, tcp::socket *socket)
     catch (boost::system::system_error const &se)
     {
         if (se.code() != websocket::error::closed)
+        {
             std::cerr << "Error: " << se.code().message() << std::endl;
+        }
     }
     catch (std::exception const &e)
     {
@@ -59,15 +71,12 @@ void do_session(int threadId, display::Display *disp, tcp::socket *socket)
     }
 
     DEBUG_LOG("connection closed: " << ip << ":" << port);
+    DEBUG_LOG("thread " << threadId << ": exiting");
+
+    std::unique_lock<std::mutex> lock(connection_mutex);
+    connections[threadId].thread.detach();
+    connections.erase(threadId);
 }
-
-struct Connection {
-    std::thread thread;
-    std::unique_ptr<tcp::socket> socket;
-};
-
-std::map<int, Connection> connections{};
-std::mutex connection_mutex;
 
 void shutdown()
 {
@@ -76,6 +85,7 @@ void shutdown()
 
     for (auto &connection : connections)
     {
+        DEBUG_LOG("thread " << connection.first << ": closing");
         connection.second.socket->shutdown(tcp::socket::shutdown_both);
         connection.second.socket = nullptr;
     }
@@ -86,6 +96,7 @@ void shutdown()
     }
 
     connections.clear();
+    running = false;
 
     DEBUG_LOG("shutdown done");
 }
@@ -112,20 +123,24 @@ int main()
 
             std::unique_lock<std::mutex> lock(connection_mutex);
 
+            if (!running)
+            {
+                DEBUG_LOG("aborting accept loop");
+                break;
+            }
+
             int threadId = threads++;
             auto thread = std::thread{std::bind(&do_session, threadId, disp.get(), socket.get())};
 
-            Connection connection{std::move(thread),std::move(socket)};
+            Connection connection{std::move(thread), std::move(socket)};
             connections[threadId] = std::move(connection);
             break;
         }
 
-        acceptor.close();
-
         DEBUG_LOG("waiting");
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        shutdown();
+        std::this_thread::sleep_for(std::chrono::seconds(7));
 
+        shutdown();
         disp->stop();
     }
     catch (const std::exception &e)
