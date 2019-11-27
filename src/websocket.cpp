@@ -60,6 +60,33 @@ void do_session(int threadId, display::Display *disp, tcp::socket *socket)
     DEBUG_LOG("connection closed: " << ip << ":" << port);
 }
 
+struct Connection {
+    std::thread thread;
+    std::unique_ptr<tcp::socket> socket;
+};
+
+std::map<int, Connection> connections{};
+
+void shutdown()
+{
+    DEBUG_LOG("shutdown start");
+
+    for (auto &connection : connections)
+    {
+        connection.second.socket->shutdown(tcp::socket::shutdown_both);
+        connection.second.socket = nullptr;
+    }
+
+    for (auto &connection : connections)
+    {
+        connection.second.thread.join();
+    }
+
+    connections.clear();
+
+    DEBUG_LOG("shutdown done");
+}
+
 int main()
 {
     try
@@ -73,7 +100,6 @@ int main()
         auto disp = std::make_unique<display::DisplayImpl>([] {}, [] {});
         disp->start();
 
-        std::map<int, std::unique_ptr<tcp::socket>> sockets{};
         int threads = 0;
 
         while (true)
@@ -83,12 +109,16 @@ int main()
 
             int threadId = threads++;
             auto thread = std::thread{std::bind(&do_session, threadId, disp.get(), socket.get())};
-            thread.detach();
 
-            sockets.insert(std::pair(threadId, std::move(socket)));
+            Connection connection{std::move(thread),std::move(socket)};
+            connections[threadId] = std::move(connection);
+            break;
         }
 
-        DEBUG_LOG("shutting down");
+        DEBUG_LOG("waiting");
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        shutdown();
+
         disp->stop();
     }
     catch (const std::exception &e)
