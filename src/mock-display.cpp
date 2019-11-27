@@ -6,7 +6,8 @@
 
 #include "display_impl.hpp"
 
-namespace display {
+namespace display
+{
 
 int _brightness;
 std::chrono::time_point<std::chrono::steady_clock> _last_update;
@@ -58,16 +59,17 @@ void showScrolling(display::Scrolling dir, int offset)
 {
     std::stringstream info;
     std::string direction;
-    switch (dir) {
-        case Scrolling::DISABLED:
-            direction = "Disabled";
-            break;
-        case Scrolling::ENABLED:
-            direction = "Enabled";
-            break;
-        case Scrolling::RESET:
-            direction = "Reset";
-            break;
+    switch (dir)
+    {
+    case Scrolling::DISABLED:
+        direction = "Disabled";
+        break;
+    case Scrolling::ENABLED:
+        direction = "Enabled";
+        break;
+    case Scrolling::RESET:
+        direction = "Reset";
+        break;
     }
 
     info << "Scrolling: " << direction << ", Offset: " << offset;
@@ -154,4 +156,4 @@ void DisplayImpl::update()
     ::refresh();
 }
 
-}
+} // namespace display

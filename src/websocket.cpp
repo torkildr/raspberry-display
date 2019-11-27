@@ -15,14 +15,13 @@ namespace websocket = boost::beast::websocket;
 using tcp = boost::asio::ip::tcp;
 using json = nlohmann::json;
 
-void handle_data(display::DisplayImpl * disp, json data)
+void handle_data(display::DisplayImpl *disp, json data)
 {
     std::cout << "data: " << data << std::endl;
     disp->show("foobar");
 }
 
-void do_session(display::DisplayImpl * disp,
-    tcp::socket * socket)
+void do_session(display::DisplayImpl *disp, tcp::socket *socket)
 {
     auto ip = socket->remote_endpoint().address();
     auto port = socket->remote_endpoint().port();
@@ -42,12 +41,12 @@ void do_session(display::DisplayImpl * disp,
             handle_data(disp, json::parse(data));
         }
     }
-    catch(boost::system::system_error const& se)
+    catch (boost::system::system_error const &se)
     {
-        if(se.code() != websocket::error::closed)
+        if (se.code() != websocket::error::closed)
             std::cerr << "Error: " << se.code().message() << std::endl;
     }
-    catch(std::exception const& e)
+    catch (std::exception const &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
     }
@@ -65,7 +64,7 @@ int main()
         net::io_context ioc{1};
         tcp::acceptor acceptor{ioc, {address, port}};
 
-        auto disp = std::make_unique<display::DisplayImpl>([]{}, []{});
+        auto disp = std::make_unique<display::DisplayImpl>([] {}, [] {});
         disp->start();
 
         std::vector<std::unique_ptr<tcp::socket>> sockets{};
@@ -83,7 +82,7 @@ int main()
 
         disp->stop();
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;

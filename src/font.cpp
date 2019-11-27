@@ -5,7 +5,7 @@
 #include "font.h"
 #include "font.hpp"
 
-unsigned char* fontCharacter(char c)
+unsigned char *fontCharacter(char c)
 {
     char *substr = strchr(charLookup, c);
     if (substr == NULL)
@@ -21,7 +21,8 @@ std::vector<char> renderChar(char c)
     std::vector<char> rendered;
 
     short col;
-    for (col = 0; col < width; col++) {
+    for (col = 0; col < width; col++)
+    {
         rendered.push_back(glyph[col + 1]);
     }
 
@@ -31,13 +32,15 @@ std::vector<char> renderChar(char c)
     return rendered;
 }
 
-namespace font {
+namespace font
+{
 
 std::vector<char> renderString(std::string text)
 {
     std::vector<char> rendered;
 
-    for (auto it = text.begin(); it < text.end(); ++it) {
+    for (auto it = text.begin(); it < text.end(); ++it)
+    {
         auto glyph = renderChar(*it);
         rendered.insert(rendered.end(), glyph.begin(), glyph.end());
     }
@@ -45,4 +48,4 @@ std::vector<char> renderString(std::string text)
     return rendered;
 }
 
-}
+} // namespace font

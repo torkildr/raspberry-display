@@ -31,11 +31,12 @@ void print_help_text()
 
 std::string abc_string = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 
-int main() {
-    auto preUpdate = []{
+int main()
+{
+    auto preUpdate = [] {
         clear();
     };
-    auto postUpdate = []{
+    auto postUpdate = [] {
         print_help_text();
     };
 
@@ -49,44 +50,49 @@ int main() {
     int brightness = 7;
     disp.setBrightness(brightness);
 
-    while (!done) {
+    while (!done)
+    {
         int c;
 
-        if ((c = getch()) != ERR) {
-            switch (c) {
-                case 'q':
-                    done = true;
-                    break;
-                case 't':
-                    disp.showTime("");
-                    break;
-                case 'a':
-                    disp.show(abc_string);
-                    break;
-                case 'b':
-                    disp.showTime("", abc_string);
-                    break;
-                case 'l':
-                    disp.setScrolling(display::Scrolling::ENABLED);
-                    break;
-                case 'r':
-                    disp.setScrolling(display::Scrolling::RESET);
-                    break;
-                case '+':
-                    if (brightness < 0xF) {
-                      disp.setBrightness(++brightness);
-                    }
-                    break;
-                case '-':
-                    if (brightness > 1) {
-                      disp.setBrightness(--brightness);
-                    }
-                    break;
-                case 'd':
-                case '0':
-                case KEY_HOME:
-                    disp.setScrolling(display::Scrolling::DISABLED);
-                    break;
+        if ((c = getch()) != ERR)
+        {
+            switch (c)
+            {
+            case 'q':
+                done = true;
+                break;
+            case 't':
+                disp.showTime("");
+                break;
+            case 'a':
+                disp.show(abc_string);
+                break;
+            case 'b':
+                disp.showTime("", abc_string);
+                break;
+            case 'l':
+                disp.setScrolling(display::Scrolling::ENABLED);
+                break;
+            case 'r':
+                disp.setScrolling(display::Scrolling::RESET);
+                break;
+            case '+':
+                if (brightness < 0xF)
+                {
+                    disp.setBrightness(++brightness);
+                }
+                break;
+            case '-':
+                if (brightness > 1)
+                {
+                    disp.setBrightness(--brightness);
+                }
+                break;
+            case 'd':
+            case '0':
+            case KEY_HOME:
+                disp.setScrolling(display::Scrolling::DISABLED);
+                break;
             }
         }
     }

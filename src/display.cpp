@@ -7,11 +7,11 @@
 
 #include "font.hpp"
 
-namespace display {
+namespace display
+{
 
 Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate)
-    : preUpdate(preUpdate)
-    , postUpdate(postUpdate)
+    : preUpdate(preUpdate), postUpdate(postUpdate)
 {
 }
 
@@ -26,28 +26,41 @@ void Display::prepare()
     auto time = renderTime();
     int textBlock = X_MAX - time.size();
 
-    if (scrollDelay >= SCROLL_DELAY) {
-        if (scrollOffset != 0) {
+    if (scrollDelay >= SCROLL_DELAY)
+    {
+        if (scrollOffset != 0)
+        {
             scrollDelay = 1;
             scrollOffset = 0;
-        } else {
+        }
+        else
+        {
             scrollDelay = 0;
         }
-    } else if (scrollDelay) {
+    }
+    else if (scrollDelay)
+    {
         scrollDelay++;
-    } else {
-        if (scrollDirection == Scrolling::ENABLED && textSize > textBlock) {
+    }
+    else
+    {
+        if (scrollDirection == Scrolling::ENABLED && textSize > textBlock)
+        {
             ++scrollOffset;
-            if (textBlock + scrollOffset >= textSize) {
+            if (textBlock + scrollOffset >= textSize)
+            {
                 scrollDelay = 1;
             }
         }
     }
 
     auto tmp = createDisplayBuffer(std::move(time));
-    if (tmp == displayBuffer) {
+    if (tmp == displayBuffer)
+    {
         dirty = false;
-    } else {
+    }
+    else
+    {
         std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
         dirty = true;
     }
@@ -55,19 +68,22 @@ void Display::prepare()
 
 void Display::start()
 {
-    timers.push_back(timer::createTimer([=]{
-        if (dirty) {
+    timers.push_back(timer::createTimer([=] {
+        if (dirty)
+        {
             preUpdate();
             update();
             postUpdate();
         }
         prepare();
-    }, REFRESH_RATE));
+    },
+                                        REFRESH_RATE));
 }
 
 void Display::stop()
 {
-    for (auto & timer : timers) {
+    for (auto &timer : timers)
+    {
         timer->stop();
     }
     timers.clear();
@@ -86,7 +102,8 @@ std::string getTime(std::string format)
 
 std::vector<char> Display::renderTime()
 {
-    if (mode == Mode::TIME || mode == Mode::TIME_AND_TEXT) {
+    if (mode == Mode::TIME || mode == Mode::TIME_AND_TEXT)
+    {
         return font::renderString(getTime(timeFormat));
     }
     return std::vector<char>();
@@ -94,15 +111,18 @@ std::vector<char> Display::renderTime()
 
 std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
 {
-    std::array<char, X_MAX> rendered = { 0 };
+    std::array<char, X_MAX> rendered = {0};
     size_t pos = 0;
 
-    for (; pos < time.size(); pos++) {
+    for (; pos < time.size(); pos++)
+    {
         rendered[pos] = time.at(pos);
     }
 
-    if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT) {
-        for (size_t i = scrollOffset; pos < X_MAX && i < renderedText.size(); ++i, ++pos) {
+    if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT)
+    {
+        for (size_t i = scrollOffset; pos < X_MAX && i < renderedText.size(); ++i, ++pos)
+        {
             rendered[pos] = renderedText.at(i);
         }
     }
@@ -115,7 +135,8 @@ void Display::setScrolling(Scrolling direction)
     scrollOffset = 0;
     scrollDelay = 1;
 
-    if (direction == Scrolling::RESET) {
+    if (direction == Scrolling::RESET)
+    {
         return;
     }
 
@@ -141,9 +162,12 @@ void Display::showTime(std::string timeFormat)
 {
     mode = Mode::TIME;
 
-    if (!timeFormat.empty()) {
+    if (!timeFormat.empty())
+    {
         this->timeFormat = timeFormat;
-    } else {
+    }
+    else
+    {
         this->timeFormat = TIME_FORMAT_LONG;
     }
 }
@@ -152,13 +176,16 @@ void Display::showTime(std::string timeFormat, std::string text)
 {
     mode = Mode::TIME_AND_TEXT;
 
-    if (!timeFormat.empty()) {
+    if (!timeFormat.empty())
+    {
         this->timeFormat = timeFormat;
-    } else {
+    }
+    else
+    {
         this->timeFormat = TIME_FORMAT_SHORT;
     }
 
     showText(text);
 }
 
-}
+} // namespace display

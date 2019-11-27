@@ -2,11 +2,12 @@
 #define font_hpp
 
 #include <string>
+#include <vector>
 
-namespace font {
+namespace font
+{
 
 std::vector<char> renderString(std::string text);
-
 }
 
 #endif

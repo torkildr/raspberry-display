@@ -3,19 +3,21 @@
 
 #include "display.hpp"
 
-namespace display {
+namespace display
+{
 
-class DisplayImpl : public Display {
-    public:
-        DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate);
-        virtual ~DisplayImpl();
+class DisplayImpl : public Display
+{
+public:
+    DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate);
+    virtual ~DisplayImpl();
 
-        void setBrightness(int brightness);
+    void setBrightness(int brightness);
 
-    private:
-        void update();
+private:
+    void update();
 };
 
-}
+} // namespace display
 
 #endif

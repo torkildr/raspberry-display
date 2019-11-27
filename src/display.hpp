@@ -16,62 +16,65 @@
 #define TIME_FORMAT_LONG "%A, %b %d %H:%M"
 #define TIME_FORMAT_SHORT "%H:%M|"
 
-namespace display {
+namespace display
+{
 
-enum Scrolling {
+enum Scrolling
+{
     DISABLED,
     ENABLED,
     RESET,
 };
 
-enum Mode {
+enum Mode
+{
     TIME,
     TIME_AND_TEXT,
     TEXT,
 };
 
-class Display {
-    public:
-        Display(std::function<void()> preUpdate, std::function<void()> postUpdate);
-        virtual ~Display();
+class Display
+{
+public:
+    Display(std::function<void()> preUpdate, std::function<void()> postUpdate);
+    virtual ~Display();
 
-        virtual void setBrightness(int brightness) = 0;
-        void setScrolling(Scrolling direction);
+    virtual void setBrightness(int brightness) = 0;
+    void setScrolling(Scrolling direction);
 
-        void show(std::string text);
-        void showTime(std::string timeFormat);
-        void showTime(std::string timeFormat, std::string text);
+    void show(std::string text);
+    void showTime(std::string timeFormat);
+    void showTime(std::string timeFormat, std::string text);
 
-        void start();
-        void stop();
+    void start();
+    void stop();
 
-    protected:
-        std::array<char, X_MAX> displayBuffer { 0 };
-        size_t renderedTextSize = 0;
-        int scrollOffset = 0;
-        Scrolling scrollDirection = Scrolling::ENABLED;
+protected:
+    std::array<char, X_MAX> displayBuffer{0};
+    size_t renderedTextSize = 0;
+    int scrollOffset = 0;
+    Scrolling scrollDirection = Scrolling::ENABLED;
 
-    private:
-        virtual void update() = 0;
+private:
+    virtual void update() = 0;
 
-        void showText(std::string text);
-        void prepare();
-        std::array<char, X_MAX> createDisplayBuffer(std::vector<char> time);
-        std::vector<char> renderTime();
+    void showText(std::string text);
+    void prepare();
+    std::array<char, X_MAX> createDisplayBuffer(std::vector<char> time);
+    std::vector<char> renderTime();
 
-        Mode mode = Mode::TIME;
-        std::vector<char> renderedText;
-        std::string timeFormat = TIME_FORMAT_LONG;
-        int scrollDelay = 0;
-        bool dirty = true;
+    Mode mode = Mode::TIME;
+    std::vector<char> renderedText;
+    std::string timeFormat = TIME_FORMAT_LONG;
+    int scrollDelay = 0;
+    bool dirty = true;
 
-        std::vector<std::unique_ptr<timer::Timer>> timers;
+    std::vector<std::unique_ptr<timer::Timer>> timers;
 
-        std::function<void()> preUpdate;
-        std::function<void()> postUpdate;
-
+    std::function<void()> preUpdate;
+    std::function<void()> postUpdate;
 };
 
-}
+} // namespace display
 
 #endif

@@ -8,7 +8,8 @@
 
 using namespace std::chrono;
 
-namespace timer {
+namespace timer
+{
 
 std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds)
 {
@@ -18,7 +19,8 @@ std::unique_ptr<Timer> createTimer(std::function<void()> callback, double second
 
     timer->setInterval([callback] {
         callback();
-    }, interval);
+    },
+                       interval);
 
     return timer;
 }
@@ -36,11 +38,14 @@ void Timer::setInterval(std::function<void()> function, nanoseconds interval)
 
         nanoseconds nextInterval = interval;
 
-        while (true) {
-            if(m_clear) return;
+        while (true)
+        {
+            if (m_clear)
+                return;
             std::unique_lock<std::mutex> lock(mutex);
             m_abort.wait_for(lock, nextInterval);
-            if(m_clear) return;
+            if (m_clear)
+                return;
 
             time_point before = high_resolution_clock::now();
             function();
@@ -57,11 +62,12 @@ void Timer::setInterval(std::function<void()> function, nanoseconds interval)
 
 void Timer::stop()
 {
-    if (m_thread.joinable()) {
+    if (m_thread.joinable())
+    {
         m_clear = true;
         m_abort.notify_all();
         m_thread.join();
     }
 }
 
-}
+} // namespace timer
