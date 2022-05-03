@@ -3,7 +3,8 @@ FROM buildpack-deps
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       valgrind \
-      sudo
+      sudo \
+      meson
 
 RUN mkdir setup
 COPY *.sh /setup/
@@ -12,4 +13,3 @@ RUN /setup/install-wiringPi.sh
 
 VOLUME /code
 WORKDIR /code
-

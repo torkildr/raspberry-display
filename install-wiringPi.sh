@@ -2,11 +2,8 @@
 
 set -xe
 
-#git clone git://git.drogon.net/wiringPi
+git clone https://github.com/WiringPi/WiringPi.git
 
-# drogon.net seems out of commission, use unofficial mirror
-git clone https://github.com/torkildr/wiringPi
-
-cd wiringPi
+cd WiringPi
 ./build
 

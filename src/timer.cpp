@@ -11,9 +11,9 @@ using namespace std::chrono;
 namespace timer
 {
 
-std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds)
+Timer* createTimer(std::function<void()> callback, double seconds)
 {
-    auto timer = std::make_unique<Timer>();
+    auto timer = new Timer();
     long long intervalNs = seconds * 1e9;
     nanoseconds interval(intervalNs);
 
@@ -44,9 +44,9 @@ void Timer::setInterval(std::function<void()> function, nanoseconds interval)
             if (m_clear)
                 return;
 
-            time_point before = high_resolution_clock::now();
+            time_point<high_resolution_clock> before = high_resolution_clock::now();
             function();
-            time_point after = high_resolution_clock::now();
+            time_point<high_resolution_clock> after = high_resolution_clock::now();
 
             duration<double> duration = after - before;
             nextInterval = interval - duration_cast<nanoseconds>(duration);

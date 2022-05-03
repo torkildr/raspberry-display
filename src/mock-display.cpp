@@ -14,7 +14,7 @@ std::chrono::time_point<std::chrono::steady_clock> _last_update;
 
 float getElapsed()
 {
-    std::chrono::time_point now = std::chrono::steady_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::microseconds>(now - _last_update).count();
 
     _last_update = now;

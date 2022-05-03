@@ -7,3 +7,5 @@ tests/
 src/*.o
 .vscode/
 stderr.txt
+build/
+debug/

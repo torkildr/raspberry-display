@@ -84,6 +84,7 @@ void Display::stop()
     for (auto &timer : timers)
     {
         timer->stop();
+        delete timer;
     }
     timers.clear();
 }

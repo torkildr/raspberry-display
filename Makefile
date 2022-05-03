@@ -1,57 +1,30 @@
-BINDIR:=bin
-
-PROGRAM_CURSES:=$(BINDIR)/curses-client
-PROGRAM_WS:=$(BINDIR)/raspberry-display
-PROGRAM_MOCK_CURSES:=$(BINDIR)/mock-curses-client
-PROGRAM_MOCK_WS:=$(BINDIR)/mock-raspberry-display
-
-WARNINGS:=-Wall -Wextra -Werror
-override CXXFLAGS+=-std=c++17 -fPIC ${WARNINGS}
-LDFLAGS:=-lstdc++ -lboost_system -lwiringPi -lncurses -lcrypt -lpthread -lm -lrt
-
-CPP_SRCS:=$(wildcard src/*.cpp)
-DEPFILES:=${CPP_SRCS:.cpp=.d}
-OBJECTS:=${CPP_SRCS:.cpp=.o}
-
-COMMON:=src/timer.o src/display.o src/font.o
-REAL_DISPLAY:=src/display.o src/ht1632.o
-MOCK_DISPLAY:=src/display.o src/mock-display.o
+BUILD_DIR:=build/
+DEBUG_DIR:=debug/
 
 SYSTEMCTL:=$(shell which systemctl)
 
 .PHONY: build clean
 
-production: CXXFLAGS+=-O3
-production: build
+build: $(BUILD_DIR)
+	cd $(BUILD_DIR) && meson compile
 
-debug: CXXFLAGS+=-g -DDEBUG
-debug: build
-
-build: $(BINDIR)/ $(PROGRAM_CURSES) $(PROGRAM_WS) $(PROGRAM_MOCK_CURSES) $(PROGRAM_MOCK_WS)
+debug: $(DEBUG_DIR)
+	cd $(DEBUG_DIR) && meson compile
 
 clean:
-	$(RM) -R $(BINDIR)
-	$(RM) $(OBJECTS)
+	$(RM) -R $(BUILD_DIR)
+	$(RM) -R $(DEBUG_DIR)
 
-$(BINDIR)/:
-	mkdir -p $@
+$(BUILD_DIR):
+	meson setup --prefix /usr $(BUILD_DIR)
 
-$(PROGRAM_CURSES): src/curses-client.o $(REAL_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(LDFLAGS)
+$(DEBUG_DIR):
+	meson setup -Dbuildtype=debug $(DEBUG_DIR)
 
-$(PROGRAM_MOCK_CURSES): src/curses-client.o $(MOCK_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(LDFLAGS)
-
-$(PROGRAM_WS): src/websocket.o $(REAL_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(LDFLAGS)
-
-$(PROGRAM_MOCK_WS): src/websocket.o $(MOCK_DISPLAY) $(COMMON)
-	cc -o $@ $^ $(LDFLAGS)
-
-install:
+install: build
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
-	# websocket program
-	install -m0755 $(PROGRAM_WS) "/usr/$(PROGRAM_WS)"
+	# meson will handle install
+	cd $(BUILD_DIR) && meson install
 	# systemd files
 	install -m0644 systemd/raspberry-display.service /etc/systemd/system/
 	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/raspberry-display.service
@@ -64,6 +37,4 @@ uninstall:
 	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) stop raspberry-display.service; fi
 	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) disable raspberry-display.service; fi
 	$(RM) /etc/systemd/system/raspberry-display.service
-	$(RM) "/usr/$(PROGRAM_WS)"
-
--include $(DEPFILES)
+	$(RM) "/usr/bin/raspberry-display"

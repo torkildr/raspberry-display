@@ -22,7 +22,7 @@ private:
     std::thread m_thread;
 };
 
-std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds);
+Timer* createTimer(std::function<void()> callback, double seconds);
 
 } // namespace timer
 
