@@ -4,7 +4,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       valgrind \
       sudo \
-      meson
+      meson \
+      cmake \
+      libboost-date-time-dev
 
 RUN mkdir setup
 COPY *.sh /setup/
