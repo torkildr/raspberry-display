@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -e
+
 tag="raspberry-display"
 
-if id -nG "$USER" | grep -qw "docker"; then
+if $(id -nG "$USER" | grep -qw "docker") || [[ $OSTYPE == 'darwin'* ]]; then
   docker="docker"
 else
   docker="sudo docker"
