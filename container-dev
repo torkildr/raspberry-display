@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+
+tag="raspberry-display"
+
+container_cmd="podman"
+
+if ! [ -x "$(command -v podman)" ]; then
+  if ! [ -x "$(command -v docker)" ]; then
+    echo "Neither podman nor docker installed."
+    exit 1
+  fi
+  if $(id -nG "$USER" | grep -qw "docker") || [[ $OSTYPE == 'darwin'* ]]; then
+    container_cmd="docker"
+  else
+    container_cmd="sudo docker"
+  fi
+fi
+
+
+
+current_dir="$PWD/${1#./}"
+
+$container_cmd build --tag "$tag" .
+$container_cmd run --rm -p 8080 -it -v "${current_dir}:/code" $tag
+
