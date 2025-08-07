@@ -1,12 +1,52 @@
 [Unit]
-Description = Led display driver with MQTT client
-After = network.target
+Description=Raspberry Pi LED Display Driver with MQTT Client
+Documentation=https://github.com/torkildr/raspberry-display
+After=network-online.target
+Wants=network-online.target
+Requires=network.target
 
 [Service]
-ExecStart = /usr/bin/raspberry-display-mqtt
-Restart = always
-User = PLACEHOLDER_USER
-Nice = -10
+Type=simple
+ExecStart=/usr/bin/raspberry-display-mqtt
+User=PLACEHOLDER_USER
+Group=gpio
+
+# Fault tolerance and restart policies
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+RestartPreventExitStatus=2
+
+# Process priority and resource limits
+Nice=-10
+IOSchedulingClass=1
+IOSchedulingPriority=4
+LimitNOFILE=1024
+LimitNPROC=512
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/dev
+SupplementaryGroups=gpio spi
+
+# Logging and monitoring
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=raspberry-display
+
+# Watchdog and health monitoring
+WatchdogSec=30
+NotifyAccess=none
+
+# Environment variables for configuration
+Environment="MQTT_HOST=localhost"
+Environment="MQTT_PORT=1883"
+Environment="CLIENT_ID=raspberry-display"
+Environment="TOPIC_PREFIX=display"
 
 [Install]
-WantedBy = multi-user.target
+WantedBy=multi-user.target

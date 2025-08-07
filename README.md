@@ -166,6 +166,20 @@ To run the MQTT client manually:
 ./build/mock-display-mqtt localhost 1883 raspberry-display display
 ```
 
+#### Environment Variable Configuration
+
+The MQTT client also supports configuration via environment variables (useful for systemd service):
+```bash
+# Set environment variables
+export MQTT_HOST="localhost"
+export MQTT_PORT="1883"
+export CLIENT_ID="raspberry-display"
+export TOPIC_PREFIX="display"
+
+# Run without arguments
+./build/raspberry-display-mqtt
+```
+
 To (re)start the systemd service, run
 ```bash
 sudo systemctl restart raspberry-display
@@ -175,6 +189,49 @@ To view log files, you can use the systemd journal
 ```bash
 sudo journalctl -f -u raspberry-display
 ```
+
+### Fault Tolerance and Production Deployment
+
+The systemd service is configured for high availability and fault tolerance:
+
+#### Automatic Restart Policies
+- **Always restart**: Service automatically restarts on any failure
+- **Restart delay**: 10-second delay between restart attempts
+- **Rate limiting**: Maximum 5 restarts within 5 minutes to prevent restart loops
+- **Network dependency**: Waits for network connectivity before starting
+
+#### Service Monitoring
+```bash
+# Check service status
+sudo systemctl status raspberry-display
+
+# View recent logs
+sudo journalctl -u raspberry-display --since "1 hour ago"
+
+# Follow logs in real-time
+sudo journalctl -f -u raspberry-display
+
+# Check restart history
+sudo systemctl show raspberry-display -p NRestarts
+```
+
+#### MQTT Connection Resilience
+
+**Current Behavior**: When MQTT connection is lost:
+- ✅ Service automatically restarts via systemd
+- ✅ Display continues showing last state during reconnection
+- ✅ Automatic resubscription to topics on restart
+- ✅ Configurable via environment variables
+
+**Production Recommendations**:
+1. **MQTT Broker High Availability**: Use clustered MQTT brokers
+2. **Network Monitoring**: Monitor network connectivity
+3. **Custom Restart Logic**: Consider implementing application-level reconnection for faster recovery
+
+#### Security Features
+- **Privilege dropping**: Runs as specified user, not root
+- **Resource limits**: CPU, memory, and file descriptor limits
+- **Filesystem isolation**: Private temp directory and system protection
 
 To uninstall
 ```bash

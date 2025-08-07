@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 
 #include <mqtt_client_cpp.hpp>
@@ -114,16 +115,38 @@ void process_mqtt_message(display::Display* disp, const std::string& topic, cons
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        std::cout << "Usage: " << argv[0] << " <mqtt_host> <mqtt_port> [client_id] [topic_prefix]" << std::endl;
-        std::cout << "Example: " << argv[0] << " localhost 1883 raspberry-display display/commands" << std::endl;
-        return -1;
+    std::string mqtt_host;
+    std::string mqtt_port;
+    std::string client_id;
+    std::string topic_prefix;
+    
+    // Support both command line arguments and environment variables
+    // Environment variables provide fallback for systemd service
+    if (argc >= 3) {
+        // Command line arguments take precedence
+        mqtt_host = argv[1];
+        mqtt_port = argv[2];
+        client_id = (argc > 3) ? argv[3] : "raspberry-display-mqtt";
+        topic_prefix = (argc > 4) ? argv[4] : "display";
+    } else {
+        // Fall back to environment variables (for systemd service)
+        const char* env_host = std::getenv("MQTT_HOST");
+        const char* env_port = std::getenv("MQTT_PORT");
+        const char* env_client_id = std::getenv("CLIENT_ID");
+        const char* env_topic_prefix = std::getenv("TOPIC_PREFIX");
+        
+        if (!env_host || !env_port) {
+            std::cout << "Usage: " << argv[0] << " <mqtt_host> <mqtt_port> [client_id] [topic_prefix]" << std::endl;
+            std::cout << "Or set environment variables: MQTT_HOST, MQTT_PORT, CLIENT_ID, TOPIC_PREFIX" << std::endl;
+            std::cout << "Example: " << argv[0] << " localhost 1883 raspberry-display display" << std::endl;
+            return -1;
+        }
+        
+        mqtt_host = env_host;
+        mqtt_port = env_port;
+        client_id = env_client_id ? env_client_id : "raspberry-display-mqtt";
+        topic_prefix = env_topic_prefix ? env_topic_prefix : "display";
     }
-
-    std::string mqtt_host = argv[1];
-    std::string mqtt_port = argv[2];
-    std::string client_id = (argc > 3) ? argv[3] : "raspberry-display-mqtt";
-    std::string topic_prefix = (argc > 4) ? argv[4] : "display";
 
     // Setup signal handlers
     signal(SIGINT, signal_handler);
