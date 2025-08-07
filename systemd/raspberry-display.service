@@ -1,9 +1,9 @@
 [Unit]
-Description = Led display driver with websocket client
+Description = Led display driver with MQTT client
 After = network.target
 
 [Service]
-ExecStart = /usr/bin/raspberry-display
+ExecStart = /usr/bin/raspberry-display-mqtt
 Restart = always
 User = PLACEHOLDER_USER
 Nice = -10

@@ -6,66 +6,121 @@ This project allows you to control the Sure P4 32x8 displays. Though, it is writ
  
 The main goal is to give a generic, pluggable way to interface different kinds of applications with the display, without having to bother with the driver stuff.
 
-This package also comes with an HTTP-API, making it possible to easilly interface with 3rd party stuff (e.g I'm using it for a [Home Assistant integration](https://github.com/torkildr/appdaemon-conf/blob/master/apps/display.py))
+This package provides an MQTT client that uses a modern state-based JSON protocol, making it easy to integrate with IoT systems, Home Assistant, and other MQTT-enabled applications.
 
 ## Application Design
 
-Tha main application consists of two two basic parts:
+The main application consists of two basic parts:
 
-`curses-client`, an interactive client, probably best used to test the hardware setup and display capabilites.
+`curses-client`, an interactive client, probably best used to test the hardware setup and display capabilities.
 
-`fifo-client`, this client will listen for API queued commands on named pipe. This queue is what you will interface with from
-your own application.
+`raspberry-display-mqtt` (or `mock-display-mqtt` for testing), the MQTT client that listens for state-based JSON commands and controls the display accordingly.
 
-Both of these applications also come in a `mock-` version. These will work without the physical hardware, and is perfect
-for test setups or debugging the API usage.
+The mock version works without physical hardware and is perfect for test setups or debugging the API usage.
 
-Take a look at the [Server API](http-api), for typical usage. A good starting point to understand how stuff
-works together is running `./bin/mock-fifo-client` and `python http-api/test.py`
+## MQTT Protocol
 
-## API
+The display uses a state-based MQTT protocol where you send JSON payloads describing the desired display state to the `display/state` topic.
 
-### HTTP API
+### Connection
 
-The [HTTP API server](http-api/server.py) is a simple wrapper of the fifo client, and its goal is to expose all the functionality present there as HTTP endpoints.
+The MQTT client connects to your MQTT broker and subscribes to:
+- `display/state` - Primary topic for state-based commands
+- `display/display` - Alternative topic for compatibility
 
-The server is exposed on port `8080`.
+### JSON State Schema
 
-Endpoint    | JSON-payload                   | Example
-------------|--------------------------------|-----------
-/text       | text: string, time: bool       | { "text": "foobar", "time": true }
-/time       | format: string                 | { "format": "%H:%M:%S" }
-/scroll     | arg: string                    | { "arg": "none" }
-/brightness | value: 0-15                    | { "value": 10 }
-/clear      | N/A                            |
+All commands are JSON objects that can contain multiple state properties:
 
-To call the HTTP endpoint, simply POST to the endpoint, ie:
-
-```bash
-curl -i http://localhost:8080/time -d '{"format": "%A, %b %-d %H:%M:%S"}'
+```json
+{
+  "text": "string",           // Text to display (optional)
+  "show_time": boolean,       // Show time (with or without text)
+  "time_format": "string",    // Time format (default: "%H:%M" with text, "%H:%M:%S" time-only)
+  "brightness": number,       // 0-15
+  "scroll": "string",         // "enabled"/"disabled"/"reset"
+  "clear": boolean,           // Clear display
+  "quit": boolean             // Quit program
+}
 ```
 
-### FIFO Client
+### Display Modes
 
-The API for the `fifo-client` is exposed through the named pipe at `/tmp/raspberry-display`.
+The display supports three main modes based on the JSON fields:
 
-All commands are on the format, `command:argument`, terminated by `\n`. Some commands do not take an argument, in this case, it will simply
-be omitted, e.g `command:`.
+1. **Text only**: `{"text": "Hello World!"}`
+2. **Text with time**: `{"text": "Meeting soon", "show_time": true}`
+3. **Time only**: `{"show_time": true}` (no text field)
 
-Currently, only a limited set of ascii characters are supported. The API expects `iso-8859-1`, and any unknown characters will simply be rendered as a single space.
+### Usage Examples
 
-Command     | Argument  | Details
-------------|-----------|---------
-text        | *text to display* | Changes the text to render. It will not change other parameters, like scroll mode.
-text-time   | *text to display* | Shows the current time, together with a user supplied text
-time        | *optional format* | Display a dynamic time, using `strftime` formatting.
-scroll      | left  | Scroll text from right to left
-scroll      | right | Scroll text from left to right
-scroll      | auto  | Scroll text if it exceeds the display area
-scroll      | none  | Disable scrolling
-scroll      | reset | Restart scrolling, typically useful when changing text
-brightness  | 0-15  | Set display brightness 
-quit        | *n/a*  | Quit client and turn off display 
+#### Basic Text Display
+```bash
+mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello World!"}'
+```
+
+#### Text with Current Time
+```bash
+mosquitto_pub -h localhost -t "display/state" -m '{"text":"Meeting in 5 min", "show_time":true}'
+```
+
+#### Time Only Display
+```bash
+# Default format (%H:%M:%S)
+mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true}'
+
+# Custom format
+mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true, "time_format":"%A, %b %-d %H:%M:%S"}'
+```
+
+#### Set Brightness
+```bash
+mosquitto_pub -h localhost -t "display/state" -m '{"brightness":10}'
+```
+
+#### Enable/Disable Scrolling
+```bash
+# Enable scrolling
+mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"enabled"}'
+
+# Disable scrolling
+mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"disabled"}'
+
+# Reset scroll position
+mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"reset"}'
+```
+
+#### Complex State Changes (Atomic)
+```bash
+# Set multiple properties at once
+mosquitto_pub -h localhost -t "display/state" -m '{
+  "text": "System Alert!", 
+  "show_time": true, 
+  "brightness": 15, 
+  "scroll": "enabled"
+}'
+```
+
+#### Clear Display
+```bash
+mosquitto_pub -h localhost -t "display/state" -m '{"clear":true}'
+```
+
+#### Quit Application
+```bash
+mosquitto_pub -h localhost -t "display/state" -m '{"quit":true}'
+```
+
+### Error Handling
+
+The MQTT client provides helpful error messages:
+- Invalid JSON shows parse errors with line/column information
+- Unsupported topics show usage examples
+- Invalid brightness values show acceptable range (0-15)
+
+### Character Support
+
+Currently, only a limited set of ASCII characters are supported. The display expects `iso-8859-1` encoding, and any unknown characters will be rendered as a single space. 
 
 ## Building
 First install the system pre-requisites and the WiringPi library.
@@ -95,23 +150,47 @@ After you have built the application, you can install it with
 sudo make install
 ```
 
-This will install the `fifo-client` to `/usr/bin/fifo-client`, the `http-api` to `/usr/local/bin/display-http-api` and create systemd service files.
+This will install the `raspberry-display-mqtt` to `/usr/bin/raspberry-display-mqtt` and create systemd service files.
 
-To (re)start the services, run
+### Running the MQTT Client
+
+To run the MQTT client manually:
 ```bash
-sudo systemctl restart raspberry-display-driver
-sudo systemctl restart raspberry-display-server
+# For real hardware
+./build/raspberry-display-mqtt <mqtt_host> <mqtt_port> [client_id] [topic_prefix]
+
+# For testing (mock display)
+./build/mock-display-mqtt <mqtt_host> <mqtt_port> [client_id] [topic_prefix]
+
+# Example
+./build/mock-display-mqtt localhost 1883 raspberry-display display
+```
+
+To (re)start the systemd service, run
+```bash
+sudo systemctl restart raspberry-display
 ```
 
 To view log files, you can use the systemd journal
 ```bash
-sudo journalctl -f -u raspberry-display-driver
-sudo journalctl -f -u raspberry-display-server
+sudo journalctl -f -u raspberry-display
 ```
 
 To uninstall
 ```bash
 sudo make uninstall
+```
+
+### MQTT Broker Setup
+
+You'll need an MQTT broker running. For testing, you can install Mosquitto:
+
+```bash
+# Install Mosquitto MQTT broker
+sudo apt update && sudo apt install -y mosquitto mosquitto-clients
+
+# Start the broker
+mosquitto -v
 ```
 
 ## Hardware

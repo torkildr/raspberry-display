@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <memory>
 
 #include "timer.hpp"
 
@@ -69,12 +70,12 @@ private:
     int scrollDelay = 0;
     bool dirty = true;
 
-    std::vector<timer::Timer*> timers;
+    std::vector<std::unique_ptr<timer::Timer>> timers;
 
     std::function<void()> preUpdate;
     std::function<void()> postUpdate;
 };
 
-} // namespace display
+}
 
 #endif

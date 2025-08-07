@@ -68,7 +68,7 @@ void Display::prepare()
 
 void Display::start()
 {
-    timers.push_back(timer::createTimer([=] {
+    timers.push_back(timer::createTimer([this] {
         if (dirty)
         {
             preUpdate();
@@ -84,7 +84,6 @@ void Display::stop()
     for (auto &timer : timers)
     {
         timer->stop();
-        delete timer;
     }
     timers.clear();
 }
@@ -188,4 +187,4 @@ void Display::showTime(std::string timeFormat, std::string text)
     showText(text);
 }
 
-} // namespace display
+}

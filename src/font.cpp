@@ -9,7 +9,16 @@ unsigned char *fontCharacter(char c)
 {
     char *substr = strchr(charLookup, c);
     if (substr == NULL)
-        substr = 0;
+    {
+        // Return default character (space ' ') for unknown characters
+        // This prevents null pointer dereference and segmentation faults
+        substr = strchr(charLookup, ' ');
+        if (substr == NULL)
+        {
+            // Fallback: return first character if even space is not found
+            return font_variable[0];
+        }
+    }
 
     return font_variable[substr - charLookup];
 }
@@ -48,4 +57,4 @@ std::vector<char> renderString(std::string text)
     return rendered;
 }
 
-} // namespace font
+}

@@ -1,122 +1,246 @@
 #include <iostream>
-#include <iomanip>
-#include <map>
+#include <string>
+#include <sstream>
+#include <signal.h>
+#include <thread>
+#include <chrono>
+#include <nlohmann/json.hpp>
 
 #include <mqtt_client_cpp.hpp>
 
+#include "display_impl.hpp"
+#include "debug_util.hpp"
+
+using json = nlohmann::json;
+
+// Global variables for signal handling
+static bool running = true;
+static display::Display* global_display = nullptr;
+static std::shared_ptr<MQTT_NS::callable_overlay<MQTT_NS::sync_client<MQTT_NS::tcp_endpoint<boost::asio::ip::tcp::socket, boost::asio::io_context::strand>>>> mqtt_client;
+
+void signal_handler(int signal) {
+    std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
+    running = false;
+    if (global_display) {
+        global_display->stop();
+    }
+    if (mqtt_client) {
+        mqtt_client->disconnect();
+    }
+}
+
+void process_display_state(display::Display* disp, const json& state) {
+    DEBUG_LOG("Processing display state: " << state.dump());
+    
+    try {
+        // Handle display content
+        if (state.contains("clear") && state["clear"].get<bool>()) {
+            // Clear display
+            disp->show("");
+        }
+        else if (state.contains("text")) {
+            // Text display (with optional time)
+            std::string text = state["text"];
+            
+            if (state.contains("show_time") && state["show_time"].get<bool>()) {
+                // Show text with time
+                std::string time_format = state.contains("time_format") ? 
+                    state["time_format"].get<std::string>() : "%H:%M";
+                disp->showTime(time_format, text);
+            } else {
+                // Show text only
+                disp->show(text);
+            }
+        }
+        else if (state.contains("show_time") && state["show_time"].get<bool>()) {
+            // Time-only display (no text field present)
+            std::string format = state.contains("time_format") ? 
+                state["time_format"].get<std::string>() : "%H:%M:%S";
+            disp->showTime(format);
+        }
+        
+        // Handle scrolling
+        if (state.contains("scroll")) {
+            std::string scroll_mode = state["scroll"];
+            if (scroll_mode == "enabled" || scroll_mode == "left" || scroll_mode == "auto") {
+                disp->setScrolling(display::Scrolling::ENABLED);
+            }
+            else if (scroll_mode == "disabled" || scroll_mode == "none" || scroll_mode == "off") {
+                disp->setScrolling(display::Scrolling::DISABLED);
+            }
+            else if (scroll_mode == "reset") {
+                disp->setScrolling(display::Scrolling::RESET);
+            }
+        }
+        
+        // Handle brightness
+        if (state.contains("brightness")) {
+            int brightness = state["brightness"].get<int>();
+            if (brightness >= 0 && brightness <= 15) {
+                disp->setBrightness(brightness);
+            } else {
+                std::cerr << "Brightness must be between 0 and 15, got: " << brightness << std::endl;
+            }
+        }
+        
+        // Handle quit command
+        if (state.contains("quit") && state["quit"].get<bool>()) {
+            running = false;
+            disp->stop();
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing display state: " << e.what() << std::endl;
+        std::cerr << "State was: " << state.dump() << std::endl;
+    }
+}
+
+void process_mqtt_message(display::Display* disp, const std::string& topic, const std::string& payload) {
+    DEBUG_LOG("Received MQTT message on topic '" << topic << "': " << payload);
+    
+    // New state-based protocol: only accept JSON on the main display topic
+    if (topic.find("/state") != std::string::npos || topic.find("/display") != std::string::npos) {
+        try {
+            json state = json::parse(payload);
+            process_display_state(disp, state);
+        } catch (const json::parse_error& e) {
+            std::cerr << "Invalid JSON payload on topic " << topic << ": " << e.what() << std::endl;
+            std::cerr << "Payload was: " << payload << std::endl;
+        }
+    } else {
+        std::cerr << "Unsupported topic: " << topic << ". Please use '/state' or '/display' topic with JSON payload." << std::endl;
+        std::cerr << "Example: mosquitto_pub -t 'display/state' -m '{\"text\":\"Hello World\", \"brightness\":10}'" << std::endl;
+    }
+}
+
 int main(int argc, char** argv) {
-    if (argc != 3) {
-        std::cout << argv[0] << " host port" << std::endl;
+    if (argc < 3) {
+        std::cout << "Usage: " << argv[0] << " <mqtt_host> <mqtt_port> [client_id] [topic_prefix]" << std::endl;
+        std::cout << "Example: " << argv[0] << " localhost 1883 raspberry-display display/commands" << std::endl;
         return -1;
     }
 
+    std::string mqtt_host = argv[1];
+    std::string mqtt_port = argv[2];
+    std::string client_id = (argc > 3) ? argv[3] : "raspberry-display-mqtt";
+    std::string topic_prefix = (argc > 4) ? argv[4] : "display";
+
+    // Setup signal handlers
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
+    // Initialize display
+    auto preUpdate = []() {};
+    auto postUpdate = []() {};
+    
+    auto disp = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
+    global_display = disp.get();
+    
+    disp->start();
+    std::cout << "Display initialized and started" << std::endl;
+
+    // Setup MQTT
     MQTT_NS::setup_log();
-
     boost::asio::io_context ioc;
-
-    std::uint16_t pid_sub1;
-    std::uint16_t pid_sub2;
-
-    int count = 0;
-    // Create no TLS client
-    auto c = MQTT_NS::make_sync_client(ioc, argv[1], argv[2]);
-    using packet_id_t = typename std::remove_reference_t<decltype(*c)>::packet_id_t;
-
-    auto disconnect = [&] {
-        if (++count == 5) c->disconnect();
-    };
-
-    // Setup client
-    c->set_client_id("cid1");
-    c->set_clean_session(true);
-
-    // Setup handlers
-    c->set_connack_handler(
-        [&c, &pid_sub1, &pid_sub2]
-        (bool sp, MQTT_NS::connect_return_code connack_return_code){
-            std::cout << "Connack handler called" << std::endl;
-            std::cout << "Session Present: " << std::boolalpha << sp << std::endl;
-            std::cout << "Connack Return Code: "
-                      << MQTT_NS::connect_return_code_to_str(connack_return_code) << std::endl;
-            if (connack_return_code == MQTT_NS::connect_return_code::accepted) {
-                pid_sub1 = c->subscribe("mqtt_client_cpp/topic1", MQTT_NS::qos::at_most_once);
-                pid_sub2 = c->subscribe(
-                    std::vector<std::tuple<MQTT_NS::string_view, MQTT_NS::subscribe_options>>
-                    {
-                        { "mqtt_client_cpp/topic2_1", MQTT_NS::qos::at_least_once },
-                        { "mqtt_client_cpp/topic2_2", MQTT_NS::qos::exactly_once }
-                    }
-                );
+    
+    try {
+        // Create MQTT client
+        mqtt_client = MQTT_NS::make_sync_client(ioc, mqtt_host, mqtt_port);
+        
+        // Setup client properties
+        mqtt_client->set_client_id(client_id);
+        mqtt_client->set_clean_session(true);
+        
+        std::cout << "Connecting to MQTT broker at " << mqtt_host << ":" << mqtt_port 
+                  << " with client ID: " << client_id << std::endl;
+        
+        // Setup connection handler
+        mqtt_client->set_connack_handler(
+            [&topic_prefix](bool session_present, MQTT_NS::connect_return_code return_code) {
+                std::cout << "MQTT connected. Session present: " << std::boolalpha << session_present << std::endl;
+                std::cout << "Connection return code: " << MQTT_NS::connect_return_code_to_str(return_code) << std::endl;
+                
+                if (return_code == MQTT_NS::connect_return_code::accepted) {
+                    // Subscribe to state-based topic
+                    std::string state_topic = topic_prefix + "/state";
+                    mqtt_client->subscribe(state_topic, MQTT_NS::qos::at_least_once);
+                    std::cout << "Subscribed to state topic: " << state_topic << std::endl;
+                    
+                    // Also subscribe to generic display topic for compatibility
+                    std::string display_topic = topic_prefix + "/display";
+                    mqtt_client->subscribe(display_topic, MQTT_NS::qos::at_least_once);
+                    std::cout << "Subscribed to display topic: " << display_topic << std::endl;
+                }
+                return true;
             }
-            return true;
-        });
-    c->set_close_handler(
-        []
-        (){
-            std::cout << "closed." << std::endl;
-        });
-    c->set_error_handler(
-        []
-        (MQTT_NS::error_code ec){
-            std::cout << "error: " << ec.message() << std::endl;
-        });
-    c->set_puback_handler(
-        [&]
-        (packet_id_t packet_id){
-            std::cout << "puback received. packet_id: " << packet_id << std::endl;
-            disconnect();
-            return true;
-        });
-    c->set_pubrec_handler(
-        []
-        (packet_id_t packet_id){
-            std::cout << "pubrec received. packet_id: " << packet_id << std::endl;
-            return true;
-        });
-    c->set_pubcomp_handler(
-        [&]
-        (packet_id_t packet_id){
-            std::cout << "pubcomp received. packet_id: " << packet_id << std::endl;
-            disconnect();
-            return true;
-        });
-    c->set_suback_handler(
-        [&]
-        (packet_id_t packet_id, std::vector<MQTT_NS::suback_return_code> results){
-            std::cout << "suback received. packet_id: " << packet_id << std::endl;
-            for (auto const& e : results) {
-                std::cout << "[client] subscribe result: " << e << std::endl;
+        );
+        
+        // Setup message handler
+        using packet_id_t = typename std::remove_reference_t<decltype(*mqtt_client)>::packet_id_t;
+        mqtt_client->set_publish_handler(
+            [disp = disp.get()](
+                MQTT_NS::optional<packet_id_t> packet_id,
+                MQTT_NS::publish_options pubopts,
+                MQTT_NS::buffer topic_name,
+                MQTT_NS::buffer contents
+            ) {
+                std::string topic = topic_name.to_string();
+                std::string payload = contents.to_string();
+                
+                process_mqtt_message(disp, topic, payload);
+                return true;
             }
-            if (packet_id == pid_sub1) {
-                c->publish("mqtt_client_cpp/topic1", "test1", MQTT_NS::qos::at_most_once);
-            }
-            else if (packet_id == pid_sub2) {
-                c->publish("mqtt_client_cpp/topic2_1", "test2_1", MQTT_NS::qos::at_least_once);
-                c->publish("mqtt_client_cpp/topic2_2", "test2_2", MQTT_NS::qos::exactly_once);
-            }
-            return true;
+        );
+        
+        // Setup disconnect handler
+        mqtt_client->set_close_handler([]() {
+            std::cout << "MQTT connection closed" << std::endl;
         });
-    c->set_publish_handler(
-        [&]
-        (MQTT_NS::optional<packet_id_t> packet_id,
-         MQTT_NS::publish_options pubopts,
-         MQTT_NS::buffer topic_name,
-         MQTT_NS::buffer contents){
-            std::cout << "publish received."
-                      << " dup: "    << pubopts.get_dup()
-                      << " qos: "    << pubopts.get_qos()
-                      << " retain: " << pubopts.get_retain() << std::endl;
-            if (packet_id)
-                std::cout << "packet_id: " << *packet_id << std::endl;
-            std::cout << "topic_name: " << topic_name << std::endl;
-            std::cout << "contents: " << contents << std::endl;
-            disconnect();
-            return true;
+        
+        // Setup error handler
+        mqtt_client->set_error_handler([](MQTT_NS::error_code ec) {
+            std::cerr << "MQTT error: " << ec.message() << std::endl;
         });
-
-    // Connect
-    c->connect();
-
-    ioc.run();
+        
+        // Connect to MQTT broker
+        mqtt_client->connect();
+        
+        std::cout << "MQTT client started. Using state-based protocol on topic: " << topic_prefix << "/state" << std::endl;
+        std::cout << "Send JSON state messages to control the display. Press Ctrl+C to quit." << std::endl;
+        std::cout << "Example: mosquitto_pub -t '" << topic_prefix << "/state' -m '{\"text\":\"Hello\", \"brightness\":10}'" << std::endl;
+        
+        // Run the IO context in a separate thread
+        std::thread mqtt_thread([&ioc]() {
+            ioc.run();
+        });
+        
+        // Main loop - keep the application running
+        while (running) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        
+        // Cleanup
+        std::cout << "Shutting down..." << std::endl;
+        
+        if (mqtt_client) {
+            mqtt_client->disconnect();
+        }
+        
+        ioc.stop();
+        if (mqtt_thread.joinable()) {
+            mqtt_thread.join();
+        }
+        
+        if (disp) {
+            disp->stop();
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return -1;
+    }
+    
+    std::cout << "MQTT client stopped" << std::endl;
+    return 0;
 }
 

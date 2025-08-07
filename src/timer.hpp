@@ -4,6 +4,7 @@
 #include <functional>
 #include <thread>
 #include <condition_variable>
+#include <memory>
 
 namespace timer
 {
@@ -22,7 +23,7 @@ private:
     std::thread m_thread;
 };
 
-Timer* createTimer(std::function<void()> callback, double seconds);
+std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds);
 
 } // namespace timer
 

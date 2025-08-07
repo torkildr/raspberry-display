@@ -40,6 +40,12 @@ void select_chip(int pin)
 
 void *reverse_endian(void *p, size_t size)
 {
+    // Add bounds checking to prevent buffer overflow
+    if (p == nullptr || size == 0)
+    {
+        return p;
+    }
+    
     char *head = (char *)p;
     char *tail = head + size - 1;
 
