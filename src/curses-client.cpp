@@ -20,11 +20,9 @@ static void print_help_text()
     addstr("\nt: time");
     addstr("\na: supported characters");
     addstr("\nb: supported characters + time");
-    addstr("\n0: reset offset");
-    addstr("\nl: enable scrolling");
-    addstr("\nr: reset scrolling");
+    addstr("\n0: reset scroll offset");
+    addstr("\ns: toggle scrolling enabled/disabled");
     addstr("\n+/-: change brightness");
-    addstr("\nd: disable scroll");
     addstr("\nc: toggle center/left alignment");
     addstr("\nq: exit");
     refresh();
@@ -50,7 +48,9 @@ int main()
     bool done = false;
     int brightness = 7;
     display::Alignment currentAlignment = display::Alignment::LEFT;
+    display::Scrolling currentScrolling = display::Scrolling::ENABLED;
     disp.setBrightness(brightness);
+    disp.setScrolling(currentScrolling);
 
     while (!done)
     {
@@ -65,35 +65,47 @@ int main()
                 break;
             case 't':
                 disp.showTime("");
+                disp.forceUpdate();
                 break;
             case 'a':
                 disp.show(abc_string);
+                disp.forceUpdate();
                 break;
             case 'b':
                 disp.showTime("", abc_string);
+                disp.forceUpdate();
                 break;
-            case 'l':
-                disp.setScrolling(display::Scrolling::ENABLED);
+            case 's':
+                // Toggle scrolling between ENABLED and DISABLED
+                if (currentScrolling == display::Scrolling::ENABLED)
+                {
+                    currentScrolling = display::Scrolling::DISABLED;
+                }
+                else
+                {
+                    currentScrolling = display::Scrolling::ENABLED;
+                }
+                disp.setScrolling(currentScrolling);
+                disp.forceUpdate();
                 break;
-            case 'r':
+            case '0':
+            case KEY_HOME:
                 disp.setScrolling(display::Scrolling::RESET);
+                disp.forceUpdate();
                 break;
             case '+':
                 if (brightness < 0xF)
                 {
                     disp.setBrightness(++brightness);
+                    disp.forceUpdate();
                 }
                 break;
             case '-':
                 if (brightness > 1)
                 {
                     disp.setBrightness(--brightness);
+                    disp.forceUpdate();
                 }
-                break;
-            case 'd':
-            case '0':
-            case KEY_HOME:
-                disp.setScrolling(display::Scrolling::DISABLED);
                 break;
             case 'c':
                 // Toggle alignment between LEFT and CENTER
@@ -106,7 +118,9 @@ int main()
                     currentAlignment = display::Alignment::LEFT;
                 }
                 disp.setAlignment(currentAlignment);
+                disp.forceUpdate();
                 break;
+
             }
         }
     }

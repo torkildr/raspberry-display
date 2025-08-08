@@ -50,6 +50,7 @@ public:
     void setScrolling(Scrolling direction);
     void setAlignment(Alignment alignment);
     Alignment getAlignment() const;
+    void forceUpdate();
 
     void show(std::string text);
     void showTime(std::string timeFormat);

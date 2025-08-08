@@ -25,6 +25,14 @@ Display::~Display()
 void Display::prepare()
 {
     auto textSize = static_cast<int>(renderedText.size());
+    
+    // Check if time needs update BEFORE calling renderTimeOptimized (which resets the flag)
+    bool timeChanged = timeNeedsUpdate;
+    if (!timeChanged && (mode == Mode::TIME || mode == Mode::TIME_AND_TEXT)) {
+        auto currentTime = std::time(nullptr);
+        timeChanged = (currentTime != lastTimeRendered || timeFormat != lastTimeFormat);
+    }
+    
     const auto& time = renderTimeOptimized();  // Use cached version
     auto textBlock = static_cast<int>(X_MAX - time.size());
 
@@ -34,13 +42,14 @@ void Display::prepare()
     bool shouldScroll = false;
     
     if (mode == Mode::TIME) {
-        // TIME mode scrolls when time content is longer than display width
+        // TIME mode scrolls only when content is longer than display width AND scrolling is enabled
         shouldScroll = (scrollDirection == Scrolling::ENABLED) && 
-                      (alignment != Alignment::CENTER || static_cast<int>(time.size()) >= X_MAX);
+                      (static_cast<int>(time.size()) > X_MAX);
     } else if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT) {
         int availableSpace = (mode == Mode::TEXT) ? X_MAX : textBlock;
+        // Only scroll when content is longer than available space AND scrolling is enabled
         shouldScroll = (scrollDirection == Scrolling::ENABLED) && 
-                      (alignment != Alignment::CENTER || textSize >= availableSpace);
+                      (textSize > availableSpace);
     }
     
     if (scrollDelay >= SCROLL_DELAY)
@@ -96,7 +105,7 @@ void Display::prepare()
     }
 
     // Only recreate buffer if something actually changed
-    if (dirty || scrollChanged || timeNeedsUpdate)
+    if (dirty || scrollChanged || timeChanged)
     {
         auto tmp = createDisplayBufferOptimized(time);  // Use optimized version with const reference
         
@@ -218,8 +227,8 @@ std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<
 
 std::array<char, X_MAX> Display::createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
 {
-    if (alignment == Alignment::CENTER && time.size() < X_MAX && scrollDirection == Scrolling::DISABLED) {
-        // Center the time display (only when not scrolling)
+    if (alignment == Alignment::CENTER && static_cast<int>(time.size()) <= X_MAX) {
+        // Center the time display when content fits and is center-aligned
         size_t centerOffset = calculateCenterOffset(time.size(), X_MAX);
         for (size_t i = 0; i < time.size(); i++) {
             rendered[centerOffset + i] = time.at(i);
@@ -296,6 +305,11 @@ void Display::setAlignment(Alignment alignment)
 Alignment Display::getAlignment() const
 {
     return alignment;
+}
+
+void Display::forceUpdate()
+{
+    dirty = true;  // Force buffer recreation on next prepare() call
 }
 
 size_t Display::calculateCenterOffset(size_t contentSize, size_t availableSpace) const
