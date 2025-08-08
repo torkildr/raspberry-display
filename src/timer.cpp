@@ -14,7 +14,7 @@ namespace timer
 std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds)
 {
     auto timer = std::make_unique<Timer>();
-    long long intervalNs = seconds * 1e9;
+    auto intervalNs = static_cast<long long>(seconds * 1e9);
     nanoseconds interval(intervalNs);
 
     // Fix: Use proper lambda capture to avoid copying callback unnecessarily

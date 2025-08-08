@@ -12,22 +12,22 @@ namespace display
 int _brightness;
 std::chrono::time_point<std::chrono::steady_clock> _last_update;
 
-float getElapsed()
+static float getElapsed()
 {
     std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::microseconds>(now - _last_update).count();
 
     _last_update = now;
-    return ms / 1e6;
+    return static_cast<float>(static_cast<double>(ms) / 1e6);
 }
 
-void showInfoText(std::stringstream stream)
+static void showInfoText(std::stringstream stream)
 {
     stream << std::endl;
     addstr(stream.str().c_str());
 }
 
-void showElapsedTime(float elapsed)
+static void showElapsedTime(float elapsed)
 {
     std::stringstream info;
     info.precision(2);
@@ -37,7 +37,7 @@ void showElapsedTime(float elapsed)
     showInfoText(std::move(info));
 }
 
-void showTextInfo(size_t size)
+static void showTextInfo(size_t size)
 {
     std::stringstream info;
 
@@ -46,7 +46,7 @@ void showTextInfo(size_t size)
     showInfoText(std::move(info));
 }
 
-void showBrightness(int brightness)
+static void showBrightness(int brightness)
 {
     std::stringstream info;
 
@@ -55,7 +55,7 @@ void showBrightness(int brightness)
     showInfoText(std::move(info));
 }
 
-void showScrolling(display::Scrolling dir, int offset)
+static void showScrolling(display::Scrolling dir, int offset)
 {
     std::stringstream info;
     std::string direction;
@@ -137,7 +137,7 @@ void DisplayImpl::update()
         int col;
         for (col = 0; col < X_MAX; col++)
         {
-            if (displayBuffer[col] & (1 << row))
+            if (displayBuffer[static_cast<size_t>(col)] & (1 << row))
                 addch(ACS_CKBOARD);
             else
                 addch(' ');

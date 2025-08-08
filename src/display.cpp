@@ -24,9 +24,9 @@ Display::~Display()
 
 void Display::prepare()
 {
-    int textSize = renderedText.size();
+    auto textSize = static_cast<int>(renderedText.size());
     auto time = renderTime();
-    int textBlock = X_MAX - time.size();
+    auto textBlock = static_cast<int>(X_MAX - time.size());
 
     if (scrollDelay >= SCROLL_DELAY)
     {
@@ -90,7 +90,7 @@ void Display::stop()
     timers.clear();
 }
 
-std::string getTime(std::string format)
+static std::string getTime(std::string format)
 {
     std::stringstream displayText;
 
@@ -144,7 +144,7 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
         }
         
         // Render text
-        for (size_t i = scrollOffset; pos < X_MAX && i < renderedText.size(); ++i, ++pos)
+        for (size_t i = static_cast<size_t>(scrollOffset); pos < X_MAX && i < renderedText.size(); ++i, ++pos)
         {
             rendered[pos] = renderedText.at(i);
         }

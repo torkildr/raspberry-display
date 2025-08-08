@@ -18,7 +18,7 @@ int spifd = -1;
 int cs_pins[] = {HT1632_PANEL_PINS};
 int panel_count = sizeof(cs_pins) / sizeof(cs_pins[0]);
 
-void select_chip(int pin)
+static void select_chip(int pin)
 {
     for (int i = 0; i < panel_count; ++i)
     {
@@ -38,7 +38,7 @@ void select_chip(int pin)
     }
 }
 
-void *reverse_endian(void *p, size_t size)
+static void *reverse_endian(void *p, size_t size)
 {
     // Add bounds checking to prevent buffer overflow
     if (p == nullptr || size == 0)
@@ -46,7 +46,7 @@ void *reverse_endian(void *p, size_t size)
         return p;
     }
     
-    char *head = (char *)p;
+    auto *head = static_cast<char *>(p);
     char *tail = head + size - 1;
 
     for (; tail > head; --tail, ++head)
@@ -58,7 +58,7 @@ void *reverse_endian(void *p, size_t size)
     return p;
 }
 
-void ht1632_write(const void *buffer, size_t size)
+static void ht1632_write(const void *buffer, size_t size)
 {
     ssize_t length = write(spifd, buffer, size);
 
@@ -69,7 +69,7 @@ void ht1632_write(const void *buffer, size_t size)
     }
 }
 
-void send_cmd(int pin, uint8_t cmd)
+static void send_cmd(int pin, uint8_t cmd)
 {
     uint16_t data = HT1632_ID_CMD;
     data <<= HT1632_LENGTH_DATA;
@@ -91,7 +91,7 @@ void send_cmd(int pin, uint8_t cmd)
 namespace display
 {
 
-void init()
+static void init()
 {
     /* set cs pins to output */
     for (int i = 0; i < ht1632::panel_count; ++i)
@@ -152,12 +152,12 @@ void DisplayImpl::setBrightness(int brightness)
     ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + (brightness & 0xF));
 }
 
-std::array<unsigned char, X_MAX + 2> createWriteBuffer(std::array<char, X_MAX> displayBuffer, int panel)
+static std::array<unsigned char, X_MAX + 2> createWriteBuffer(std::array<char, X_MAX> displayBuffer, int panel)
 {
     const int bufferSize = X_MAX + 2;
     std::array<unsigned char, bufferSize> buffer = {0};
 
-    uint8_t offset = panel * HT1632_PANEL_WIDTH;
+    auto offset = static_cast<uint8_t>(panel * HT1632_PANEL_WIDTH);
 
     /* start buffer with write command and zero address */
     buffer[0] = HT1632_ID_WRITE << (8 - HT1632_LENGTH_ID);
@@ -168,13 +168,13 @@ std::array<unsigned char, X_MAX + 2> createWriteBuffer(std::array<char, X_MAX> d
 
     for (int i = 0; i < HT1632_PANEL_WIDTH * 8; ++i, ++n)
     {
-        uint8_t src_pos = i / 8;
-        uint8_t src_bit = i % 8;
-        uint8_t dst_pos = n / 8;
-        uint8_t dst_bit = 7 - (n % 8);
+        auto src_pos = static_cast<uint8_t>(i / 8);
+        auto src_bit = static_cast<uint8_t>(i % 8);
+        auto dst_pos = static_cast<uint8_t>(n / 8);
+        auto dst_bit = static_cast<uint8_t>(7 - (n % 8));
 
 #ifdef HT1632_FLIP_180
-        uint8_t src_val = (displayBuffer[X_MAX - 1 - src_pos - offset] >> (7 - src_bit)) & 1;
+        uint8_t src_val = (displayBuffer[static_cast<size_t>(X_MAX - 1 - src_pos - offset)] >> (7 - src_bit)) & 1;
 #else
         uint8_t src_val = (displayBuffer[src_pos + offset] >> src_bit) & 1;
 #endif

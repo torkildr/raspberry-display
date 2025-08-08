@@ -19,7 +19,7 @@ static bool running = true;
 static display::Display* global_display = nullptr;
 static std::shared_ptr<MQTT_NS::callable_overlay<MQTT_NS::sync_client<MQTT_NS::tcp_endpoint<boost::asio::ip::tcp::socket, boost::asio::io_context::strand>>>> mqtt_client;
 
-void signal_handler(int signal) {
+static void signal_handler(int signal) {
     std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
     running = false;
     if (global_display) {
@@ -30,7 +30,7 @@ void signal_handler(int signal) {
     }
 }
 
-void process_display_state(display::Display* disp, const json& state) {
+static void process_display_state(display::Display* disp, const json& state) {
     DEBUG_LOG("Processing display state: " << state.dump());
     
     try {
@@ -96,7 +96,7 @@ void process_display_state(display::Display* disp, const json& state) {
     }
 }
 
-void process_mqtt_message(display::Display* disp, const std::string& topic, const std::string& payload) {
+static void process_mqtt_message(display::Display* disp, const std::string& topic, const std::string& payload) {
     DEBUG_LOG("Received MQTT message on topic '" << topic << "': " << payload);
     
     // New state-based protocol: only accept JSON on the main display topic
@@ -202,8 +202,8 @@ int main(int argc, char** argv) {
         using packet_id_t = typename std::remove_reference_t<decltype(*mqtt_client)>::packet_id_t;
         mqtt_client->set_publish_handler(
             [disp = disp.get()](
-                MQTT_NS::optional<packet_id_t> packet_id,
-                MQTT_NS::publish_options pubopts,
+                MQTT_NS::optional<packet_id_t> /* packet_id */,
+                MQTT_NS::publish_options /* pubopts */,
                 MQTT_NS::buffer topic_name,
                 MQTT_NS::buffer contents
             ) {

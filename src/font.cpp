@@ -5,7 +5,7 @@
 #include "font.h"
 #include "font.hpp"
 
-unsigned char *fontCharacter(char c)
+static unsigned char *fontCharacter(char c)
 {
     char *substr = strchr(charLookup, c);
     if (substr == NULL)
@@ -23,7 +23,7 @@ unsigned char *fontCharacter(char c)
     return font_variable[substr - charLookup];
 }
 
-std::vector<char> renderChar(char c)
+static std::vector<char> renderChar(char c)
 {
     unsigned char *glyph = fontCharacter(c);
     short width = glyph[0];

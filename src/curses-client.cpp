@@ -2,7 +2,7 @@
 
 #include "display_impl.hpp"
 
-void init_curses()
+static void init_curses()
 {
     initscr();
     timeout(0);
@@ -15,7 +15,7 @@ void init_curses()
     keypad(stdscr, true);
 }
 
-void print_help_text()
+static void print_help_text()
 {
     addstr("\nt: time");
     addstr("\na: supported characters");

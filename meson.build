@@ -1,5 +1,37 @@
-project('raspberry-display', 'cpp', default_options : ['cpp_std=c++17'])
+project('raspberry-display', 'cpp', 
+    default_options : [
+        'cpp_std=c++17',
+        'warning_level=3'
+    ]
+)
 cpp = meson.get_compiler('cpp')
+
+# Strong warning and static analysis flags for our code only
+# These will be applied per-target to avoid affecting third-party libraries
+our_warning_flags = []
+if cpp.get_id() == 'gcc' or cpp.get_id() == 'clang'
+    our_warning_flags = [
+        '-Wpedantic',
+        '-Wconversion',
+        '-Wsign-conversion',
+        '-Wunused',
+        '-Wuninitialized',
+        '-Wundef',
+        '-Wcast-align',
+        '-Wcast-qual',
+        '-Wold-style-cast',
+        '-Woverloaded-virtual',
+        '-Wmissing-declarations',
+        '-Wredundant-decls',
+        '-Wdouble-promotion',
+        '-Wformat=2',
+        '-Wformat-security',
+        '-Wduplicated-cond',
+        '-Wduplicated-branches',
+        '-Wlogical-op',
+        '-Wrestrict'
+    ]
+endif
 
 # Import MQTT library
 cmake = import('cmake')
@@ -34,24 +66,28 @@ real_display_src = ['src/ht1632.cpp'] + common_src
 curses_client_src = ['src/curses-client.cpp']
 mqtt_client_src = ['src/mqtt-client.cpp']
 
-# Executables with optimized dependencies
+# Executables with strict warnings applied only to our source files
 executable('raspberry-display-mqtt', 
     mqtt_client_src + real_display_src, 
-    dependencies: mqtt_deps + hardware_deps, 
+    dependencies: mqtt_deps + hardware_deps,
+    cpp_args: our_warning_flags,
     install: true
 )
 
 executable('curses-client', 
     curses_client_src + real_display_src, 
-    dependencies: curses_deps + hardware_deps
+    dependencies: curses_deps + hardware_deps,
+    cpp_args: our_warning_flags
 )
 
 executable('mock-display-mqtt', 
     mqtt_client_src + mock_display_src, 
-    dependencies: mqtt_deps + curses_deps  # Needs ncurses for mock display
+    dependencies: mqtt_deps + curses_deps,  # Needs ncurses for mock display
+    cpp_args: our_warning_flags
 )
 
 executable('mock-curses-client', 
     curses_client_src + mock_display_src, 
-    dependencies: curses_deps
+    dependencies: curses_deps,
+    cpp_args: our_warning_flags
 )
