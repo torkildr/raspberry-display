@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "font.h"
+#include "font_generated.h"
 #include "font.hpp"
 
 static unsigned char *fontCharacter(char c)

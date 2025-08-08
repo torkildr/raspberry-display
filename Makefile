@@ -5,16 +5,16 @@ SYSTEMCTL:=$(shell which systemctl)
 BINARY_NAME:=raspberry-display-mqtt
 SERVICE_NAME:=raspberry-display
 
-.PHONY: all release debug clean install uninstall test
+.PHONY: all release debug clean install uninstall test font-extract font-generate
 
 # Default target
 all: release
 
 # Build targets
-release: $(BUILD_DIR)
+release: $(BUILD_DIR) src/font_generated.h
 	meson compile -C $(BUILD_DIR)
 
-debug: $(DEBUG_DIR)
+debug: $(DEBUG_DIR) src/font_generated.h
 	meson compile -C $(DEBUG_DIR)
 
 $(BUILD_DIR):
@@ -32,6 +32,7 @@ test: debug
 clean:
 	$(RM) -R $(BUILD_DIR)
 	$(RM) -R $(DEBUG_DIR)
+	$(RM) -f src/font_generated.h
 
 install: release
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
@@ -61,3 +62,21 @@ uninstall:
 	# Reload systemd
 	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) daemon-reload; fi
 	@echo "\nUninstallation complete!"
+
+# Font management targets
+font-extract:
+	@echo "Extracting current font to ASCII art format..."
+	python3 tools/extract_font.py src/font.h tools/font_definitions.txt
+	@echo "Font extracted to tools/font_definitions.txt"
+	@echo "You can now edit the ASCII art and regenerate with 'make font-generate'"
+
+font-generate:
+	@echo "Generating font header from ASCII art definitions..."
+	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h
+	@echo "Generated src/font_generated.h"
+	@echo "Font ready for build - no additional steps needed"
+
+# Dependency tracking for automatic font generation
+src/font_generated.h: tools/font_definitions.txt tools/font_generator.py
+	@echo "Auto-generating font header from definitions..."
+	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h

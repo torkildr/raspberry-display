@@ -9,3 +9,4 @@ src/*.o
 stderr.txt
 build/
 debug/
+src/font_generated.h
