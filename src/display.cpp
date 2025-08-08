@@ -30,33 +30,68 @@ void Display::prepare()
 
     bool scrollChanged = false;
     
+    // Determine if scrolling should actually be active
+    bool shouldScroll = false;
+    
+    if (mode == Mode::TIME) {
+        // TIME mode scrolls when time content is longer than display width
+        shouldScroll = (scrollDirection == Scrolling::ENABLED) && 
+                      (alignment != Alignment::CENTER || static_cast<int>(time.size()) >= X_MAX);
+    } else if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT) {
+        int availableSpace = (mode == Mode::TEXT) ? X_MAX : textBlock;
+        shouldScroll = (scrollDirection == Scrolling::ENABLED) && 
+                      (alignment != Alignment::CENTER || textSize >= availableSpace);
+    }
+    
     if (scrollDelay >= SCROLL_DELAY)
     {
         if (scrollOffset != 0)
         {
+            // Reset to beginning and start delay before next scroll cycle
             scrollDelay = 1;
             scrollOffset = 0;
             scrollChanged = true;
         }
         else
         {
+            // Delay finished, start scrolling
             scrollDelay = 0;
         }
     }
     else if (scrollDelay)
     {
+        // Counting delay before starting/restarting scroll
         scrollDelay++;
     }
     else
     {
-        if (scrollDirection == Scrolling::ENABLED && textSize > textBlock)
+        if (shouldScroll)
         {
             ++scrollOffset;
             scrollChanged = true;
-            if (textBlock + scrollOffset >= textSize)
-            {
-                scrollDelay = 1;
+            
+            // Check if we've reached the end (content fully visible on right edge)
+            bool reachedEnd = false;
+            if (mode == Mode::TIME) {
+                // Stop when end of time content is at right edge of display
+                reachedEnd = (scrollOffset + X_MAX >= static_cast<int>(time.size()));
+            } else if (mode == Mode::TEXT) {
+                // Stop when end of text content is at right edge of display
+                reachedEnd = (scrollOffset + X_MAX >= textSize);
+            } else if (mode == Mode::TIME_AND_TEXT) {
+                // Stop when end of text content is at right edge of available text area
+                reachedEnd = (scrollOffset + textBlock >= textSize);
             }
+            
+            if (reachedEnd) {
+                scrollDelay = 1;  // Start delay before restarting
+            }
+        }
+        else if (scrollOffset != 0)
+        {
+            // Reset scroll when scrolling is disabled
+            scrollOffset = 0;
+            scrollChanged = true;
         }
     }
 
@@ -134,7 +169,7 @@ const std::vector<char>& Display::renderTimeOptimized()
         currentTime != lastTimeRendered || 
         timeFormat != lastTimeFormat)
     {
-        cachedRenderedTime = font::renderString(getTime(timeFormat));
+        cachedRenderedTime = font::FontCache::renderStringOptimized(getTime(timeFormat));
         lastTimeRendered = currentTime;
         lastTimeFormat = timeFormat;
         timeNeedsUpdate = false;
@@ -183,17 +218,15 @@ std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<
 
 std::array<char, X_MAX> Display::createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
 {
-    if (alignment == Alignment::CENTER && time.size() < X_MAX) {
-        // Center the time display
+    if (alignment == Alignment::CENTER && time.size() < X_MAX && scrollDirection == Scrolling::DISABLED) {
+        // Center the time display (only when not scrolling)
         size_t centerOffset = calculateCenterOffset(time.size(), X_MAX);
         for (size_t i = 0; i < time.size(); i++) {
             rendered[centerOffset + i] = time.at(i);
         }
     } else {
-        // Left alignment or fallback for long content
-        for (size_t i = 0; i < X_MAX && i < time.size(); i++) {
-            rendered[i] = time.at(i);
-        }
+        // Left alignment or scrolling for long content
+        renderContentToBuffer(rendered, time, 0, X_MAX);
     }
     return rendered;
 }
@@ -257,6 +290,7 @@ void Display::setScrolling(Scrolling direction)
 void Display::setAlignment(Alignment alignment)
 {
     this->alignment = alignment;
+    dirty = true;  // Trigger buffer recreation to apply alignment change
 }
 
 Alignment Display::getAlignment() const
@@ -300,7 +334,7 @@ size_t Display::addTimeDivider(std::array<char, X_MAX>& buffer, size_t pos) cons
 
 void Display::showText(std::string text)
 {
-    renderedText = font::renderString(text);
+    renderedText = font::FontCache::renderStringOptimized(text);
     renderedTextSize = this->renderedText.size();
 
     setScrolling(Scrolling::RESET);
@@ -316,6 +350,7 @@ void Display::show(std::string text)
 void Display::showTime(std::string timeFormat)
 {
     mode = Mode::TIME;
+    renderedText.clear();  // Clear any previous text content
 
     if (!timeFormat.empty())
     {

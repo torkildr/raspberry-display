@@ -14,7 +14,7 @@
 #define SCROLL_DELAY 10
 #define REFRESH_RATE 0.1
 
-#define TIME_FORMAT_LONG "%A, %b %d %H:%M"
+#define TIME_FORMAT_LONG "%A, %b %d %H:%M:%S"
 #define TIME_FORMAT_SHORT "%H:%M"
 
 namespace display

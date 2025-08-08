@@ -45,7 +45,7 @@ int main()
 
     auto disp = display::DisplayImpl(preUpdate, postUpdate);
     disp.start();
-    disp.showTime("", "Foobar, binbaz... Tralala, ding dong!");
+    disp.showTime("%H:%M:%S", "Foobar, binbaz... Tralala, ding dong!");
 
     bool done = false;
     int brightness = 7;
