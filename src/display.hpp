@@ -105,6 +105,6 @@ private:
     std::function<void()> postUpdate;
 };
 
-}
+} // namespace display
 
 #endif

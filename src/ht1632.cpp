@@ -182,14 +182,13 @@ static std::array<unsigned char, X_MAX + 2> createWriteBuffer(std::array<char, X
         buffer[dst_pos] |= src_val << dst_bit;
 
         /*
-         * Hack to work around Raspberry Pi's 8-bit SPI write.
+         * Workaround for Raspberry Pi's 8-bit SPI write limitation.
          *
-         * Since the Pi will write SPI data in chunks of 8 bits, and the ht1632
-         * write command and address is 10 bits wide, we will in most cases end up
-         * with excess bits at the end of the buffer. It tourns out that these
-         * bits wrap around and are written to the starting address. To work around this, we
-         * simple write the first couple of bits both at the start and at the end
-         * of the SPI data. No biggie...
+         * Since the Pi writes SPI data in chunks of 8 bits, and the HT1632
+         * write command and address is 10 bits wide, we end up with excess
+         * bits at the end of the buffer. These bits wrap around and are
+         * written to the starting address. To handle this, we duplicate
+         * the first few bits at both the start and end of the SPI data.
          */
         if (i < excess_bits)
         {

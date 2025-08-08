@@ -132,4 +132,4 @@ void FontCache::clearCache()
     initialized = false;
 }
 
-}
+} // namespace font

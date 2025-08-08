@@ -14,7 +14,7 @@ class Timer
 public:
     ~Timer();
 
-    void setInterval(std::function<void()> function, std::chrono::nanoseconds interval);
+    void setInterval(const std::function<void()>& function, std::chrono::nanoseconds interval);
     void stop();
 
 private:
@@ -23,7 +23,7 @@ private:
     std::thread m_thread;
 };
 
-std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds);
+std::unique_ptr<Timer> createTimer(const std::function<void()>& callback, double seconds);
 
 } // namespace timer
 

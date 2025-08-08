@@ -395,4 +395,4 @@ void Display::showTime(std::string timeFormat, std::string text)
     showText(text);
 }
 
-}
+} // namespace display

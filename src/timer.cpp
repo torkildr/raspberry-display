@@ -11,13 +11,12 @@ using namespace std::chrono;
 namespace timer
 {
 
-std::unique_ptr<Timer> createTimer(std::function<void()> callback, double seconds)
+std::unique_ptr<Timer> createTimer(const std::function<void()>& callback, double seconds)
 {
     auto timer = std::make_unique<Timer>();
     auto intervalNs = static_cast<long long>(seconds * 1e9);
     nanoseconds interval(intervalNs);
 
-    // Fix: Use proper lambda capture to avoid copying callback unnecessarily
     timer->setInterval(callback, interval);
 
     return timer;
@@ -28,11 +27,9 @@ Timer::~Timer()
     stop();
 }
 
-void Timer::setInterval(std::function<void()> function, nanoseconds interval)
+void Timer::setInterval(const std::function<void()>& function, nanoseconds interval)
 {
     m_clear = false;
-    // Fix: Use proper lambda capture [this] to access member variables safely
-    // and capture function by reference to avoid unnecessary copying
     m_thread = std::thread([this, function, interval]() {
         std::mutex mutex;
 

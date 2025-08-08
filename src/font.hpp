@@ -26,6 +26,6 @@ public:
     static void clearCache();
 };
 
-}
+} // namespace font
 
 #endif
