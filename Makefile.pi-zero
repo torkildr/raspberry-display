@@ -1,0 +1,75 @@
+# Lightweight Makefile for Pi Zero - avoids meson overhead
+CXX = g++
+CC = gcc
+
+# Pi Zero optimized flags
+CXXFLAGS = -std=c++17 -O2 -march=armv6 -mfpu=vfp -mfloat-abi=hard
+CFLAGS = -O2 -march=armv6 -mfpu=vfp -mfloat-abi=hard
+
+# Include directories
+INCLUDES = -Isrc
+
+# Libraries (basic ones first, MQTT will be added separately)
+BASIC_LIBS = -lncurses -lwiringPi -lpthread
+MQTT_LIBS = -lboost_system
+
+# Source files
+COMMON_SRC = src/timer.cpp src/display.cpp src/font.cpp
+MQTT_SRC = src/mqtt-client.cpp
+CURSES_SRC = src/curses-client.cpp
+HT1632_SRC = src/ht1632.cpp
+MOCK_SRC = src/mock-display.cpp
+
+# Object files
+COMMON_OBJ = $(COMMON_SRC:.cpp=.o)
+MQTT_OBJ = $(MQTT_SRC:.cpp=.o)
+CURSES_OBJ = $(CURSES_SRC:.cpp=.o)
+HT1632_OBJ = $(HT1632_SRC:.cpp=.o)
+MOCK_OBJ = $(MOCK_SRC:.cpp=.o)
+
+# Targets (excluding MQTT clients which need meson)
+TARGETS = curses-client mock-curses-client
+
+.PHONY: all clean install
+
+all: src/font_generated.h $(TARGETS)
+
+# Generate font header
+src/font_generated.h: tools/font_definitions.txt tools/font_generator.py
+	@echo "Generating font header..."
+	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h
+
+# Interactive client for real hardware (no MQTT dependencies)
+curses-client: $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
+	@echo "Linking curses-client..."
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(BASIC_LIBS)
+
+# Interactive client with mock display (no MQTT dependencies)
+mock-curses-client: $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
+	@echo "Linking mock-curses-client..."
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(BASIC_LIBS)
+
+# Note: MQTT clients require complex subproject setup, build these with meson instead
+
+# Compile source files
+%.o: %.cpp
+	@echo "Compiling $<..."
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+clean:
+	rm -f $(COMMON_OBJ) $(MQTT_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(MOCK_OBJ)
+	rm -f $(TARGETS)
+	rm -f src/font_generated.h
+
+install: raspberry-display-mqtt
+	sudo cp raspberry-display-mqtt /usr/bin/
+	sudo systemctl daemon-reload
+
+# Memory-efficient build (compile one file at a time)
+build-sequential: src/font_generated.h
+	@echo "Building sequentially to minimize memory usage..."
+	@for target in $(TARGETS); do \
+		echo "Building $$target..."; \
+		$(MAKE) -f Makefile.pi-zero $$target; \
+		echo "$$target complete"; \
+	done

@@ -48,11 +48,9 @@ void Timer::setInterval(const std::function<void()>& function, nanoseconds inter
             function();
             time_point<high_resolution_clock> after = high_resolution_clock::now();
 
-            duration<double> duration = after - before;
-            nextInterval = interval - duration_cast<nanoseconds>(duration);
-
-            if (nextInterval.count() < 0)
-                nextInterval = nanoseconds(0);
+            // Always use the full interval to prevent rapid-fire events
+            // when function execution takes longer than expected
+            nextInterval = interval;
         }
     });
 }
