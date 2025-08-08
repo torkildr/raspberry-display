@@ -71,6 +71,17 @@ private:
     void prepare();
     std::array<char, X_MAX> createDisplayBuffer(std::vector<char> time);
     std::vector<char> renderTime();
+    
+    // Helper methods for cleaner buffer creation
+    size_t calculateCenterOffset(size_t contentSize, size_t availableSpace) const;
+    void renderContentToBuffer(std::array<char, X_MAX>& buffer, const std::vector<char>& content, 
+                              size_t startPos, size_t maxPos) const;
+    size_t addTimeDivider(std::array<char, X_MAX>& buffer, size_t pos) const;
+    
+    // Mode-specific buffer creation methods
+    std::array<char, X_MAX> createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
+    std::array<char, X_MAX> createTextOnlyBuffer(std::array<char, X_MAX>& rendered);
+    std::array<char, X_MAX> createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
 
     Mode mode = Mode::TIME;
     std::vector<char> renderedText;

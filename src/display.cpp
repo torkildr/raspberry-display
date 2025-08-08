@@ -113,106 +113,79 @@ std::vector<char> Display::renderTime()
 std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
 {
     std::array<char, X_MAX> rendered = {0};
-    size_t pos = 0;
+    
+    // Handle different display modes with unified logic
+    switch (mode) {
+        case Mode::TIME:
+            return createTimeOnlyBuffer(rendered, time);
+            
+        case Mode::TEXT:
+            return createTextOnlyBuffer(rendered);
+            
+        case Mode::TIME_AND_TEXT:
+            return createTimeAndTextBuffer(rendered, time);
+    }
+    
+    return rendered;
+}
 
-    // Handle center alignment for TIME mode
-    if (mode == Mode::TIME && alignment == Alignment::CENTER)
-    {
+std::array<char, X_MAX> Display::createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
+{
+    if (alignment == Alignment::CENTER && time.size() < X_MAX) {
         // Center the time display
-        size_t timeSize = time.size();
-        if (timeSize < X_MAX)
-        {
-            size_t centerOffset = (X_MAX - timeSize) / 2;
-            for (size_t i = 0; i < timeSize; i++)
-            {
-                rendered[centerOffset + i] = time.at(i);
-            }
+        size_t centerOffset = calculateCenterOffset(time.size(), X_MAX);
+        for (size_t i = 0; i < time.size(); i++) {
+            rendered[centerOffset + i] = time.at(i);
         }
-        else
-        {
-            // If time is too long, fall back to left alignment
-            for (size_t i = 0; i < X_MAX && i < timeSize; i++)
-            {
-                rendered[i] = time.at(i);
-            }
+    } else {
+        // Left alignment or fallback for long content
+        for (size_t i = 0; i < X_MAX && i < time.size(); i++) {
+            rendered[i] = time.at(i);
         }
-        return rendered;
     }
+    return rendered;
+}
 
-    // Handle center alignment for TEXT mode
-    if (mode == Mode::TEXT && alignment == Alignment::CENTER)
-    {
+std::array<char, X_MAX> Display::createTextOnlyBuffer(std::array<char, X_MAX>& rendered)
+{
+    if (alignment == Alignment::CENTER && renderedText.size() < X_MAX && scrollDirection == Scrolling::DISABLED) {
         // Center the text display
-        size_t textSize = renderedText.size();
-        if (textSize < X_MAX && scrollDirection == Scrolling::DISABLED)
-        {
-            size_t centerOffset = (X_MAX - textSize) / 2;
-            for (size_t i = 0; i < textSize; i++)
-            {
-                rendered[centerOffset + i] = renderedText.at(i);
-            }
+        size_t centerOffset = calculateCenterOffset(renderedText.size(), X_MAX);
+        for (size_t i = 0; i < renderedText.size(); i++) {
+            rendered[centerOffset + i] = renderedText.at(i);
         }
-        else
-        {
-            // If text is too long or scrolling is enabled, fall back to left alignment with scrolling
-            for (size_t i = static_cast<size_t>(scrollOffset); pos < X_MAX && i < textSize; ++i, ++pos)
-            {
-                rendered[pos] = renderedText.at(i);
-            }
-        }
-        return rendered;
+    } else {
+        // Left alignment or fallback for long content/scrolling
+        renderContentToBuffer(rendered, renderedText, 0, X_MAX);
     }
+    return rendered;
+}
 
-    // Default left alignment behavior (existing logic)
+std::array<char, X_MAX> Display::createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
+{
+    size_t pos = 0;
+    
     // Render time first
-    for (; pos < time.size(); pos++)
-    {
+    for (; pos < time.size() && pos < X_MAX; pos++) {
         rendered[pos] = time.at(pos);
     }
-
-    if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT)
-    {
-        if (show_time_divider) {
-            // Add horizontal divider in TIME_AND_TEXT mode
-            if (mode == Mode::TIME_AND_TEXT && time.size() > 0)
-            {
-                // Add vertical divider line (all bits set for full height)
-                if (pos < X_MAX)
-                {
-                    rendered[pos] = 0xFF;  // Vertical divider
-                    pos++;
-                }
-                
-                // Add 1 pixel gap before text when not actively scrolling
-                if (pos < X_MAX && scrollOffset == 0)
-                {
-                    rendered[pos] = 0;  // 1 pixel gap before text starts
-                    pos++;
-                }
-            }
-        }
-        
-        // Handle center alignment for TIME_AND_TEXT mode
-        if (mode == Mode::TIME_AND_TEXT && alignment == Alignment::CENTER)
-        {
-            // For TIME_AND_TEXT mode with center alignment, center the text portion only
-            size_t availableSpace = X_MAX - pos;
-            size_t textSize = renderedText.size();
-            
-            if (textSize < availableSpace && scrollDirection == Scrolling::DISABLED)
-            {
-                size_t centerOffset = (availableSpace - textSize) / 2;
-                pos += centerOffset;
-            }
-        }
-        
-        // Render text
-        for (size_t i = static_cast<size_t>(scrollOffset); pos < X_MAX && i < renderedText.size(); ++i, ++pos)
-        {
-            rendered[pos] = renderedText.at(i);
+    
+    // Add divider if needed
+    if (time.size() > 0) {
+        pos = addTimeDivider(rendered, pos);
+    }
+    
+    // Handle text alignment
+    if (alignment == Alignment::CENTER && scrollDirection == Scrolling::DISABLED) {
+        size_t availableSpace = X_MAX - pos;
+        if (renderedText.size() < availableSpace) {
+            pos += calculateCenterOffset(renderedText.size(), availableSpace);
         }
     }
-
+    
+    // Render text
+    renderContentToBuffer(rendered, renderedText, pos, X_MAX);
+    
     return rendered;
 }
 
@@ -237,6 +210,40 @@ void Display::setAlignment(Alignment alignment)
 Alignment Display::getAlignment() const
 {
     return alignment;
+}
+
+size_t Display::calculateCenterOffset(size_t contentSize, size_t availableSpace) const
+{
+    if (contentSize >= availableSpace) {
+        return 0;  // No centering possible
+    }
+    return (availableSpace - contentSize) / 2;
+}
+
+void Display::renderContentToBuffer(std::array<char, X_MAX>& buffer, const std::vector<char>& content, 
+                                   size_t startPos, size_t maxPos) const
+{
+    size_t pos = startPos;
+    for (size_t i = static_cast<size_t>(scrollOffset); pos < maxPos && i < content.size(); ++i, ++pos)
+    {
+        buffer[pos] = content.at(i);
+    }
+}
+
+size_t Display::addTimeDivider(std::array<char, X_MAX>& buffer, size_t pos) const
+{
+    if (show_time_divider && pos < X_MAX) {
+        // Add vertical divider line (all bits set for full height)
+        buffer[pos] = 0xFF;  // Vertical divider
+        pos++;
+        
+        // Add 1 pixel gap before text when not actively scrolling
+        if (pos < X_MAX && scrollOffset == 0) {
+            buffer[pos] = 0;  // 1 pixel gap before text starts
+            pos++;
+        }
+    }
+    return pos;
 }
 
 void Display::showText(std::string text)
