@@ -10,6 +10,8 @@
 namespace display
 {
 
+static constexpr bool show_time_divider = true;
+
 Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate)
     : preUpdate(preUpdate), postUpdate(postUpdate)
 {
@@ -113,6 +115,7 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
     std::array<char, X_MAX> rendered = {0};
     size_t pos = 0;
 
+    // Render time first
     for (; pos < time.size(); pos++)
     {
         rendered[pos] = time.at(pos);
@@ -120,6 +123,27 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
 
     if (mode == Mode::TEXT || mode == Mode::TIME_AND_TEXT)
     {
+        if (show_time_divider) {
+            // Add horizontal divider in TIME_AND_TEXT mode
+            if (mode == Mode::TIME_AND_TEXT && time.size() > 0)
+            {
+                // Add vertical divider line (all bits set for full height)
+                if (pos < X_MAX)
+                {
+                    rendered[pos] = 0xFF;  // Vertical divider
+                    pos++;
+                }
+                
+                // Add 1 pixel gap before text when not actively scrolling
+                if (pos < X_MAX && scrollOffset == 0)
+                {
+                    rendered[pos] = 0;  // 1 pixel gap before text starts
+                    pos++;
+                }
+            }
+        }
+        
+        // Render text
         for (size_t i = scrollOffset; pos < X_MAX && i < renderedText.size(); ++i, ++pos)
         {
             rendered[pos] = renderedText.at(i);
