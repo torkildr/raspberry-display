@@ -25,15 +25,18 @@ Display::~Display()
 void Display::prepare()
 {
     auto textSize = static_cast<int>(renderedText.size());
-    auto time = renderTime();
+    const auto& time = renderTimeOptimized();  // Use cached version
     auto textBlock = static_cast<int>(X_MAX - time.size());
 
+    bool scrollChanged = false;
+    
     if (scrollDelay >= SCROLL_DELAY)
     {
         if (scrollOffset != 0)
         {
             scrollDelay = 1;
             scrollOffset = 0;
+            scrollChanged = true;
         }
         else
         {
@@ -49,6 +52,7 @@ void Display::prepare()
         if (scrollDirection == Scrolling::ENABLED && textSize > textBlock)
         {
             ++scrollOffset;
+            scrollChanged = true;
             if (textBlock + scrollOffset >= textSize)
             {
                 scrollDelay = 1;
@@ -56,15 +60,20 @@ void Display::prepare()
         }
     }
 
-    auto tmp = createDisplayBuffer(std::move(time));
-    if (tmp == displayBuffer)
+    // Only recreate buffer if something actually changed
+    if (dirty || scrollChanged || timeNeedsUpdate)
     {
-        dirty = false;
-    }
-    else
-    {
-        std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
-        dirty = true;
+        auto tmp = createDisplayBufferOptimized(time);  // Use optimized version with const reference
+        
+        if (tmp != displayBuffer)
+        {
+            std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
+            dirty = true;
+        }
+        else
+        {
+            dirty = false;
+        }
     }
 };
 
@@ -110,11 +119,54 @@ std::vector<char> Display::renderTime()
     return std::vector<char>();
 }
 
+const std::vector<char>& Display::renderTimeOptimized()
+{
+    if (mode != Mode::TIME && mode != Mode::TIME_AND_TEXT)
+    {
+        static std::vector<char> empty;
+        return empty;
+    }
+    
+    auto currentTime = std::time(nullptr);
+    
+    // Check if we need to update the cached time
+    if (timeNeedsUpdate || 
+        currentTime != lastTimeRendered || 
+        timeFormat != lastTimeFormat)
+    {
+        cachedRenderedTime = font::renderString(getTime(timeFormat));
+        lastTimeRendered = currentTime;
+        lastTimeFormat = timeFormat;
+        timeNeedsUpdate = false;
+    }
+    
+    return cachedRenderedTime;
+}
+
 std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
 {
     std::array<char, X_MAX> rendered = {0};
     
     // Handle different display modes with unified logic
+    switch (mode) {
+        case Mode::TIME:
+            return createTimeOnlyBuffer(rendered, time);
+            
+        case Mode::TEXT:
+            return createTextOnlyBuffer(rendered);
+            
+        case Mode::TIME_AND_TEXT:
+            return createTimeAndTextBuffer(rendered, time);
+    }
+    
+    return rendered;
+}
+
+std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<char>& time)
+{
+    std::array<char, X_MAX> rendered = {0};
+    
+    // Handle different display modes with unified logic (using const reference)
     switch (mode) {
         case Mode::TIME:
             return createTimeOnlyBuffer(rendered, time);
@@ -273,6 +325,8 @@ void Display::showTime(std::string timeFormat)
     {
         this->timeFormat = TIME_FORMAT_LONG;
     }
+    
+    timeNeedsUpdate = true;  // Invalidate time cache
 }
 
 void Display::showTime(std::string timeFormat, std::string text)
@@ -288,6 +342,7 @@ void Display::showTime(std::string timeFormat, std::string text)
         this->timeFormat = TIME_FORMAT_SHORT;
     }
 
+    timeNeedsUpdate = true;  // Invalidate time cache
     showText(text);
 }
 

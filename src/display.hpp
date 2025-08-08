@@ -70,7 +70,9 @@ private:
     void showText(std::string text);
     void prepare();
     std::array<char, X_MAX> createDisplayBuffer(std::vector<char> time);
+    std::array<char, X_MAX> createDisplayBufferOptimized(const std::vector<char>& time);
     std::vector<char> renderTime();
+    const std::vector<char>& renderTimeOptimized();
     
     // Helper methods for cleaner buffer creation
     size_t calculateCenterOffset(size_t contentSize, size_t availableSpace) const;
@@ -89,6 +91,12 @@ private:
     int scrollDelay = 0;
     bool dirty = true;
     Alignment alignment = Alignment::LEFT;
+    
+    // Caching for performance optimization
+    std::vector<char> cachedRenderedTime;
+    std::time_t lastTimeRendered = 0;
+    std::string lastTimeFormat;
+    bool timeNeedsUpdate = true;
 
     std::vector<std::unique_ptr<timer::Timer>> timers;
 
