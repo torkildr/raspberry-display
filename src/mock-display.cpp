@@ -76,6 +76,24 @@ static void showScrolling(display::Scrolling dir, int offset)
     showInfoText(std::move(info));
 }
 
+static void showAlignment(display::Alignment align)
+{
+    std::stringstream info;
+    std::string alignment;
+    switch (align)
+    {
+    case Alignment::LEFT:
+        alignment = "Left";
+        break;
+    case Alignment::CENTER:
+        alignment = "Center";
+        break;
+    }
+
+    info << "Alignment: " << alignment;
+    showInfoText(std::move(info));
+}
+
 DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate)
     : Display(preUpdate, postUpdate)
 {
@@ -152,6 +170,7 @@ void DisplayImpl::update()
     showBrightness(_brightness);
     showTextInfo(renderedTextSize);
     showScrolling(scrollDirection, scrollOffset);
+    showAlignment(getAlignment());
 
     ::refresh();
 }

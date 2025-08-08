@@ -34,6 +34,12 @@ enum Mode
     TEXT,
 };
 
+enum Alignment
+{
+    LEFT,
+    CENTER,
+};
+
 class Display
 {
 public:
@@ -42,6 +48,8 @@ public:
 
     virtual void setBrightness(int brightness) = 0;
     void setScrolling(Scrolling direction);
+    void setAlignment(Alignment alignment);
+    Alignment getAlignment() const;
 
     void show(std::string text);
     void showTime(std::string timeFormat);
@@ -69,6 +77,7 @@ private:
     std::string timeFormat = TIME_FORMAT_LONG;
     int scrollDelay = 0;
     bool dirty = true;
+    Alignment alignment = Alignment::LEFT;
 
     std::vector<std::unique_ptr<timer::Timer>> timers;
 

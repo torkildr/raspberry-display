@@ -115,6 +115,55 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
     std::array<char, X_MAX> rendered = {0};
     size_t pos = 0;
 
+    // Handle center alignment for TIME mode
+    if (mode == Mode::TIME && alignment == Alignment::CENTER)
+    {
+        // Center the time display
+        size_t timeSize = time.size();
+        if (timeSize < X_MAX)
+        {
+            size_t centerOffset = (X_MAX - timeSize) / 2;
+            for (size_t i = 0; i < timeSize; i++)
+            {
+                rendered[centerOffset + i] = time.at(i);
+            }
+        }
+        else
+        {
+            // If time is too long, fall back to left alignment
+            for (size_t i = 0; i < X_MAX && i < timeSize; i++)
+            {
+                rendered[i] = time.at(i);
+            }
+        }
+        return rendered;
+    }
+
+    // Handle center alignment for TEXT mode
+    if (mode == Mode::TEXT && alignment == Alignment::CENTER)
+    {
+        // Center the text display
+        size_t textSize = renderedText.size();
+        if (textSize < X_MAX && scrollDirection == Scrolling::DISABLED)
+        {
+            size_t centerOffset = (X_MAX - textSize) / 2;
+            for (size_t i = 0; i < textSize; i++)
+            {
+                rendered[centerOffset + i] = renderedText.at(i);
+            }
+        }
+        else
+        {
+            // If text is too long or scrolling is enabled, fall back to left alignment with scrolling
+            for (size_t i = static_cast<size_t>(scrollOffset); pos < X_MAX && i < textSize; ++i, ++pos)
+            {
+                rendered[pos] = renderedText.at(i);
+            }
+        }
+        return rendered;
+    }
+
+    // Default left alignment behavior (existing logic)
     // Render time first
     for (; pos < time.size(); pos++)
     {
@@ -143,6 +192,20 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
             }
         }
         
+        // Handle center alignment for TIME_AND_TEXT mode
+        if (mode == Mode::TIME_AND_TEXT && alignment == Alignment::CENTER)
+        {
+            // For TIME_AND_TEXT mode with center alignment, center the text portion only
+            size_t availableSpace = X_MAX - pos;
+            size_t textSize = renderedText.size();
+            
+            if (textSize < availableSpace && scrollDirection == Scrolling::DISABLED)
+            {
+                size_t centerOffset = (availableSpace - textSize) / 2;
+                pos += centerOffset;
+            }
+        }
+        
         // Render text
         for (size_t i = static_cast<size_t>(scrollOffset); pos < X_MAX && i < renderedText.size(); ++i, ++pos)
         {
@@ -164,6 +227,16 @@ void Display::setScrolling(Scrolling direction)
     }
 
     scrollDirection = direction;
+}
+
+void Display::setAlignment(Alignment alignment)
+{
+    this->alignment = alignment;
+}
+
+Alignment Display::getAlignment() const
+{
+    return alignment;
 }
 
 void Display::showText(std::string text)

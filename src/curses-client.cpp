@@ -25,6 +25,7 @@ static void print_help_text()
     addstr("\nr: reset scrolling");
     addstr("\n+/-: change brightness");
     addstr("\nd: disable scroll");
+    addstr("\nc: toggle center/left alignment");
     addstr("\nq: exit");
     refresh();
 }
@@ -48,6 +49,7 @@ int main()
 
     bool done = false;
     int brightness = 7;
+    display::Alignment currentAlignment = display::Alignment::LEFT;
     disp.setBrightness(brightness);
 
     while (!done)
@@ -92,6 +94,18 @@ int main()
             case '0':
             case KEY_HOME:
                 disp.setScrolling(display::Scrolling::DISABLED);
+                break;
+            case 'c':
+                // Toggle alignment between LEFT and CENTER
+                if (currentAlignment == display::Alignment::LEFT)
+                {
+                    currentAlignment = display::Alignment::CENTER;
+                }
+                else
+                {
+                    currentAlignment = display::Alignment::LEFT;
+                }
+                disp.setAlignment(currentAlignment);
                 break;
             }
         }

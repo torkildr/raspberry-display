@@ -39,6 +39,7 @@ All commands are JSON objects that can contain multiple state properties:
   "time_format": "string",    // Time format (default: "%H:%M" with text, "%H:%M:%S" time-only)
   "brightness": number,       // 0-15
   "scroll": "string",         // "enabled"/"disabled"/"reset"
+  "alignment": "string",      // "left"/"center" - text alignment (default: "left")
   "clear": boolean,           // Clear display
   "quit": boolean             // Quit program
 }
@@ -88,6 +89,18 @@ mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"disabled"}'
 
 # Reset scroll position
 mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"reset"}'
+```
+
+#### Text Alignment
+```bash
+# Center-aligned text
+mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello", "alignment":"center", "scroll":"disabled"}'
+
+# Center-aligned time display
+mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true, "alignment":"center", "scroll":"disabled"}'
+
+# Left-aligned (default)
+mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello", "alignment":"left"}'
 ```
 
 #### Complex State Changes (Atomic)

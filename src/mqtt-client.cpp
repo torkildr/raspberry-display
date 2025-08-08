@@ -84,6 +84,20 @@ static void process_display_state(display::Display* disp, const json& state) {
             }
         }
         
+        // Handle alignment
+        if (state.contains("alignment")) {
+            std::string align_mode = state["alignment"];
+            if (align_mode == "center" || align_mode == "centre") {
+                disp->setAlignment(display::Alignment::CENTER);
+            }
+            else if (align_mode == "left") {
+                disp->setAlignment(display::Alignment::LEFT);
+            }
+            else {
+                std::cerr << "Invalid alignment mode: " << align_mode << ". Valid options: 'left', 'center'" << std::endl;
+            }
+        }
+        
         // Handle quit command
         if (state.contains("quit") && state["quit"].get<bool>()) {
             running = false;
