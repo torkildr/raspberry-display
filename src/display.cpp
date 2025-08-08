@@ -227,58 +227,61 @@ std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<
 
 std::array<char, X_MAX> Display::createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
 {
-    if (alignment == Alignment::CENTER && static_cast<int>(time.size()) <= X_MAX) {
-        // Center the time display when content fits and is center-aligned
-        size_t centerOffset = calculateCenterOffset(time.size(), X_MAX);
-        for (size_t i = 0; i < time.size(); i++) {
-            rendered[centerOffset + i] = time.at(i);
-        }
-    } else {
-        // Left alignment or scrolling for long content
-        renderContentToBuffer(rendered, time, 0, X_MAX);
-    }
-    return rendered;
+    return createBufferWithContent(rendered, &time, nullptr, false);
 }
 
 std::array<char, X_MAX> Display::createTextOnlyBuffer(std::array<char, X_MAX>& rendered)
 {
-    if (alignment == Alignment::CENTER && renderedText.size() < X_MAX && scrollDirection == Scrolling::DISABLED) {
-        // Center the text display
-        size_t centerOffset = calculateCenterOffset(renderedText.size(), X_MAX);
-        for (size_t i = 0; i < renderedText.size(); i++) {
-            rendered[centerOffset + i] = renderedText.at(i);
-        }
-    } else {
-        // Left alignment or fallback for long content/scrolling
-        renderContentToBuffer(rendered, renderedText, 0, X_MAX);
-    }
-    return rendered;
+    return createBufferWithContent(rendered, nullptr, &renderedText, false);
 }
 
 std::array<char, X_MAX> Display::createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
 {
+    return createBufferWithContent(rendered, &time, &renderedText, true);
+}
+
+std::array<char, X_MAX> Display::createBufferWithContent(std::array<char, X_MAX>& rendered, 
+                                                        const std::vector<char>* timeContent,
+                                                        const std::vector<char>* textContent,
+                                                        bool addDivider)
+{
     size_t pos = 0;
     
-    // Render time first
-    for (; pos < time.size() && pos < X_MAX; pos++) {
-        rendered[pos] = time.at(pos);
-    }
-    
-    // Add divider if needed
-    if (time.size() > 0) {
-        pos = addTimeDivider(rendered, pos);
-    }
-    
-    // Handle text alignment
-    if (alignment == Alignment::CENTER && scrollDirection == Scrolling::DISABLED) {
-        size_t availableSpace = X_MAX - pos;
-        if (renderedText.size() < availableSpace) {
-            pos += calculateCenterOffset(renderedText.size(), availableSpace);
+    // Render time content if provided
+    if (timeContent && !timeContent->empty()) {
+        if (alignment == Alignment::CENTER && static_cast<int>(timeContent->size()) <= X_MAX && !textContent) {
+            // Center time-only content
+            size_t centerOffset = calculateCenterOffset(timeContent->size(), X_MAX);
+            for (size_t i = 0; i < timeContent->size() && centerOffset + i < X_MAX; i++) {
+                rendered[centerOffset + i] = timeContent->at(i);
+            }
+            return rendered;
+        } else {
+            // Left-align time content or part of time+text
+            for (; pos < timeContent->size() && pos < X_MAX; pos++) {
+                rendered[pos] = timeContent->at(pos);
+            }
+            
+            // Add divider between time and text if requested
+            if (addDivider && textContent) {
+                pos = addTimeDivider(rendered, pos);
+            }
         }
     }
     
-    // Render text
-    renderContentToBuffer(rendered, renderedText, pos, X_MAX);
+    // Render text content if provided
+    if (textContent && !textContent->empty()) {
+        // Handle centering for text content
+        if (alignment == Alignment::CENTER && scrollDirection == Scrolling::DISABLED) {
+            size_t availableSpace = X_MAX - pos;
+            if (textContent->size() < availableSpace) {
+                pos += calculateCenterOffset(textContent->size(), availableSpace);
+            }
+        }
+        
+        // Render the text content
+        renderContentToBuffer(rendered, *textContent, pos, X_MAX);
+    }
     
     return rendered;
 }

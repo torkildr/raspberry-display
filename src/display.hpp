@@ -85,6 +85,12 @@ private:
     std::array<char, X_MAX> createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
     std::array<char, X_MAX> createTextOnlyBuffer(std::array<char, X_MAX>& rendered);
     std::array<char, X_MAX> createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
+    
+    // Consolidated buffer creation method
+    std::array<char, X_MAX> createBufferWithContent(std::array<char, X_MAX>& rendered, 
+                                                    const std::vector<char>* timeContent,
+                                                    const std::vector<char>* textContent,
+                                                    bool addDivider);
 
     Mode mode = Mode::TIME;
     std::vector<char> renderedText;
