@@ -33,24 +33,16 @@ void Timer::setInterval(const std::function<void()>& function, nanoseconds inter
     m_thread = std::thread([this, function, interval]() {
         std::mutex mutex;
 
-        nanoseconds nextInterval = interval;
-
         while (true)
         {
             if (m_clear)
                 return;
             std::unique_lock<std::mutex> lock(mutex);
-            m_abort.wait_for(lock, nextInterval);
+            m_abort.wait_for(lock, interval);
             if (m_clear)
                 return;
 
-            time_point<high_resolution_clock> before = high_resolution_clock::now();
             function();
-            time_point<high_resolution_clock> after = high_resolution_clock::now();
-
-            // Always use the full interval to prevent rapid-fire events
-            // when function execution takes longer than expected
-            nextInterval = interval;
         }
     });
 }

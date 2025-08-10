@@ -52,25 +52,25 @@ void Display::prepare()
                       (textSize > availableSpace);
     }
     
-    if (scrollDelay >= SCROLL_DELAY)
+    if (scrollDelayTimer >= SCROLL_DELAY)
     {
         if (scrollOffset != 0)
         {
             // Reset to beginning and start delay before next scroll cycle
-            scrollDelay = 1;
+            scrollDelayTimer = 1.0 / REFRESH_RATE;  // Start timing from next cycle
             scrollOffset = 0;
             scrollChanged = true;
         }
         else
         {
             // Delay finished, start scrolling
-            scrollDelay = 0;
+            scrollDelayTimer = 0.0;
         }
     }
-    else if (scrollDelay)
+    else if (scrollDelayTimer > 0.0)
     {
-        // Counting delay before starting/restarting scroll
-        scrollDelay++;
+        // Accumulate time for delay before starting/restarting scroll
+        scrollDelayTimer += 1.0 / REFRESH_RATE;
     }
     else
     {
@@ -93,7 +93,7 @@ void Display::prepare()
             }
             
             if (reachedEnd) {
-                scrollDelay = 1;  // Start delay before restarting
+                scrollDelayTimer = 1.0 / REFRESH_RATE;  // Start delay timer before restarting
             }
         }
         else if (scrollOffset != 0)
@@ -131,7 +131,7 @@ void Display::start()
             postUpdate();
         }
         prepare();
-    }, REFRESH_RATE));
+    }, 1.0 / REFRESH_RATE));
 }
 
 void Display::stop()
@@ -289,7 +289,7 @@ std::array<char, X_MAX> Display::createBufferWithContent(std::array<char, X_MAX>
 void Display::setScrolling(Scrolling direction)
 {
     scrollOffset = 0;
-    scrollDelay = 1;
+    scrollDelayTimer = 1.0 / REFRESH_RATE;
 
     if (direction == Scrolling::RESET)
     {

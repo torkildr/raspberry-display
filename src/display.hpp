@@ -11,8 +11,8 @@
 
 #define X_MAX 128
 
-#define SCROLL_DELAY 10
-#define REFRESH_RATE 0.1
+#define SCROLL_DELAY 1.0   // seconds
+#define REFRESH_RATE 15.0  // Hz
 
 #define TIME_FORMAT_LONG "%A, %b %d %H:%M:%S"
 #define TIME_FORMAT_SHORT "%H:%M"
@@ -95,7 +95,7 @@ private:
     Mode mode = Mode::TIME;
     std::vector<char> renderedText;
     std::string timeFormat = TIME_FORMAT_LONG;
-    int scrollDelay = 0;
+    double scrollDelayTimer = 0.0;
     bool dirty = true;
     Alignment alignment = Alignment::LEFT;
     
