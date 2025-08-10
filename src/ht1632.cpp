@@ -40,25 +40,7 @@ static void select_chip(int pin)
     delayMicroseconds(2);
 }
 
-static void *reverse_endian(void *p, size_t size)
-{
-    // Add bounds checking to prevent buffer overflow
-    if (p == nullptr || size == 0)
-    {
-        return p;
-    }
-    
-    auto *head = static_cast<char *>(p);
-    char *tail = head + size - 1;
 
-    for (; tail > head; --tail, ++head)
-    {
-        char temp = *head;
-        *head = *tail;
-        *tail = temp;
-    }
-    return p;
-}
 
 static void ht1632_write(const void *buffer, size_t size)
 {
@@ -66,7 +48,7 @@ static void ht1632_write(const void *buffer, size_t size)
     std::vector<unsigned char> data(static_cast<const unsigned char*>(buffer), 
                                    static_cast<const unsigned char*>(buffer) + size);
     
-    int result = wiringPiSPIDataRW(0, data.data(), size);
+    int result = wiringPiSPIDataRW(0, data.data(), static_cast<int>(size));
     
     if (result == -1)
     {
@@ -79,12 +61,12 @@ static void send_cmd(int pin, uint8_t cmd)
 {
     // HT1632 Command Protocol: 12 bits total
     // Format: [3-bit ID][8-bit command][1 padding bit] = 12 bits
-    uint16_t data = (((uint16_t)HT1632_ID_CMD << 8) | cmd) << 1;
+    uint16_t data = ((static_cast<uint16_t>(HT1632_ID_CMD) << 8) | cmd) << 1;
     
     // Convert to bytes for SPI (12 bits = 1.5 bytes, so use 2 bytes)
     uint8_t spi_data[2];
-    spi_data[0] = (data >> 4) & 0xFF;    // Upper 8 bits
-    spi_data[1] = (data << 4) & 0xF0;    // Lower 4 bits, left-aligned
+    spi_data[0] = static_cast<uint8_t>((data >> 4) & 0xFF);    // Upper 8 bits
+    spi_data[1] = static_cast<uint8_t>((data << 4) & 0xF0);    // Lower 4 bits, left-aligned
 
     piLock(HT1632_WIREPI_LOCK_ID);
 
@@ -169,8 +151,8 @@ static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> d
     
     // Header: Write command (3 bits) + Address 0 (7 bits) = 10 bits
     uint16_t header = (HT1632_ID_WRITE << 7) | 0x00;
-    buffer[0] = (header >> 2) & 0xFF;        // Upper 8 bits
-    buffer[1] = (header << 6) & 0xC0;        // Lower 2 bits
+    buffer[0] = static_cast<uint8_t>((header >> 2) & 0xFF);        // Upper 8 bits
+    buffer[1] = static_cast<uint8_t>((header << 6) & 0xC0);        // Lower 2 bits
     
     // Pack display data using correct column-major layout
     int bit_pos = 10;  // Start after header
@@ -209,7 +191,7 @@ static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> d
             
             // Store first few pixels for duplication (SPI alignment fix)
             if (first_pixel_count < 8) {
-                first_pixels[first_pixel_count] = pixel;
+                first_pixels[static_cast<size_t>(first_pixel_count)] = pixel;
                 first_pixel_count++;
             }
             
@@ -218,7 +200,7 @@ static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> d
                 int byte_pos = bit_pos / 8;
                 int bit_offset = 7 - (bit_pos % 8);  // MSB first
                 if (byte_pos < 34) {
-                    buffer[byte_pos] |= (1 << bit_offset);
+                    buffer[static_cast<size_t>(byte_pos)] |= (1 << bit_offset);
                 }
             }
             bit_pos++;
@@ -228,11 +210,11 @@ static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> d
     // Duplicate first few pixels at the end to handle SPI bit wrap-around
     // The excess bits from the 266-bit total (33.25 bytes) wrap around to address 0
     for (int i = 0; i < 6 && i < first_pixel_count; ++i) {
-        if (first_pixels[i]) {
+        if (first_pixels[static_cast<size_t>(i)]) {
             int byte_pos = bit_pos / 8;
             int bit_offset = 7 - (bit_pos % 8);  // MSB first
             if (byte_pos < 34) {
-                buffer[byte_pos] |= (1 << bit_offset);
+                buffer[static_cast<size_t>(byte_pos)] |= (1 << bit_offset);
             }
         }
         bit_pos++;
