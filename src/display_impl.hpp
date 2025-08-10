@@ -16,6 +16,9 @@ public:
 
 private:
     void update();
+    
+    // Track current brightness for restoration after reinitialization
+    int currentBrightness = 8;
 };
 
 } // namespace display

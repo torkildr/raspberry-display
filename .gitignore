@@ -8,5 +8,5 @@ src/*.o
 .vscode/
 stderr.txt
 build/
-debug/
+debug-build/
 src/font_generated.h

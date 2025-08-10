@@ -10,6 +10,10 @@
 #define HT1632_PANEL_PINS       8, 9, 15, 16    /* wiringPi pins - reordered for correct panel sequence */
 #define HT1632_SPI_FREQ         200000          /* Hz */
 
+/* Display stability settings */
+#define HT1632_REINIT_INTERVAL_MINUTES  1      /* Reinitialize every N minutes (time-based) */
+#define HT1632_ENABLE_HEALTH_MONITORING         /* Enable periodic reinitialization */
+
 /* Define HT1632_FLIP_180 to mount the display upside down */
 #define HT1632_FLIP_180
 

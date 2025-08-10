@@ -32,17 +32,35 @@ void Timer::setInterval(const std::function<void()>& function, nanoseconds inter
     m_clear = false;
     m_thread = std::thread([this, function, interval]() {
         std::mutex mutex;
+        auto next_execution = steady_clock::now() + interval;
 
         while (true)
         {
             if (m_clear)
                 return;
+            
+            // Wait until the scheduled execution time
             std::unique_lock<std::mutex> lock(mutex);
-            m_abort.wait_for(lock, interval);
+            if (m_abort.wait_until(lock, next_execution) == std::cv_status::no_timeout) {
+                // Woken up by abort signal, not timeout
+                if (m_clear)
+                    return;
+            }
+            
             if (m_clear)
                 return;
 
+            // Execute function
             function();
+            
+            // Schedule next execution at fixed interval from the original schedule
+            next_execution += interval;
+            
+            // If we're already past the next scheduled time, execute immediately
+            auto now = steady_clock::now();
+            if (next_execution <= now) {
+                next_execution = now;
+            }
         }
     });
 }

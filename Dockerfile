@@ -4,9 +4,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       valgrind \
       sudo \
-      meson \
-      cmake \
-      libboost-date-time-dev
+      libmosquitto-dev \
+      mosquitto \
+      mosquitto-clients \
+      colormake
 
 RUN mkdir setup
 COPY *.sh /setup/
