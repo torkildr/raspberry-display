@@ -13,6 +13,7 @@ RUN mkdir setup
 COPY *.sh /setup/
 RUN /setup/install-prereqs-debian.sh
 RUN /setup/install-wiringPi.sh
+RUN echo 'alias make="colormake"' >> ~/.bashrc
 
 VOLUME /code
 WORKDIR /code

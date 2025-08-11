@@ -51,7 +51,7 @@ WARNING_FLAGS = -Wall -Wextra -Wpedantic -Werror \
     -Wno-psabi
 
 # Compiler flags
-CXXFLAGS = -std=c++17 $(OPT_FLAGS) $(ARCH_FLAGS) $(WARNING_FLAGS)
+CXXFLAGS = -std=c++20 $(OPT_FLAGS) $(ARCH_FLAGS) $(WARNING_FLAGS)
 CFLAGS = $(OPT_FLAGS) $(ARCH_FLAGS) $(WARNING_FLAGS)
 
 # Include directories
