@@ -380,22 +380,6 @@ Type TransitionFactory::parseType(const std::string& type_str)
     return Type::NONE;
 }
 
-std::string TransitionFactory::typeToString(Type type)
-{
-    switch (type) {
-        case Type::NONE: return "none";
-        case Type::WIPE_LEFT: return "wipe_left";
-        case Type::WIPE_RIGHT: return "wipe_right";
-        case Type::DISSOLVE: return "dissolve";
-        case Type::SCROLL_UP: return "scroll_up";
-        case Type::SCROLL_DOWN: return "scroll_down";
-        case Type::SPLIT_CENTER: return "split_center";
-        case Type::SPLIT_SIDES: return "split_sides";
-        case Type::RANDOM: return "random";
-    }
-    return "none";
-}
-
 // =============================================================================
 // TransitionManager Implementation
 // =============================================================================

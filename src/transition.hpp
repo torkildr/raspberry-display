@@ -99,9 +99,9 @@ protected:
 
 private:
     Direction direction;
-    // Wipe pattern: "| || |||"
-    static constexpr uint8_t WIPE_PATTERN[8] = {0x08, 0x00, 0x18, 0x00, 0x38, 0x00, 0x00, 0x00};
-    static constexpr size_t PATTERN_WIDTH = 8;
+    // Wipe pattern: "||"
+    static constexpr uint8_t WIPE_PATTERN[2] = {0xff, 0xff};
+    static constexpr size_t PATTERN_WIDTH = 2;
 };
 
 /**
@@ -177,13 +177,7 @@ public:
      * @return Corresponding Type enum value
      */
     static Type parseType(const std::string& type_str);
-    
-    /**
-     * @brief Get string representation of transition type
-     * @param type The transition type
-     * @return String representation
-     */
-    static std::string typeToString(Type type);
+
 };
 
 /**
