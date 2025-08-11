@@ -167,86 +167,76 @@ static constexpr uint8_t reverse_bits(uint8_t byte) {
            ((byte & 0x10) >> 1) | ((byte & 0x20) >> 3) | ((byte & 0x40) >> 5) | ((byte & 0x80) >> 7);
 }
 
+// Helper function to pack bits into buffer at given position
+static void packBit(std::array<unsigned char, 34>& buffer, size_t& bit_pos, bool pixel_on)
+{
+    if (pixel_on) {
+        const size_t byte_pos = bit_pos / 8;
+        const size_t bit_offset = 7 - (bit_pos % 8);  // MSB first
+        if (byte_pos < 34) {
+            buffer[byte_pos] |= static_cast<uint8_t>(1 << bit_offset);
+        }
+    }
+    bit_pos++;
+}
+
+// Helper function to extract column pixels with flip handling
+static uint8_t getColumnPixels(const std::array<char, X_MAX>& displayBuffer, int panel, int col)
+{
+    const size_t offset = static_cast<size_t>(panel * HT1632_PANEL_WIDTH);
+    const size_t src_index = offset + static_cast<size_t>(col);
+    
+    if (src_index >= X_MAX) {
+        return 0;
+    }
+    
+#ifdef HT1632_FLIP_180
+    // Calculate flipped position
+    const size_t flipped_panel_base = static_cast<size_t>(3 - panel) * HT1632_PANEL_WIDTH;
+    const size_t flipped_col = flipped_panel_base + static_cast<size_t>(HT1632_PANEL_WIDTH - 1 - col);
+    
+    if (flipped_col >= X_MAX) {
+        return 0;
+    }
+    
+    // Reverse bit order for 180° flip
+    return reverse_bits(static_cast<uint8_t>(displayBuffer[flipped_col]));
+#else
+    return static_cast<uint8_t>(displayBuffer[src_index]);
+#endif
+}
+
+// Helper function to pack column pixels into buffer
+static void packColumnPixels(std::array<unsigned char, 34>& buffer, size_t& bit_pos, uint8_t column_pixels, int num_rows)
+{
+    for (int row = 0; row < num_rows; ++row) {
+        const bool pixel_on = (column_pixels & (1 << row)) != 0;
+        packBit(buffer, bit_pos, pixel_on);
+    }
+}
+
 static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> displayBuffer, int panel)
 {
     std::array<unsigned char, 34> buffer = {0};
+    size_t bit_pos = 0;
     
+    // Phase 1: Write header (10 bits)
     // Header: Write command (3 bits) + Address 0 (7 bits) = 10 bits
     const uint16_t header = (HT1632_ID_WRITE << 7) | 0x00;
     buffer[0] = static_cast<uint8_t>((header >> 2) & 0xFF);        // Upper 8 bits
     buffer[1] = static_cast<uint8_t>((header << 6) & 0xC0);        // Lower 2 bits
+    bit_pos = 10;
     
-    const auto offset = static_cast<size_t>(panel * HT1632_PANEL_WIDTH);
-    
-#ifdef HT1632_FLIP_180
-    // Pre-calculate flipped panel position (avoid repeated calculation)
-    const size_t flipped_panel_base = static_cast<size_t>(3 - panel) * HT1632_PANEL_WIDTH;
-#endif
-    
-    // Single pass: process all 32 columns + 6 duplicate pixels in one loop
-    // Total: 32*8 + 6 = 262 bits starting at bit position 10
-    // The last 6 bits are duplicates of the first 6 pixels (column 0, rows 0-5)
-    size_t bit_pos = 10;
-    
-    // Process regular pixels (32 columns, 8 pixels per column)
-    for (int col = 0; col < 32; ++col) {
-        uint8_t column_pixels = 0;
-        const size_t src_index = offset + static_cast<size_t>(col);
-        
-        if (src_index < X_MAX) {
-#ifdef HT1632_FLIP_180
-            // Calculate flipped position and get the entire column
-            const size_t flipped_col = flipped_panel_base + static_cast<size_t>(HT1632_PANEL_WIDTH - 1 - col);
-            if (flipped_col < X_MAX) {
-                // Reverse the bit order for 180° flip (bit 0 becomes bit 7, etc.)
-                column_pixels = reverse_bits(static_cast<uint8_t>(displayBuffer[flipped_col]));
-            }
-#else
-            column_pixels = static_cast<uint8_t>(displayBuffer[src_index]);
-#endif
-        }
-        
-        // Pack each pixel from the column (optimized: only process set bits)
-        for (int row = 0; row < 8; ++row) {
-            if (column_pixels & (1 << row)) {
-                const size_t byte_pos = bit_pos / 8;
-                const size_t bit_offset = 7 - (bit_pos % 8);  // MSB first
-                if (byte_pos < 34) {
-                    buffer[byte_pos] |= static_cast<uint8_t>(1 << bit_offset);
-                }
-            }
-            bit_pos++;
-        }
+    // Phase 2: Process regular pixels (32 columns × 8 rows = 256 bits)
+    for (int col = 0; col < HT1632_PANEL_WIDTH; ++col) {
+        const uint8_t column_pixels = getColumnPixels(displayBuffer, panel, col);
+        packColumnPixels(buffer, bit_pos, column_pixels, 8);
     }
     
-    // Duplicate first 6 pixels for SPI alignment (prevents wrap-around corruption)
-    uint8_t first_column_pixels = 0;
-    const size_t src_index = offset;  // Always use first column (col=0)
-    
-    if (src_index < X_MAX) {
-#ifdef HT1632_FLIP_180
-        // Calculate flipped position for first column
-        const size_t flipped_col = flipped_panel_base + static_cast<size_t>(HT1632_PANEL_WIDTH - 1);
-        if (flipped_col < X_MAX) {
-            // Reverse the bit order for 180° flip
-            first_column_pixels = reverse_bits(static_cast<uint8_t>(displayBuffer[flipped_col]));
-        }
-#else
-        first_column_pixels = static_cast<uint8_t>(displayBuffer[src_index]);
-#endif
-    }
-    
-    // Pack first 6 pixels of the column into buffer
-    for (int row = 0; row < 6; ++row) {
-        if (first_column_pixels & (1 << row)) {
-            const size_t byte_pos = bit_pos / 8;
-            const size_t bit_offset = 7 - (bit_pos % 8);  // MSB first
-            if (byte_pos < 34) {
-                buffer[byte_pos] |= static_cast<uint8_t>(1 << bit_offset);
-            }
-        }
-        bit_pos++;
-    }
+    // Phase 3: Add duplicate pixels for SPI alignment (6 bits from first column)
+    // This prevents wrap-around corruption by duplicating first 6 pixels of column 0
+    const uint8_t first_column_pixels = getColumnPixels(displayBuffer, panel, 0);
+    packColumnPixels(buffer, bit_pos, first_column_pixels, 6);
     
     return buffer;
 }
