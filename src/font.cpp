@@ -2,13 +2,14 @@
 #include <cstring>
 #include <vector>
 #include <unordered_map>
+#include <cstdint>
 
 #include "font_generated.h"
 #include "font.hpp"
 
-static unsigned char *fontCharacter(char c)
+static uint8_t *fontCharacter(char c)
 {
-    char *substr = strchr(charLookup, c);
+    const char *substr = strchr(charLookup, c);
     if (substr == NULL)
     {
         // Return default character (space ' ') for unknown characters
@@ -17,18 +18,18 @@ static unsigned char *fontCharacter(char c)
         if (substr == NULL)
         {
             // Fallback: return first character if even space is not found
-            return font_variable[0];
+            return reinterpret_cast<uint8_t*>(font_variable[0]);
         }
     }
 
-    return font_variable[substr - charLookup];
+    return reinterpret_cast<uint8_t*>(font_variable[substr - charLookup]);
 }
 
-static std::vector<char> renderChar(char c)
+static std::vector<uint8_t> renderChar(char c)
 {
-    unsigned char *glyph = fontCharacter(c);
+    uint8_t *glyph = fontCharacter(c);
     short width = glyph[0];
-    std::vector<char> rendered;
+    std::vector<uint8_t> rendered;
 
     short col;
     for (col = 0; col < width; col++)
@@ -45,9 +46,9 @@ static std::vector<char> renderChar(char c)
 namespace font
 {
 
-std::vector<char> renderString(std::string text)
+std::vector<uint8_t> renderString(std::string text)
 {
-    std::vector<char> rendered;
+    std::vector<uint8_t> rendered;
 
     for (auto it = text.begin(); it < text.end(); ++it)
     {
@@ -59,8 +60,8 @@ std::vector<char> renderString(std::string text)
 }
 
 // Static member definitions
-std::unordered_map<char, std::vector<char>> FontCache::glyphCache;
-std::unordered_map<std::string, std::vector<char>> FontCache::stringCache;
+std::unordered_map<char, std::vector<uint8_t>> FontCache::glyphCache;
+std::unordered_map<std::string, std::vector<uint8_t>> FontCache::stringCache;
 bool FontCache::initialized = false;
 
 void FontCache::initializeCache()
@@ -78,7 +79,7 @@ void FontCache::initializeCache()
     initialized = true;
 }
 
-const std::vector<char>& FontCache::renderCharCached(char c)
+const std::vector<uint8_t>& FontCache::renderCharCached(char c)
 {
     auto it = glyphCache.find(c);
     if (it != glyphCache.end())
@@ -87,12 +88,12 @@ const std::vector<char>& FontCache::renderCharCached(char c)
     }
     
     // Cache miss - render and store
-    std::vector<char> rendered = renderChar(c);
+    std::vector<uint8_t> rendered = renderChar(c);
     auto result = glyphCache.emplace(c, std::move(rendered));
     return result.first->second;
 }
 
-std::vector<char> FontCache::renderStringOptimized(const std::string& text)
+std::vector<uint8_t> FontCache::renderStringOptimized(const std::string& text)
 {
     if (!initialized)
     {
@@ -107,7 +108,7 @@ std::vector<char> FontCache::renderStringOptimized(const std::string& text)
     }
     
     // Render using cached characters
-    std::vector<char> rendered;
+    std::vector<uint8_t> rendered;
     rendered.reserve(text.length() * 6);  // Estimate: ~6 pixels per character average
     
     for (char c : text)

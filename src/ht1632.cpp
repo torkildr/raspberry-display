@@ -181,7 +181,7 @@ static void packBit(std::array<unsigned char, 34>& buffer, size_t& bit_pos, bool
 }
 
 // Helper function to extract column pixels with flip handling
-static uint8_t getColumnPixels(const std::array<char, X_MAX>& displayBuffer, int panel, int col)
+static uint8_t getColumnPixels(const std::array<uint8_t, X_MAX>& displayBuffer, int panel, int col)
 {
     const size_t offset = static_cast<size_t>(panel * HT1632_PANEL_WIDTH);
     const size_t src_index = offset + static_cast<size_t>(col);
@@ -215,7 +215,7 @@ static void packColumnPixels(std::array<unsigned char, 34>& buffer, size_t& bit_
     }
 }
 
-static std::array<unsigned char, 34> createWriteBuffer(std::array<char, X_MAX> displayBuffer, int panel)
+static std::array<unsigned char, 34> createWriteBuffer(std::array<uint8_t, X_MAX> displayBuffer, int panel)
 {
     std::array<unsigned char, 34> buffer = {0};
     size_t bit_pos = 0;

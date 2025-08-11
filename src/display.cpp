@@ -154,20 +154,20 @@ static std::string getTime(std::string format)
     return displayText.str();
 }
 
-std::vector<char> Display::renderTime()
+std::vector<uint8_t> Display::renderTime()
 {
     if (mode == Mode::TIME || mode == Mode::TIME_AND_TEXT)
     {
         return font::renderString(getTime(timeFormat));
     }
-    return std::vector<char>();
+    return std::vector<uint8_t>();
 }
 
-const std::vector<char>& Display::renderTimeOptimized()
+const std::vector<uint8_t>& Display::renderTimeOptimized()
 {
     if (mode != Mode::TIME && mode != Mode::TIME_AND_TEXT)
     {
-        static std::vector<char> empty;
+        static std::vector<uint8_t> empty;
         return empty;
     }
     
@@ -187,9 +187,9 @@ const std::vector<char>& Display::renderTimeOptimized()
     return cachedRenderedTime;
 }
 
-std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
+std::array<uint8_t, X_MAX> Display::createDisplayBuffer(std::vector<uint8_t> time)
 {
-    std::array<char, X_MAX> rendered = {0};
+    std::array<uint8_t, X_MAX> rendered = {0};
     
     // Handle different display modes with unified logic
     switch (mode) {
@@ -206,9 +206,9 @@ std::array<char, X_MAX> Display::createDisplayBuffer(std::vector<char> time)
     return rendered;
 }
 
-std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<char>& time)
+std::array<uint8_t, X_MAX> Display::createDisplayBufferOptimized(const std::vector<uint8_t>& time)
 {
-    std::array<char, X_MAX> rendered = {0};
+    std::array<uint8_t, X_MAX> rendered = {0};
     
     // Handle different display modes with unified logic (using const reference)
     switch (mode) {
@@ -225,24 +225,24 @@ std::array<char, X_MAX> Display::createDisplayBufferOptimized(const std::vector<
     return rendered;
 }
 
-std::array<char, X_MAX> Display::createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
+std::array<uint8_t, X_MAX> Display::createTimeOnlyBuffer(std::array<uint8_t, X_MAX>& rendered, const std::vector<uint8_t>& time)
 {
     return createBufferWithContent(rendered, &time, nullptr, false);
 }
 
-std::array<char, X_MAX> Display::createTextOnlyBuffer(std::array<char, X_MAX>& rendered)
+std::array<uint8_t, X_MAX> Display::createTextOnlyBuffer(std::array<uint8_t, X_MAX>& rendered)
 {
     return createBufferWithContent(rendered, nullptr, &renderedText, false);
 }
 
-std::array<char, X_MAX> Display::createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time)
+std::array<uint8_t, X_MAX> Display::createTimeAndTextBuffer(std::array<uint8_t, X_MAX>& rendered, const std::vector<uint8_t>& time)
 {
     return createBufferWithContent(rendered, &time, &renderedText, true);
 }
 
-std::array<char, X_MAX> Display::createBufferWithContent(std::array<char, X_MAX>& rendered, 
-                                                        const std::vector<char>* timeContent,
-                                                        const std::vector<char>* textContent,
+std::array<uint8_t, X_MAX> Display::createBufferWithContent(std::array<uint8_t, X_MAX>& rendered, 
+                                                        const std::vector<uint8_t>* timeContent,
+                                                        const std::vector<uint8_t>* textContent,
                                                         bool addDivider)
 {
     size_t pos = 0;
@@ -323,7 +323,7 @@ size_t Display::calculateCenterOffset(size_t contentSize, size_t availableSpace)
     return (availableSpace - contentSize) / 2;
 }
 
-void Display::renderContentToBuffer(std::array<char, X_MAX>& buffer, const std::vector<char>& content, 
+void Display::renderContentToBuffer(std::array<uint8_t, X_MAX>& buffer, const std::vector<uint8_t>& content, 
                                    size_t startPos, size_t maxPos) const
 {
     size_t pos = startPos;
@@ -333,7 +333,7 @@ void Display::renderContentToBuffer(std::array<char, X_MAX>& buffer, const std::
     }
 }
 
-size_t Display::addTimeDivider(std::array<char, X_MAX>& buffer, size_t pos) const
+size_t Display::addTimeDivider(std::array<uint8_t, X_MAX>& buffer, size_t pos) const
 {
     if (show_time_divider && pos < X_MAX) {
         // Add vertical divider line (all bits set for full height)

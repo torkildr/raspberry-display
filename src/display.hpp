@@ -3,6 +3,7 @@
 
 #include <array>
 #include <string>
+#include <cstdint>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -60,7 +61,7 @@ public:
     void stop();
 
 protected:
-    std::array<char, X_MAX> displayBuffer{0};
+    std::array<uint8_t, X_MAX> displayBuffer{0};
     size_t renderedTextSize = 0;
     int scrollOffset = 0;
     Scrolling scrollDirection = Scrolling::ENABLED;
@@ -70,37 +71,37 @@ private:
 
     void showText(std::string text);
     void prepare();
-    std::array<char, X_MAX> createDisplayBuffer(std::vector<char> time);
-    std::array<char, X_MAX> createDisplayBufferOptimized(const std::vector<char>& time);
-    std::vector<char> renderTime();
-    const std::vector<char>& renderTimeOptimized();
+    std::array<uint8_t, X_MAX> createDisplayBuffer(std::vector<uint8_t> time);
+    std::array<uint8_t, X_MAX> createDisplayBufferOptimized(const std::vector<uint8_t>& time);
+    std::vector<uint8_t> renderTime();
+    const std::vector<uint8_t>& renderTimeOptimized();
     
     // Helper methods for cleaner buffer creation
     size_t calculateCenterOffset(size_t contentSize, size_t availableSpace) const;
-    void renderContentToBuffer(std::array<char, X_MAX>& buffer, const std::vector<char>& content, 
+    void renderContentToBuffer(std::array<uint8_t, X_MAX>& buffer, const std::vector<uint8_t>& content, 
                               size_t startPos, size_t maxPos) const;
-    size_t addTimeDivider(std::array<char, X_MAX>& buffer, size_t pos) const;
+    size_t addTimeDivider(std::array<uint8_t, X_MAX>& buffer, size_t pos) const;
     
     // Mode-specific buffer creation methods
-    std::array<char, X_MAX> createTimeOnlyBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
-    std::array<char, X_MAX> createTextOnlyBuffer(std::array<char, X_MAX>& rendered);
-    std::array<char, X_MAX> createTimeAndTextBuffer(std::array<char, X_MAX>& rendered, const std::vector<char>& time);
+    std::array<uint8_t, X_MAX> createTimeOnlyBuffer(std::array<uint8_t, X_MAX>& rendered, const std::vector<uint8_t>& time);
+    std::array<uint8_t, X_MAX> createTextOnlyBuffer(std::array<uint8_t, X_MAX>& rendered);
+    std::array<uint8_t, X_MAX> createTimeAndTextBuffer(std::array<uint8_t, X_MAX>& rendered, const std::vector<uint8_t>& time);
     
     // Consolidated buffer creation method
-    std::array<char, X_MAX> createBufferWithContent(std::array<char, X_MAX>& rendered, 
-                                                    const std::vector<char>* timeContent,
-                                                    const std::vector<char>* textContent,
+    std::array<uint8_t, X_MAX> createBufferWithContent(std::array<uint8_t, X_MAX>& rendered, 
+                                                    const std::vector<uint8_t>* timeContent,
+                                                    const std::vector<uint8_t>* textContent,
                                                     bool addDivider);
 
     Mode mode = Mode::TIME;
-    std::vector<char> renderedText;
+    std::vector<uint8_t> renderedText;
     std::string timeFormat = TIME_FORMAT_LONG;
     double scrollDelayTimer = 0.0;
     bool dirty = true;
     Alignment alignment = Alignment::LEFT;
     
     // Caching for performance optimization
-    std::vector<char> cachedRenderedTime;
+    std::vector<uint8_t> cachedRenderedTime;
     std::time_t lastTimeRendered = 0;
     std::string lastTimeFormat;
     bool timeNeedsUpdate = true;
