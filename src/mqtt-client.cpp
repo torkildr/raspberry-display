@@ -10,6 +10,7 @@
 #include "display.hpp"
 #include "display_impl.hpp"
 #include "transition.hpp"
+#include "sequence.hpp"
 #include "debug_util.hpp"
 
 using json = nlohmann::json;
@@ -18,6 +19,7 @@ using json = nlohmann::json;
 static bool running = true;
 static display::Display* global_display = nullptr;
 static struct mosquitto* mosq = nullptr;
+static std::unique_ptr<sequence::SequenceManager> sequence_manager;
 
 static void signal_handler(int signal) {
     std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
@@ -135,6 +137,60 @@ static void process_display_state(display::Display* disp, const json& state) {
     }
 }
 
+static void process_add_sequence(const json& message) {
+    try {
+        if (!message.contains("state") || !message.contains("time")) {
+            std::cerr << "addSequence requires 'state' and 'time' fields" << std::endl;
+            return;
+        }
+        
+        double ttl = message.contains("ttl") ? message["ttl"].get<double>() : 0.0;
+        double time = message["time"].get<double>();
+        json state = message["state"];
+        
+        if (sequence_manager) {
+            sequence_manager->addSequenceState(state, time, ttl);
+            DEBUG_LOG("Added state to sequence with time=" << time << "s, ttl=" << ttl << "s");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing addSequence: " << e.what() << std::endl;
+    }
+}
+
+static void process_set_sequence(const json& message) {
+    try {
+        if (!message.is_array()) {
+            std::cerr << "setSequence requires an array of sequence states" << std::endl;
+            return;
+        }
+        
+        std::vector<sequence::SequenceState> sequence_states;
+        
+        for (const auto& item : message) {
+            if (!item.contains("state") || !item.contains("time")) {
+                std::cerr << "Each sequence item requires 'state' and 'time' fields" << std::endl;
+                continue;
+            }
+            
+            double ttl = item.contains("ttl") ? item["ttl"].get<double>() : 0.0;
+            double time = item["time"].get<double>();
+            json state = item["state"];
+            
+            // Note: created_at will be set by SequenceManager
+            sequence_states.push_back({state, time, ttl, std::chrono::steady_clock::now()});
+        }
+        
+        if (sequence_manager) {
+            sequence_manager->setSequence(sequence_states);
+            DEBUG_LOG("Set sequence with " << sequence_states.size() << " states");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing setSequence: " << e.what() << std::endl;
+    }
+}
+
 static void on_message(struct mosquitto* /*mosq*/, void* userdata, const struct mosquitto_message* message) {
     display::Display* disp = static_cast<display::Display*>(userdata);
     
@@ -146,9 +202,22 @@ static void on_message(struct mosquitto* /*mosq*/, void* userdata, const struct 
     DEBUG_LOG("Received MQTT message on topic: " << topic << " with payload: " << payload);
     
     try {
-        // Try to parse as JSON first
-        json state = json::parse(payload);
-        process_display_state(disp, state);
+        json message_json = json::parse(payload);
+        
+        if (topic == "display/set") {
+            // Stop any active sequence and process single state
+            if (sequence_manager) {
+                sequence_manager->clearSequence();
+            }
+            process_display_state(disp, message_json);
+        } else if (topic == "display/addSequence") {
+            process_add_sequence(message_json);
+        } else if (topic == "display/setSequence") {
+            process_set_sequence(message_json);
+        } else {
+            DEBUG_LOG("Unknown topic: " << topic);
+        }
+        
     } catch (const json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
         std::cerr << "Payload: " << payload << std::endl;
@@ -160,10 +229,11 @@ static void on_connect(struct mosquitto* mosq, void* /*userdata*/, int result) {
         std::cout << "Connected to MQTT broker successfully" << std::endl;
         
         // Subscribe to topics
-        mosquitto_subscribe(mosq, nullptr, "display/state", 0);
-        mosquitto_subscribe(mosq, nullptr, "display", 0);  // Alternative topic
+        mosquitto_subscribe(mosq, nullptr, "display/set", 0);
+        mosquitto_subscribe(mosq, nullptr, "display/addSequence", 0);
+        mosquitto_subscribe(mosq, nullptr, "display/setSequence", 0);
         
-        std::cout << "Subscribed to display topics" << std::endl;
+        std::cout << "Subscribed to display topics (set, addSequence, setSequence)" << std::endl;
     } else {
         std::cerr << "Failed to connect to MQTT broker: " << mosquitto_connack_string(result) << std::endl;
     }
@@ -242,6 +312,14 @@ int main(int argc, char** argv) {
         return 1;
     }
     
+    // Initialize sequence manager with callback to process display states
+    sequence_manager = std::make_unique<sequence::SequenceManager>(
+        [&disp](const json& state) {
+            DEBUG_LOG("SequenceManager executing state: " << state.dump());
+            process_display_state(&disp, state);
+        }
+    );
+    
     // Main loop
     while (running) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
@@ -252,6 +330,7 @@ int main(int argc, char** argv) {
                 mosquitto_reconnect(mosq);
             }
         }
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     

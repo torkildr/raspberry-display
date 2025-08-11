@@ -128,16 +128,16 @@ Transitions:
 
 ```bash
 # Basic wipe transition
-mosquitto_pub -t "display" -m '{"text": "New Message!", "transition": "wipe_left"}'
+mosquitto_pub -t "display/set" -m '{"text": "New Message!", "transition": "wipe_left"}'
 
 # Dissolve with custom duration
-mosquitto_pub -t "display" -m '{"text": "Fade In", "transition": {"type": "dissolve", "duration": 3.0}}'
+mosquitto_pub -t "display/set" -m '{"text": "Fade In", "transition": {"type": "dissolve", "duration": 3.0}}'
 
 # Time display with scroll
-mosquitto_pub -t "display" -m '{"show_time": true, "transition": "scroll_up"}'
+mosquitto_pub -t "display/set" -m '{"show_time": true, "transition": "scroll_up"}'
 
 # Complex example with all features
-mosquitto_pub -t "display" -m '{
+mosquitto_pub -t "display/set" -m '{
   "text": "Centered Text",
   "alignment": "center",
   "scroll": "disabled", 
@@ -147,6 +147,26 @@ mosquitto_pub -t "display" -m '{
     "duration": 1.5
   }
 }'
+
+
+# Sequence of states
+mosquitto_pub -t "display/setSequence" -m '[
+  {
+    "time": 5,
+    "ttl": 30,
+    "state": {"show_time": true, "text": "Some temporary state", "alignment": "left", "transition": "random"}
+  },
+  {
+    "time": 5,
+    "state": {"show_time": true, "text": "Some permanent state", "alignment": "left", "transition": "random"}
+  },
+  {
+    "time": 5,
+    "ttl": 60,
+    "state": {"text": "Some longer living state", "transition": "random", "alignment": "center"}
+  }
+]'
+
 ```
 
 ### Programmatic Usage

@@ -11,7 +11,7 @@ import sys
 import argparse
 from datetime import datetime, timedelta
 
-def run_mqtt_command(command_json, topic="display/state", host="localhost", port=1883):
+def run_mqtt_command(command_json, topic="display/set", host="localhost", port=1883):
     """Send MQTT command to display"""
     cmd = [
         "mosquitto_pub", 

@@ -20,13 +20,12 @@ The mock version works without physical hardware and is perfect for test setups 
 
 ## MQTT Protocol
 
-The display uses a state-based MQTT protocol where you send JSON payloads describing the desired display state to the `display/state` topic.
+The display uses a state-based MQTT protocol where you send JSON payloads describing the desired display state to the `display/set` topic.
 
 ### Connection
 
 The MQTT client connects to your MQTT broker and subscribes to:
-- `display/state` - Primary topic for state-based commands
-- `display/display` - Alternative topic for compatibility
+- `display/set` - Primary topic for state-based commands
 
 ### JSON State Schema
 
@@ -57,56 +56,56 @@ The display supports three main modes based on the JSON fields:
 
 #### Basic Text Display
 ```bash
-mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello World!"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello World!"}'
 ```
 
 #### Text with Current Time
 ```bash
-mosquitto_pub -h localhost -t "display/state" -m '{"text":"Meeting in 5 min", "show_time":true}'
+mosquitto_pub -h localhost -t "display/set" -m '{"text":"Meeting in 5 min", "show_time":true}'
 ```
 
 #### Time Only Display
 ```bash
 # Default format (%H:%M:%S)
-mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true}'
+mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true}'
 
 # Custom format
-mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true, "time_format":"%A, %b %-d %H:%M:%S"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true, "time_format":"%A, %b %-d %H:%M:%S"}'
 ```
 
 #### Set Brightness
 ```bash
-mosquitto_pub -h localhost -t "display/state" -m '{"brightness":10}'
+mosquitto_pub -h localhost -t "display/set" -m '{"brightness":10}'
 ```
 
 #### Enable/Disable Scrolling
 ```bash
 # Enable scrolling
-mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"enabled"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"enabled"}'
 
 # Disable scrolling
-mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"disabled"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"disabled"}'
 
 # Reset scroll position
-mosquitto_pub -h localhost -t "display/state" -m '{"scroll":"reset"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"reset"}'
 ```
 
 #### Text Alignment
 ```bash
 # Center-aligned text
-mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello", "alignment":"center", "scroll":"disabled"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello", "alignment":"center", "scroll":"disabled"}'
 
 # Center-aligned time display
-mosquitto_pub -h localhost -t "display/state" -m '{"show_time":true, "alignment":"center", "scroll":"disabled"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true, "alignment":"center", "scroll":"disabled"}'
 
 # Left-aligned (default)
-mosquitto_pub -h localhost -t "display/state" -m '{"text":"Hello", "alignment":"left"}'
+mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello", "alignment":"left"}'
 ```
 
 #### Complex State Changes (Atomic)
 ```bash
 # Set multiple properties at once
-mosquitto_pub -h localhost -t "display/state" -m '{
+mosquitto_pub -h localhost -t "display/set" -m '{
   "text": "System Alert!", 
   "show_time": true, 
   "brightness": 15, 
@@ -116,12 +115,12 @@ mosquitto_pub -h localhost -t "display/state" -m '{
 
 #### Clear Display
 ```bash
-mosquitto_pub -h localhost -t "display/state" -m '{"clear":true}'
+mosquitto_pub -h localhost -t "display/set" -m '{"clear":true}'
 ```
 
 #### Quit Application
 ```bash
-mosquitto_pub -h localhost -t "display/state" -m '{"quit":true}'
+mosquitto_pub -h localhost -t "display/set" -m '{"quit":true}'
 ```
 
 ### Error Handling
