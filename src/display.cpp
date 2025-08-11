@@ -4,6 +4,7 @@
 
 #include "display.hpp"
 #include "timer.hpp"
+#include "transition.hpp"
 
 #include "font.hpp"
 
@@ -15,6 +16,12 @@ static constexpr bool show_time_divider = true;
 Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate)
     : preUpdate(preUpdate), postUpdate(postUpdate)
 {
+    // Initialize transition manager with display buffer update callback
+    transition_manager = std::make_unique<transition::TransitionManager>(
+        [this](const std::array<uint8_t, X_MAX>& buffer) {
+            this->displayBuffer = buffer;
+        }
+    );
 }
 
 Display::~Display()
@@ -22,7 +29,7 @@ Display::~Display()
     stop();
 }
 
-void Display::prepare()
+bool Display::prepare()
 {
     auto textSize = static_cast<int>(renderedText.size());
     
@@ -105,32 +112,52 @@ void Display::prepare()
     }
 
     // Only recreate buffer if something actually changed
-    if (dirty || scrollChanged || timeChanged)
+    bool hasChanges = (dirty || scrollChanged || timeChanged);
+    
+    if (hasChanges)
     {
-        auto tmp = createDisplayBufferOptimized(time);  // Use optimized version with const reference
+        auto newBuffer = createDisplayBufferOptimized(time);
         
-        if (tmp != displayBuffer)
-        {
-            std::copy(tmp.begin(), tmp.end(), displayBuffer.begin());
-            dirty = true;
+        // If we have a default transition and buffer changed, use it
+        if (default_transition_type != transition::Type::NONE && 
+            newBuffer != displayBuffer && 
+            !transition_manager->isTransitioning()) {
+            
+            transition_manager->setCurrentBuffer(displayBuffer);
+            transition_manager->startTransition(newBuffer, default_transition_type, default_transition_duration);
+        } else {
+            // Normal update path - set display buffer and keep transition manager in sync
+            displayBuffer = newBuffer;
+            transition_manager->setCurrentBuffer(displayBuffer);
         }
-        else
-        {
-            dirty = false;
-        }
+        
+        renderedTextSize = displayBuffer.size(); // This should always be X_MAX
+        dirty = false;
     }
-};
+    
+    // Update any active transitions
+    if (transition_manager->isTransitioning()) {
+        // Use a fixed delta time based on refresh rate for consistent animation
+        double delta_time = 1.0 / REFRESH_RATE;
+        transition_manager->update(delta_time);
+    }
+    
+    return hasChanges;
+}
 
 void Display::start()
 {
     timers.push_back(timer::createTimer([this] {
-        if (dirty)
+        // Check if prepare() detected any changes (including time updates)
+        bool hasChanges = prepare(); // Handle transitions and buffer updates
+        
+        // Update display if changes detected OR if transition is active
+        if (hasChanges || transition_manager->isTransitioning())
         {
             preUpdate();
             update();
             postUpdate();
         }
-        prepare();
     }, 1.0 / REFRESH_RATE));
 }
 
@@ -364,6 +391,18 @@ void Display::show(std::string text)
     showText(text);
 }
 
+void Display::show(std::string text, transition::Type transition_type, double duration)
+{
+    mode = Mode::TEXT;
+    showText(text);
+    
+    if (transition_type != transition::Type::NONE) {
+        auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
+        transition_manager->setCurrentBuffer(displayBuffer);
+        transition_manager->startTransition(newBuffer, transition_type, duration);
+    }
+}
+
 void Display::showTime(std::string timeFormat)
 {
     mode = Mode::TIME;
@@ -381,6 +420,29 @@ void Display::showTime(std::string timeFormat)
     timeNeedsUpdate = true;  // Invalidate time cache
 }
 
+void Display::showTime(std::string timeFormat, transition::Type transition_type, double duration)
+{
+    mode = Mode::TIME;
+    renderedText.clear();
+
+    if (!timeFormat.empty())
+    {
+        this->timeFormat = timeFormat;
+    }
+    else
+    {
+        this->timeFormat = TIME_FORMAT_LONG;
+    }
+    
+    timeNeedsUpdate = true;
+    
+    if (transition_type != transition::Type::NONE) {
+        auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
+        transition_manager->setCurrentBuffer(displayBuffer);
+        transition_manager->startTransition(newBuffer, transition_type, duration);
+    }
+}
+
 void Display::showTime(std::string timeFormat, std::string text)
 {
     mode = Mode::TIME_AND_TEXT;
@@ -396,6 +458,43 @@ void Display::showTime(std::string timeFormat, std::string text)
 
     timeNeedsUpdate = true;  // Invalidate time cache
     showText(text);
+}
+
+void Display::showTime(std::string timeFormat, std::string text, transition::Type transition_type, double duration)
+{
+    mode = Mode::TIME_AND_TEXT;
+
+    if (!timeFormat.empty())
+    {
+        this->timeFormat = timeFormat;
+    }
+    else
+    {
+        this->timeFormat = TIME_FORMAT_SHORT;
+    }
+
+    timeNeedsUpdate = true;
+    showText(text);
+    
+    if (transition_type != transition::Type::NONE) {
+        auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
+        transition_manager->setCurrentBuffer(displayBuffer);
+        transition_manager->startTransition(newBuffer, transition_type, duration);
+    }
+}
+
+// Transition support methods
+void Display::setTransition(transition::Type type, double duration)
+{
+    default_transition_type = type;
+    if (duration > 0.0) {
+        default_transition_duration = duration;
+    }
+}
+
+bool Display::isTransitioning() const
+{
+    return transition_manager->isTransitioning();
 }
 
 } // namespace display

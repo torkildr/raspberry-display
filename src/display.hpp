@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "timer.hpp"
+#include "transition.hpp"
 
 #define X_MAX 128
 
@@ -54,11 +55,18 @@ public:
     void forceUpdate();
 
     void show(std::string text);
+    void show(std::string text, transition::Type transition_type, double duration = 0.0);
     void showTime(std::string timeFormat);
+    void showTime(std::string timeFormat, transition::Type transition_type, double duration = 0.0);
     void showTime(std::string timeFormat, std::string text);
+    void showTime(std::string timeFormat, std::string text, transition::Type transition_type, double duration = 0.0);
 
     void start();
     void stop();
+    
+    // Transition support
+    void setTransition(transition::Type type, double duration = 0.0);
+    bool isTransitioning() const;
 
 protected:
     std::array<uint8_t, X_MAX> displayBuffer{0};
@@ -70,7 +78,7 @@ private:
     virtual void update() = 0;
 
     void showText(std::string text);
-    void prepare();
+    bool prepare();
     std::array<uint8_t, X_MAX> createDisplayBuffer(std::vector<uint8_t> time);
     std::array<uint8_t, X_MAX> createDisplayBufferOptimized(const std::vector<uint8_t>& time);
     std::vector<uint8_t> renderTime();
@@ -110,6 +118,11 @@ private:
 
     std::function<void()> preUpdate;
     std::function<void()> postUpdate;
+    
+    // Transition system
+    std::unique_ptr<transition::TransitionManager> transition_manager;
+    transition::Type default_transition_type = transition::Type::NONE;
+    double default_transition_duration = 1.0;
 };
 
 } // namespace display

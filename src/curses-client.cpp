@@ -1,6 +1,7 @@
 #include <curses.h>
 
 #include "display_impl.hpp"
+#include "transition.hpp"
 
 static void init_curses()
 {
@@ -24,7 +25,12 @@ static void print_help_text()
     addstr("\ns: toggle scrolling enabled/disabled");
     addstr("\n+/-: change brightness");
     addstr("\nc: toggle center/left alignment");
-    addstr("\nq: exit");
+    addstr("\n\nTransitions:");
+    addstr("\n1: wipe left    2: wipe right");
+    addstr("\n3: dissolve     4: scroll up");
+    addstr("\n5: scroll down  6: split center");
+    addstr("\n7: split sides  8: random");
+    addstr("\n\nq: exit");
     refresh();
 }
 
@@ -119,6 +125,32 @@ int main()
                 }
                 disp.setAlignment(currentAlignment);
                 disp.forceUpdate();
+                break;
+            
+            // Transition demonstrations
+            case '1':
+                disp.show(abc_string, transition::Type::WIPE_LEFT, 1.0);
+                break;
+            case '2':
+                disp.show(abc_string, transition::Type::WIPE_RIGHT, 1.0);
+                break;
+            case '3':
+                disp.show(abc_string, transition::Type::DISSOLVE, 2.0);
+                break;
+            case '4':
+                disp.showTime("", abc_string, transition::Type::SCROLL_UP, 1.0);
+                break;
+            case '5':
+                disp.showTime("", abc_string, transition::Type::SCROLL_DOWN, 1.0);
+                break;
+            case '6':
+                disp.show(abc_string, transition::Type::SPLIT_CENTER, 1.2);
+                break;
+            case '7':
+                disp.show(abc_string, transition::Type::SPLIT_SIDES, 1.2);
+                break;
+            case '8':
+                disp.show(abc_string, transition::Type::RANDOM, 1.0);
                 break;
 
             }

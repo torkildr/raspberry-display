@@ -66,7 +66,7 @@ MQTT_LIBS = $(MOSQUITTO_LIBS) $(THREAD_LIBS)
 BASIC_LIBS = $(NCURSES_LIBS) $(WIRINGPI_LIBS) $(THREAD_LIBS)
 
 # Source files
-COMMON_SRC = src/timer.cpp src/display.cpp src/font.cpp
+COMMON_SRC = src/timer.cpp src/display.cpp src/font.cpp src/transition.cpp
 MQTT_SRC = src/mqtt-client.cpp
 CURSES_SRC = src/curses-client.cpp
 HT1632_SRC = src/ht1632.cpp

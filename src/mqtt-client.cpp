@@ -3,11 +3,13 @@
 #include <signal.h>
 #include <thread>
 #include <chrono>
-#include <cstdlib>
+#include <iostream>
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
 
+#include "display.hpp"
 #include "display_impl.hpp"
+#include "transition.hpp"
 #include "debug_util.hpp"
 
 using json = nlohmann::json;
@@ -36,28 +38,24 @@ static void process_display_state(display::Display* disp, const json& state) {
         if (state.contains("clear") && state["clear"].get<bool>()) {
             disp->show("");
         }
-        else if (state.contains("text")) {
-            std::string text = state["text"];
-            
-            if (state.contains("show_time") && state["show_time"].get<bool>()) {
-                std::string time_format = state.contains("time_format") ? 
-                    state["time_format"].get<std::string>() : "";
-                disp->showTime(time_format, text);
-            } else {
-                disp->show(text);
-            }
-        }
-        else if (state.contains("show_time") && state["show_time"].get<bool>()) {
-            std::string time_format = state.contains("time_format") ? 
-                state["time_format"].get<std::string>() : "";
-            disp->showTime(time_format);
-        }
+        // Parse transition parameters
+        transition::Type transition_type = transition::Type::NONE;
+        double transition_duration = 0.0;
         
-        // Handle brightness
-        if (state.contains("brightness")) {
-            int brightness = state["brightness"];
-            if (brightness >= 0 && brightness <= 15) {
-                disp->setBrightness(brightness);
+        if (state.contains("transition")) {
+            auto trans_data = state["transition"];
+            
+            if (trans_data.is_string()) {
+                // Simple string format: "wipe_left", "dissolve", etc.
+                transition_type = transition::TransitionFactory::parseType(trans_data.get<std::string>());
+            } else if (trans_data.is_object()) {
+                // Object format: {"type": "wipe_left", "duration": 1.5}
+                if (trans_data.contains("type")) {
+                    transition_type = transition::TransitionFactory::parseType(trans_data["type"].get<std::string>());
+                }
+                if (trans_data.contains("duration")) {
+                    transition_duration = trans_data["duration"].get<double>();
+                }
             }
         }
         
@@ -84,6 +82,46 @@ static void process_display_state(display::Display* disp, const json& state) {
             } else if (scroll == "reset") {
                 // Reset scroll offset - this is handled internally by setScrolling
                 disp->setScrolling(display::Scrolling::ENABLED);
+            }
+        }
+        
+        // Handle text display
+        if (state.contains("text")) {
+            std::string text = state["text"];
+            
+            if (state.contains("show_time") && state["show_time"].get<bool>()) {
+                std::string time_format = state.contains("time_format") ? 
+                    state["time_format"].get<std::string>() : "";
+                
+                if (transition_type != transition::Type::NONE) {
+                    disp->showTime(time_format, text, transition_type, transition_duration);
+                } else {
+                    disp->showTime(time_format, text);
+                }
+            } else {
+                if (transition_type != transition::Type::NONE) {
+                    disp->show(text, transition_type, transition_duration);
+                } else {
+                    disp->show(text);
+                }
+            }
+        }
+        else if (state.contains("show_time") && state["show_time"].get<bool>()) {
+            std::string time_format = state.contains("time_format") ? 
+                state["time_format"].get<std::string>() : "";
+            
+            if (transition_type != transition::Type::NONE) {
+                disp->showTime(time_format, transition_type, transition_duration);
+            } else {
+                disp->showTime(time_format);
+            }
+        }
+        
+        // Handle brightness
+        if (state.contains("brightness")) {
+            int brightness = state["brightness"];
+            if (brightness >= 0 && brightness <= 15) {
+                disp->setBrightness(brightness);
             }
         }
         
