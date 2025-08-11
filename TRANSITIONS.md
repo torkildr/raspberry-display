@@ -150,23 +150,26 @@ mosquitto_pub -t "display/set" -m '{
 
 
 # Sequence of states
-mosquitto_pub -t "display/setSequence" -m '[
-  {
-    "time": 5,
-    "ttl": 30,
-    "state": {"show_time": true, "text": "Some temporary state", "alignment": "left", "transition": "random"}
-  },
-  {
-    "time": 5,
-    "state": {"show_time": true, "text": "Some permanent state", "alignment": "left", "transition": "random"}
-  },
-  {
-    "time": 5,
-    "ttl": 60,
-    "state": {"text": "Some longer living state", "transition": "random", "alignment": "center"}
-  }
-]'
-
+  mosquitto_pub -t "display/setSequence" -m '[
+    {
+      "time": 5,
+      "ttl": 120,
+      "state": {"show_time": true, "text": "Some temporary state", "alignment": "left", "transition": "random"}
+    },
+    {
+      "time": 5,
+      "state": {"show_time": true, "text": "Some permanent state", "alignment": "left", "transition": "random"}
+    },
+    {
+      "time": 5,
+      "ttl": 1800,
+      "state": {"text": "Some longer living state", "transition": "random", "alignment": "center"}
+    },
+    {
+      "time": 5,
+      "state": {"show_time": true, "transition": "random", "alignment": "center"}
+    }
+  ]'
 ```
 
 ### Programmatic Usage
