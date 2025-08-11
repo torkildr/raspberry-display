@@ -91,7 +91,6 @@ WIDTH: 5
 
 The font system integrates with the build system:
 
-- **Manual workflow**: `make font-extract` → edit → `make font-generate`
 - **Automatic regeneration**: If you modify `tools/font_definitions.txt`, the build system will automatically regenerate `src/font_generated.h` when needed
 - **Dependency tracking**: Changes to font definitions or the generator script trigger automatic regeneration
 
@@ -116,7 +115,6 @@ The font system integrates with the build system:
 ```bash
 make clean
 make font-generate
-cp src/font_generated.h src/font.h
 make
 ```
 

@@ -83,7 +83,7 @@ MOCK_OBJ = $(MOCK_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 TARGETS = $(OBJ_DIR)/raspberry-display-mqtt $(OBJ_DIR)/curses-client $(OBJ_DIR)/mock-display-mqtt $(OBJ_DIR)/mock-curses-client
 
 # Phony targets
-.PHONY: all release debug clean install uninstall test font-extract font-generate help
+.PHONY: all release debug clean install uninstall test font-generate help
 
 # Default target
 all: release
@@ -178,13 +178,6 @@ uninstall:
 	@echo "\nUninstallation complete!"
 	@echo "Service $(SERVICE_NAME) has been stopped, disabled, and removed."
 
-# Font management targets
-font-extract:
-	@echo "Extracting current font to ASCII art format..."
-	python3 tools/extract_font.py src/font.h tools/font_definitions.txt
-	@echo "Font extracted to tools/font_definitions.txt"
-	@echo "You can now edit the ASCII art and regenerate with 'make font-generate'"
-
 font-generate:
 	@echo "Generating font header from ASCII art definitions..."
 	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h
@@ -207,7 +200,6 @@ help:
 	@echo "  install                - Install MQTT client and systemd service"
 	@echo "  uninstall              - Remove installed files and service"
 	@echo "  clean                  - Remove build artifacts"
-	@echo "  font-extract           - Extract font to ASCII art format"
 	@echo "  font-generate          - Generate font header from ASCII art"
 	@echo "  help                   - Show this help message"
 	@echo ""
