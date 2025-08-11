@@ -253,12 +253,10 @@ int main(int argc, char** argv) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
         if (loop_result != MOSQ_ERR_SUCCESS) {
             std::cerr << "MQTT loop error: " << mosquitto_strerror(loop_result) << std::endl;
-            if (loop_result == MOSQ_ERR_CONN_LOST) {
-                std::cout << "Connection lost, attempting to reconnect..." << std::endl;
-                mosquitto_reconnect(mosq);
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+            std::cout << "Attempting to reconnect..." << std::endl;
+            mosquitto_reconnect(mosq);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
     
     // Cleanup
