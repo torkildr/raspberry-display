@@ -65,7 +65,7 @@ static void send_cmd(int pin, uint8_t cmd)
 {
     // HT1632 Command Protocol: 12 bits total
     // Format: [3-bit ID][8-bit command][1 padding bit] = 12 bits
-    uint16_t data = ((static_cast<uint16_t>(HT1632_ID_CMD) << 8) | cmd) << 1;
+    uint16_t data = static_cast<uint16_t>(((HT1632_ID_CMD << 8) | cmd) << 1);
     
     // Convert to bytes for SPI (12 bits = 1.5 bytes, so use 2 bytes)
     uint8_t spi_data[2];
@@ -163,8 +163,8 @@ void DisplayImpl::setBrightness(int brightness)
 
 // Helper function to reverse bits in a byte (for 180-degree flip)
 static constexpr uint8_t reverse_bits(uint8_t byte) {
-    return ((byte & 0x01) << 7) | ((byte & 0x02) << 5) | ((byte & 0x04) << 3) | ((byte & 0x08) << 1) |
-           ((byte & 0x10) >> 1) | ((byte & 0x20) >> 3) | ((byte & 0x40) >> 5) | ((byte & 0x80) >> 7);
+    return static_cast<uint8_t>(((byte & 0x01) << 7) | ((byte & 0x02) << 5) | ((byte & 0x04) << 3) | ((byte & 0x08) << 1) |
+                                ((byte & 0x10) >> 1) | ((byte & 0x20) >> 3) | ((byte & 0x40) >> 5) | ((byte & 0x80) >> 7));
 }
 
 // Helper function to pack bits into buffer at given position

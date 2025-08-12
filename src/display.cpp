@@ -1,5 +1,6 @@
 #include <ctime>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 
 #include "display.hpp"
@@ -382,100 +383,32 @@ void Display::showText(std::string text)
     renderedTextSize = this->renderedText.size();
 
     setScrolling(Scrolling::RESET);
+    dirty = true;
 }
 
-void Display::show(std::string text)
+void Display::show(
+    std::optional<std::string> text,
+    std::optional<std::string> timeFormat,
+    transition::Type transition_type,
+    double duration)
 {
-    mode = Mode::TEXT;
-
-    showText(text);
-}
-
-void Display::show(std::string text, transition::Type transition_type, double duration)
-{
-    mode = Mode::TEXT;
-    showText(text);
-    
-    if (transition_type != transition::Type::NONE) {
-        auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
-        transition_manager->setCurrentBuffer(displayBuffer);
-        transition_manager->startTransition(newBuffer, transition_type, duration);
-    }
-}
-
-void Display::showTime(std::string timeFormat)
-{
-    mode = Mode::TIME;
-    renderedText.clear();  // Clear any previous text content
-
-    if (!timeFormat.empty())
-    {
-        this->timeFormat = timeFormat;
-    }
-    else
-    {
-        this->timeFormat = TIME_FORMAT_LONG;
-    }
-    
-    timeNeedsUpdate = true;  // Invalidate time cache
-}
-
-void Display::showTime(std::string timeFormat, transition::Type transition_type, double duration)
-{
-    mode = Mode::TIME;
-    renderedText.clear();
-
-    if (!timeFormat.empty())
-    {
-        this->timeFormat = timeFormat;
-    }
-    else
-    {
-        this->timeFormat = TIME_FORMAT_LONG;
-    }
-    
-    timeNeedsUpdate = true;
-    
-    if (transition_type != transition::Type::NONE) {
-        auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
-        transition_manager->setCurrentBuffer(displayBuffer);
-        transition_manager->startTransition(newBuffer, transition_type, duration);
-    }
-}
-
-void Display::showTime(std::string timeFormat, std::string text)
-{
-    mode = Mode::TIME_AND_TEXT;
-
-    if (!timeFormat.empty())
-    {
-        this->timeFormat = timeFormat;
-    }
-    else
-    {
-        this->timeFormat = TIME_FORMAT_SHORT;
+    if (timeFormat.has_value()) {
+        timeNeedsUpdate = true;
+        
+        if (text.has_value()) {
+            mode = Mode::TIME_AND_TEXT;
+            this->timeFormat = timeFormat.value().empty() ? TIME_FORMAT_SHORT : timeFormat.value();
+            showText(text.value());
+        } else {
+            mode = Mode::TIME;
+            this->timeFormat = timeFormat.value().empty() ? TIME_FORMAT_LONG : timeFormat.value();
+            renderedText.clear();
+        }
+    } else {
+        mode = Mode::TEXT;
+        showText(text.has_value() ? text.value() : "");
     }
 
-    timeNeedsUpdate = true;  // Invalidate time cache
-    showText(text);
-}
-
-void Display::showTime(std::string timeFormat, std::string text, transition::Type transition_type, double duration)
-{
-    mode = Mode::TIME_AND_TEXT;
-
-    if (!timeFormat.empty())
-    {
-        this->timeFormat = timeFormat;
-    }
-    else
-    {
-        this->timeFormat = TIME_FORMAT_SHORT;
-    }
-
-    timeNeedsUpdate = true;
-    showText(text);
-    
     if (transition_type != transition::Type::NONE) {
         auto newBuffer = createDisplayBufferOptimized(renderTimeOptimized());
         transition_manager->setCurrentBuffer(displayBuffer);

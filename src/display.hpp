@@ -3,6 +3,7 @@
 
 #include <array>
 #include <string>
+#include <optional>
 #include <cstdint>
 #include <vector>
 #include <functional>
@@ -54,12 +55,12 @@ public:
     Alignment getAlignment() const;
     void forceUpdate();
 
-    void show(std::string text);
-    void show(std::string text, transition::Type transition_type, double duration = 0.0);
-    void showTime(std::string timeFormat);
-    void showTime(std::string timeFormat, transition::Type transition_type, double duration = 0.0);
-    void showTime(std::string timeFormat, std::string text);
-    void showTime(std::string timeFormat, std::string text, transition::Type transition_type, double duration = 0.0);
+    void show(
+        std::optional<std::string> text,
+        std::optional<std::string> timeFormat,
+        transition::Type transition_type = transition::Type::NONE,
+        double duration = 1.0
+    );
 
     void start();
     void stop();

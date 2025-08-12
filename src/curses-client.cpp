@@ -1,23 +1,27 @@
 #include <curses.h>
+#include <optional>
+#include <memory>
+#include <nlohmann/json.hpp>
 
 #include "display_impl.hpp"
 #include "transition.hpp"
+#include "sequence.hpp"
 
-static void init_curses()
-{
+using json = nlohmann::json;
+
+static void init_curses() {
     initscr();
     timeout(0);
     cbreak();
     noecho();
     halfdelay(10);
-
+    
     nonl();
     intrflush(stdscr, false);
     keypad(stdscr, true);
 }
 
-static void print_help_text()
-{
+static void print_help_text(const sequence::SequenceManager* seq_mgr) {
     addstr("\nt: time");
     addstr("\na: supported characters");
     addstr("\nb: supported characters + time");
@@ -30,135 +34,207 @@ static void print_help_text()
     addstr("\n3: dissolve     4: scroll up");
     addstr("\n5: scroll down  6: split center");
     addstr("\n7: split sides  8: random");
+    
+    // Sequence Manager State Information
+    addstr("\n\n=== Sequence Manager State ===");
+    
+    if (seq_mgr && seq_mgr->isActive()) {
+        // Show sequence count and current index
+        std::string seq_info = "\nSequence count: " + std::to_string(seq_mgr->getSequenceCount());
+        seq_info += "  Current index: " + std::to_string(seq_mgr->getCurrentSequenceIndex());
+        addstr(seq_info.c_str());
+        
+        // Show current sequence ID
+        std::string current_id = seq_mgr->getCurrentSequenceId();
+        if (!current_id.empty()) {
+            std::string current_info = "\nCurrent ID: " + current_id;
+            addstr(current_info.c_str());
+        }
+        
+        // Show all active sequence IDs
+        auto active_ids = seq_mgr->getActiveSequenceIds();
+        if (!active_ids.empty()) {
+            addstr("\nActive IDs: ");
+            for (size_t i = 0; i < active_ids.size(); ++i) {
+                if (i > 0) addstr(", ");
+                addstr(active_ids[i].c_str());
+            }
+        }
+    } else {
+        addstr("\nSequence Manager: INACTIVE");
+    }
+    
     addstr("\n\nq: exit");
     refresh();
 }
 
 std::string abc_string = "!\"#$%&'()*+,-./0123456789:;<=>?@ ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 
-int main()
-{
-    auto preUpdate = [] {
-        clear();
-    };
-    auto postUpdate = [] {
-        print_help_text();
-    };
-
+int main() {
     init_curses();
-
-    auto disp = display::DisplayImpl(preUpdate, postUpdate);
-    disp.start();
-    disp.showTime("%H:%M:%S", "Foobar, binbaz... Tralala, ding dong!");
-
+    
+    // We need to create the SequenceManager first, then get a raw pointer for the callback
+    sequence::SequenceManager* sequence_manager_ptr = nullptr;
+    
+    auto preUpdate = [] { clear(); };
+    auto postUpdate = [&sequence_manager_ptr] { 
+        if (sequence_manager_ptr) {
+            print_help_text(sequence_manager_ptr);
+        }
+        refresh(); 
+    };
+    
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
+    auto sequence_manager = std::make_shared<sequence::SequenceManager>(std::move(display));
+    
+    // Now set the pointer for the callback
+    sequence_manager_ptr = sequence_manager.get();
+    
     bool done = false;
+
     int brightness = 7;
     display::Alignment currentAlignment = display::Alignment::LEFT;
     display::Scrolling currentScrolling = display::Scrolling::ENABLED;
-    disp.setBrightness(brightness);
-    disp.setScrolling(currentScrolling);
-
-    while (!done)
-    {
+    
+    // Configure global display settings through SequenceManager
+    sequence_manager->setBrightness(brightness);
+    sequence_manager->setScrolling(currentScrolling);
+    
+    while (!done) {
         int c;
-
-        if ((c = getch()) != ERR)
-        {
-            switch (c)
-            {
-            case 'q':
-                done = true;
-                break;
-            case 't':
-                disp.showTime("");
-                disp.forceUpdate();
-                break;
-            case 'a':
-                disp.show(abc_string);
-                disp.forceUpdate();
-                break;
-            case 'b':
-                disp.showTime("", abc_string);
-                disp.forceUpdate();
-                break;
-            case 's':
-                // Toggle scrolling between ENABLED and DISABLED
-                if (currentScrolling == display::Scrolling::ENABLED)
-                {
-                    currentScrolling = display::Scrolling::DISABLED;
+        
+        if ((c = getch()) != ERR) {
+            switch (c) {
+                case 'q':
+                    done = true;
+                    break;
+                case 't': {
+                    sequence::DisplayState state;
+                    state.show_time = true;
+                    state.time_format = "";
+                    sequence_manager->clearSequence();
+                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    break;
                 }
-                else
-                {
-                    currentScrolling = display::Scrolling::ENABLED;
+                case 'a': {
+                    sequence::DisplayState state;
+                    state.text = abc_string;
+                    sequence_manager->clearSequence();
+                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    break;
                 }
-                disp.setScrolling(currentScrolling);
-                disp.forceUpdate();
-                break;
-            case '0':
-            case KEY_HOME:
-                disp.setScrolling(display::Scrolling::RESET);
-                disp.forceUpdate();
-                break;
-            case '+':
-                if (brightness < 0xF)
-                {
-                    disp.setBrightness(++brightness);
-                    disp.forceUpdate();
+                case 'b': {
+                    sequence::DisplayState state;
+                    state.text = abc_string;
+                    state.show_time = true;
+                    state.time_format = "";
+                    sequence_manager->clearSequence();
+                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    break;
                 }
-                break;
-            case '-':
-                if (brightness > 1)
-                {
-                    disp.setBrightness(--brightness);
-                    disp.forceUpdate();
+                case 's':
+                    if (currentScrolling == display::Scrolling::ENABLED) {
+                        currentScrolling = display::Scrolling::DISABLED;
+                    } else {
+                        currentScrolling = display::Scrolling::ENABLED;
+                    }
+                    sequence_manager->setScrolling(currentScrolling);
+                    break;
+                case '0':
+                case KEY_HOME:
+                    sequence_manager->setScrolling(display::Scrolling::RESET);
+                    break;
+                case '+':
+                    if (brightness < 0xF) {
+                        sequence_manager->setBrightness(++brightness);
+                    }
+                    break;
+                case '-':
+                    if (brightness > 1) {
+                        sequence_manager->setBrightness(--brightness);
+                    }
+                    break;
+                case 'c':
+                    if (currentAlignment == display::Alignment::LEFT) {
+                        currentAlignment = display::Alignment::CENTER;
+                    } else {
+                        currentAlignment = display::Alignment::LEFT;
+                    }
+                    sequence_manager->setAlignment(currentAlignment);
+                    break;
+                
+                // Transition demonstrations - now using DisplayState objects!
+                case '1': {
+                    sequence::DisplayState state;
+                    state.text = "Lorem ipsum dolor sit amet";
+                    state.transition_type = transition::Type::WIPE_LEFT;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo1");
+                    break;
                 }
-                break;
-            case 'c':
-                // Toggle alignment between LEFT and CENTER
-                if (currentAlignment == display::Alignment::LEFT)
-                {
-                    currentAlignment = display::Alignment::CENTER;
+                case '2': {
+                    sequence::DisplayState state;
+                    state.text = "consectetur adipiscing elit";
+                    state.transition_type = transition::Type::WIPE_RIGHT;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo2");
+                    break;
                 }
-                else
-                {
-                    currentAlignment = display::Alignment::LEFT;
+                case '3': {
+                    sequence::DisplayState state;
+                    state.text = "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
+                    state.transition_type = transition::Type::DISSOLVE;
+                    state.transition_duration = 2.0;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo3");
+                    break;
                 }
-                disp.setAlignment(currentAlignment);
-                disp.forceUpdate();
-                break;
-            
-            // Transition demonstrations
-            case '1':
-                disp.show(abc_string, transition::Type::WIPE_LEFT, 1.0);
-                break;
-            case '2':
-                disp.show(abc_string, transition::Type::WIPE_RIGHT, 1.0);
-                break;
-            case '3':
-                disp.show(abc_string, transition::Type::DISSOLVE, 2.0);
-                break;
-            case '4':
-                disp.showTime("", abc_string, transition::Type::SCROLL_UP, 1.0);
-                break;
-            case '5':
-                disp.showTime("", abc_string, transition::Type::SCROLL_DOWN, 1.0);
-                break;
-            case '6':
-                disp.show(abc_string, transition::Type::SPLIT_CENTER, 1.2);
-                break;
-            case '7':
-                disp.show(abc_string, transition::Type::SPLIT_SIDES, 1.2);
-                break;
-            case '8':
-                disp.show(abc_string, transition::Type::RANDOM, 1.0);
-                break;
-
+                case '4': {
+                    sequence::DisplayState state;
+                    state.text = "ut enim ad minim veniam";
+                    state.show_time = true;
+                    state.time_format = "";
+                    state.transition_type = transition::Type::SCROLL_UP;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo4");
+                    break;
+                }
+                case '5': {
+                    sequence::DisplayState state;
+                    state.text = "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat";
+                    state.show_time = true;
+                    state.time_format = "";
+                    state.transition_type = transition::Type::SCROLL_DOWN;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo5");
+                    break;
+                }
+                case '6': {
+                    sequence::DisplayState state;
+                    state.text = "duis aute irure dolor";
+                    state.show_time = true;
+                    state.transition_type = transition::Type::SPLIT_CENTER;
+                    state.transition_duration = 1.2;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo6");
+                    break;
+                }
+                case '7': {
+                    sequence::DisplayState state;
+                    state.text = "culpa qui officia deserunt mollit";
+                    state.transition_type = transition::Type::SPLIT_SIDES;
+                    state.transition_duration = 1.2;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo7");
+                    break;
+                }
+                case '8': {
+                    sequence::DisplayState state;
+                    state.text = "labore et dolore magna aliqua";
+                    state.show_time = true;
+                    state.transition_type = transition::Type::RANDOM;
+                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo8");
+                    break;
+                }
             }
         }
     }
-
-    disp.stop();
+    
+    // SequenceManager handles display lifecycle
     endwin();
-
+    
     return EXIT_SUCCESS;
 }

@@ -1,8 +1,6 @@
 #ifndef ht1632_hpp
 #define ht1632_hpp
 
-#include "display.hpp"
-
 #define HT1632_WIREPI_LOCK_ID 0
 
 /* Display settings */

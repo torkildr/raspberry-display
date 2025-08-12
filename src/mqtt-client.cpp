@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 #include <string>
 #include <signal.h>
 #include <thread>
@@ -7,7 +8,6 @@
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
 
-#include "display.hpp"
 #include "display_impl.hpp"
 #include "transition.hpp"
 #include "sequence.hpp"
@@ -32,110 +32,7 @@ static void signal_handler(int signal) {
     }
 }
 
-static void process_display_state(display::Display* disp, const json& state) {
-    DEBUG_LOG("Processing display state: " << state.dump());
-    
-    try {
-        // Handle display content
-        if (state.contains("clear") && state["clear"].get<bool>()) {
-            disp->show("");
-        }
-        // Parse transition parameters
-        transition::Type transition_type = transition::Type::NONE;
-        double transition_duration = 0.0;
-        
-        if (state.contains("transition")) {
-            auto trans_data = state["transition"];
-            
-            if (trans_data.is_string()) {
-                // Simple string format: "wipe_left", "dissolve", etc.
-                transition_type = transition::TransitionFactory::parseType(trans_data.get<std::string>());
-            } else if (trans_data.is_object()) {
-                // Object format: {"type": "wipe_left", "duration": 1.5}
-                if (trans_data.contains("type")) {
-                    transition_type = transition::TransitionFactory::parseType(trans_data["type"].get<std::string>());
-                }
-                if (trans_data.contains("duration")) {
-                    transition_duration = trans_data["duration"].get<double>();
-                }
-            }
-        }
-        
-        // Handle alignment
-        if (state.contains("alignment")) {
-            std::string alignment = state["alignment"];
-            if (alignment == "center" || alignment == "centre") {
-                disp->setAlignment(display::Alignment::CENTER);
-                if (!state.contains("scroll")) {
-                    disp->setScrolling(display::Scrolling::DISABLED);
-                }
-            } else if (alignment == "left") {
-                disp->setAlignment(display::Alignment::LEFT);
-            }
-        }
-        
-        // Handle scrolling
-        if (state.contains("scroll")) {
-            std::string scroll = state["scroll"];
-            if (scroll == "enabled") {
-                disp->setScrolling(display::Scrolling::ENABLED);
-            } else if (scroll == "disabled") {
-                disp->setScrolling(display::Scrolling::DISABLED);
-            } else if (scroll == "reset") {
-                // Reset scroll offset - this is handled internally by setScrolling
-                disp->setScrolling(display::Scrolling::ENABLED);
-            }
-        }
-        
-        // Handle text display
-        if (state.contains("text")) {
-            std::string text = state["text"];
-            
-            if (state.contains("show_time") && state["show_time"].get<bool>()) {
-                std::string time_format = state.contains("time_format") ? 
-                    state["time_format"].get<std::string>() : "";
-                
-                if (transition_type != transition::Type::NONE) {
-                    disp->showTime(time_format, text, transition_type, transition_duration);
-                } else {
-                    disp->showTime(time_format, text);
-                }
-            } else {
-                if (transition_type != transition::Type::NONE) {
-                    disp->show(text, transition_type, transition_duration);
-                } else {
-                    disp->show(text);
-                }
-            }
-        }
-        else if (state.contains("show_time") && state["show_time"].get<bool>()) {
-            std::string time_format = state.contains("time_format") ? 
-                state["time_format"].get<std::string>() : "";
-            
-            if (transition_type != transition::Type::NONE) {
-                disp->showTime(time_format, transition_type, transition_duration);
-            } else {
-                disp->showTime(time_format);
-            }
-        }
-        
-        // Handle brightness
-        if (state.contains("brightness")) {
-            int brightness = state["brightness"];
-            if (brightness >= 0 && brightness <= 15) {
-                disp->setBrightness(brightness);
-            }
-        }
-        
-        // Handle quit
-        if (state.contains("quit") && state["quit"].get<bool>()) {
-            running = false;
-        }
-        
-    } catch (const std::exception& e) {
-        std::cerr << "Error processing display state: " << e.what() << std::endl;
-    }
-}
+// Note: process_display_state logic moved to SequenceManager::processDisplayState
 
 static void process_add_sequence(const json& message) {
     try {
@@ -146,11 +43,15 @@ static void process_add_sequence(const json& message) {
         
         double ttl = message.contains("ttl") ? message["ttl"].get<double>() : 0.0;
         double time = message["time"].get<double>();
-        json state = message["state"];
+        json state_json = message["state"];
+        std::string sequence_id = message.contains("sequence_id") ? message["sequence_id"].get<std::string>() : "";
+        
+        // Parse JSON to DisplayState
+        sequence::DisplayState state = sequence::parseDisplayStateFromJSON(state_json);
         
         if (sequence_manager) {
-            sequence_manager->addSequenceState(state, time, ttl);
-            DEBUG_LOG("Added state to sequence with time=" << time << "s, ttl=" << ttl << "s");
+            sequence_manager->addSequenceState(state, time, ttl, sequence_id);
+            DEBUG_LOG("Added state to sequence with time=" << time << "s, ttl=" << ttl << "s, sequence_id='" << sequence_id << "'");
         }
         
     } catch (const std::exception& e) {
@@ -175,10 +76,14 @@ static void process_set_sequence(const json& message) {
             
             double ttl = item.contains("ttl") ? item["ttl"].get<double>() : 0.0;
             double time = item["time"].get<double>();
-            json state = item["state"];
+            json state_json = item["state"];
+            std::string sequence_id = item.contains("sequence_id") ? item["sequence_id"].get<std::string>() : "";
+            
+            // Parse JSON to DisplayState
+            sequence::DisplayState state = sequence::parseDisplayStateFromJSON(state_json);
             
             // Note: created_at will be set by SequenceManager
-            sequence_states.push_back({state, time, ttl, std::chrono::steady_clock::now()});
+            sequence_states.push_back({state, time, ttl, std::chrono::steady_clock::now(), sequence_id});
         }
         
         if (sequence_manager) {
@@ -191,9 +96,29 @@ static void process_set_sequence(const json& message) {
     }
 }
 
-static void on_message(struct mosquitto* /*mosq*/, void* userdata, const struct mosquitto_message* message) {
-    display::Display* disp = static_cast<display::Display*>(userdata);
-    
+static void process_clear_sequence(const json& message) {
+    try {
+        if (!sequence_manager) {
+            return;
+        }
+        
+        // Check if clearing all or specific sequence_id
+        if (message.contains("sequence_id")) {
+            std::string sequence_id = message["sequence_id"].get<std::string>();
+            sequence_manager->clearSequenceById(sequence_id);
+            DEBUG_LOG("Cleared sequence with id: '" << sequence_id << "'");
+        } else {
+            // Clear all sequences
+            sequence_manager->clearSequence();
+            DEBUG_LOG("Cleared all sequences");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error processing clearSequence: " << e.what() << std::endl;
+    }
+}
+
+static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const struct mosquitto_message* message) {
     if (!message->payload) return;
     
     std::string topic(message->topic);
@@ -205,15 +130,25 @@ static void on_message(struct mosquitto* /*mosq*/, void* userdata, const struct 
         json message_json = json::parse(payload);
         
         if (topic == "display/set") {
-            // Stop any active sequence and process single state
+            // Handle quit command before processing other display states
+            if (message_json.contains("quit") && message_json["quit"].get<bool>()) {
+                running = false;
+                return;
+            }
+            
+            // Stop any active sequence and create a single-state temporary sequence
             if (sequence_manager) {
                 sequence_manager->clearSequence();
+                // Parse JSON to DisplayState and add as single sequence state
+                sequence::DisplayState state = sequence::parseDisplayStateFromJSON(message_json);
+                sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
             }
-            process_display_state(disp, message_json);
         } else if (topic == "display/addSequence") {
             process_add_sequence(message_json);
         } else if (topic == "display/setSequence") {
             process_set_sequence(message_json);
+        } else if (topic == "display/clearSequence") {
+            process_clear_sequence(message_json);
         } else {
             DEBUG_LOG("Unknown topic: " << topic);
         }
@@ -232,8 +167,9 @@ static void on_connect(struct mosquitto* mosq, void* /*userdata*/, int result) {
         mosquitto_subscribe(mosq, nullptr, "display/set", 0);
         mosquitto_subscribe(mosq, nullptr, "display/addSequence", 0);
         mosquitto_subscribe(mosq, nullptr, "display/setSequence", 0);
+        mosquitto_subscribe(mosq, nullptr, "display/clearSequence", 0);
         
-        std::cout << "Subscribed to display topics (set, addSequence, setSequence)" << std::endl;
+        std::cout << "Subscribed to display topics (set, addSequence, setSequence, clearSequence)" << std::endl;
     } else {
         std::cerr << "Failed to connect to MQTT broker: " << mosquitto_connack_string(result) << std::endl;
     }
@@ -280,18 +216,17 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     
-    // Initialize display with empty callbacks
+    // Initialize display with empty callbacks and transfer ownership to SequenceManager
     auto preUpdate = []() {};
     auto postUpdate = []() {};
-    display::DisplayImpl disp(preUpdate, postUpdate);
-    global_display = &disp;
-    disp.start();
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
+    global_display = display.get(); // Keep pointer for signal handling
     
     // Initialize mosquitto library
     mosquitto_lib_init();
     
-    // Create mosquitto client
-    mosq = mosquitto_new(client_id.c_str(), true, &disp);
+    // Create mosquitto client (no longer needs display userdata)
+    mosq = mosquitto_new(client_id.c_str(), true, nullptr);
     if (!mosq) {
         std::cerr << "Failed to create mosquitto client" << std::endl;
         return 1;
@@ -312,13 +247,14 @@ int main(int argc, char** argv) {
         return 1;
     }
     
-    // Initialize sequence manager with callback to process display states
-    sequence_manager = std::make_unique<sequence::SequenceManager>(
-        [&disp](const json& state) {
-            DEBUG_LOG("SequenceManager executing state: " << state.dump());
-            process_display_state(&disp, state);
-        }
-    );
+    // Initialize sequence manager with display ownership
+    sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display));
+    
+    // Add default sequence item to show time (sequence manager is always active)
+    sequence::DisplayState default_state;
+    default_state.show_time = true;
+    default_state.time_format = "%H:%M:%S";
+    sequence_manager->addSequenceState(default_state, 86400.0, 0.0, "default_time"); // 24 hour duration, no TTL
     
     // Main loop
     while (running) {

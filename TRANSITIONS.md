@@ -30,24 +30,6 @@ Transitions animate the change from one display buffer state to another over a s
 
 ## API Usage
 
-### C++ Display Methods
-
-```cpp
-#include "display.hpp"
-#include "transition.hpp"
-
-// Basic usage with transition
-disp.show("Hello World!", transition::Type::WIPE_LEFT, 1.0);
-disp.showTime("", transition::Type::DISSOLVE, 2.0);
-disp.showTime("%H:%M", "Status text", transition::Type::SCROLL_UP, 1.5);
-
-// Set default transition for automatic use
-disp.setTransition(transition::Type::DISSOLVE, 1.5);
-
-// Check if transition is active
-bool transitioning = disp.isTransitioning();
-```
-
 ### MQTT Control
 
 #### Simple String Format
