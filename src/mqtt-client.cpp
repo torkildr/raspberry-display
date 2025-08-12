@@ -24,14 +24,14 @@ static std::unique_ptr<sequence::SequenceManager> sequence_manager;
 static void signal_handler(int signal) {
     std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
     running = false;
-    if (global_display) {
-        global_display->stop();
-    }
     if (mosq) {
         mosquitto_disconnect(mosq);
     }
+    if (global_display) {
+        global_display->stop();
+    }
 }
-
+ 
 static void process_set(const json& message) {
     if (sequence_manager) {
         sequence_manager->clearSequence();
@@ -144,11 +144,11 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
         } else if (topic == "display/clearSequence") {
             process_clear_sequence(message_json);
         } else if (topic == "display/quit") {
+            DEBUG_LOG("Received quit message");
             running = false;
         } else {
             DEBUG_LOG("Unknown topic: " << topic);
         }
-        
     } catch (const json::parse_error& e) {
         std::cerr << "JSON parse error: " << e.what() << std::endl;
         std::cerr << "Payload: " << payload << std::endl;
