@@ -9,7 +9,7 @@
 
 #define DEBUG_LOG(...) \
     if (DEBUG_LOG_ACTIVE) { \
-        std::cerr << __VA_ARGS__ << std::endl; \
+        std::cerr << "DEBUG:" << __VA_ARGS__ << std::endl; \
     } while (0)
 
 #endif

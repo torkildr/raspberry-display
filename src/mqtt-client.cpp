@@ -95,7 +95,6 @@ static void process_set_sequence(const json& message) {
         
         if (sequence_manager) {
             sequence_manager->setSequence(sequence_states);
-            DEBUG_LOG("Set sequence with " << sequence_states.size() << " states");
         }
         
     } catch (const std::exception& e) {
@@ -252,11 +251,13 @@ int main(int argc, char** argv) {
     while (running) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
         if (loop_result != MOSQ_ERR_SUCCESS) {
+            // TODO: Consider exponential backoff, ideally with less noisy output when trying forever
             std::cerr << "MQTT loop error: " << mosquitto_strerror(loop_result) << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
             std::cout << "Attempting to reconnect..." << std::endl;
             mosquitto_reconnect(mosq);
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     // Cleanup

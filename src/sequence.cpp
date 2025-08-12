@@ -65,6 +65,7 @@ void SequenceManager::addSequenceState(const DisplayState& state, double time, d
     }
     
     DEBUG_LOG("Added sequence state with time=" << time << ", ttl=" << ttl << ", id='" << sequence_id << "'");
+    DEBUG_LOG("Sequence size = " << m_sequence.size() << ", addSequence");
 }
 
 void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
@@ -93,8 +94,8 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
         // Execute the first state immediately
         processDisplayState(m_sequence[0].state);
     }
-    
-    DEBUG_LOG("Set sequence with " << m_sequence.size() << " states");
+
+    DEBUG_LOG("Sequence size = " << m_sequence.size() << ", setSequence");
 }
 
 void SequenceManager::setEmptyContent()
@@ -112,6 +113,7 @@ void SequenceManager::clearSequence()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_sequence.clear();
+    DEBUG_LOG("Sequence size = " << m_sequence.size() << ", clearSequence");
 }
 
 bool SequenceManager::isActive() const
@@ -230,12 +232,10 @@ void SequenceManager::processSequence()
         if (m_current_index >= m_sequence.size()) {
             // Loop back to beginning
             m_current_index = 0;
-            DEBUG_LOG("Looping sequence back to start");
         }
         
         m_state_start_time = now;
         processDisplayState(m_sequence[m_current_index].state);
-        DEBUG_LOG("Advanced to sequence state " << m_current_index);
     }
 }
 
@@ -332,8 +332,6 @@ void SequenceManager::processDisplayState(const DisplayState& state)
     if (!m_display) {
         return;
     }
-    
-    DEBUG_LOG("Processing display state");
     
     // Apply visual properties
     if (state.alignment.has_value()) {
