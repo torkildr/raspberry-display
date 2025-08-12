@@ -10,3 +10,5 @@ stderr.txt
 build/
 debug-build/
 src/font_generated.h
+compile_commands.json
+.cache/

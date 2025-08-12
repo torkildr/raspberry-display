@@ -7,7 +7,9 @@ RUN apt-get update \
       libmosquitto-dev \
       mosquitto \
       mosquitto-clients \
-      colormake
+      colormake \
+      bear \
+      clangd
 
 RUN mkdir setup
 COPY *.sh /setup/
