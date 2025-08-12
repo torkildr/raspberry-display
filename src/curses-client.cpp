@@ -110,7 +110,6 @@ int main() {
                     break;
                 case 't': {
                     sequence::DisplayState state;
-                    state.show_time = true;
                     state.time_format = "";
                     sequence_manager->clearSequence();
                     sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
@@ -126,7 +125,6 @@ int main() {
                 case 'b': {
                     sequence::DisplayState state;
                     state.text = abc_string;
-                    state.show_time = true;
                     state.time_format = "";
                     sequence_manager->clearSequence();
                     sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
@@ -189,7 +187,6 @@ int main() {
                 case '4': {
                     sequence::DisplayState state;
                     state.text = "ut enim ad minim veniam";
-                    state.show_time = true;
                     state.time_format = "";
                     state.transition_type = transition::Type::SCROLL_UP;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo4");
@@ -198,7 +195,6 @@ int main() {
                 case '5': {
                     sequence::DisplayState state;
                     state.text = "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat";
-                    state.show_time = true;
                     state.time_format = "";
                     state.transition_type = transition::Type::SCROLL_DOWN;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo5");
@@ -207,7 +203,7 @@ int main() {
                 case '6': {
                     sequence::DisplayState state;
                     state.text = "duis aute irure dolor";
-                    state.show_time = true;
+                    state.time_format = "";
                     state.transition_type = transition::Type::SPLIT_CENTER;
                     state.transition_duration = 1.2;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo6");
@@ -224,7 +220,7 @@ int main() {
                 case '8': {
                     sequence::DisplayState state;
                     state.text = "labore et dolore magna aliqua";
-                    state.show_time = true;
+                    state.time_format = "";
                     state.transition_type = transition::Type::RANDOM;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo8");
                     break;

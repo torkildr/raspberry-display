@@ -67,8 +67,6 @@ void SequenceManager::addSequenceState(const DisplayState& state, double time, d
     DEBUG_LOG("Added sequence state with time=" << time << ", ttl=" << ttl << ", id='" << sequence_id << "'");
 }
 
-
-
 void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -99,12 +97,21 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
     DEBUG_LOG("Set sequence with " << m_sequence.size() << " states");
 }
 
+void SequenceManager::setEmptyContent()
+{
+    if (m_display) {
+        m_active = false;
+        m_current_index = 0;
+        
+        m_display->setTransition(transition::Type::DISSOLVE, 5.0);
+        m_display->show(std::nullopt, std::nullopt);
+    }
+}
+
 void SequenceManager::clearSequence()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_sequence.clear();
-    m_active = false;
-    m_current_index = 0;
 }
 
 bool SequenceManager::isActive() const
@@ -252,12 +259,7 @@ void SequenceManager::removeExpiredStates()
     // Handle sequence state changes after TTL cleanup
     if (m_sequence.size() < original_size) {
         if (m_sequence.empty()) {
-            // All items expired - clear screen and go inactive
-            m_active = false;
-            m_current_index = 0;
-            
-            m_display->setTransition(transition::Type::DISSOLVE, 5.0);
-            m_display->show(std::nullopt, std::nullopt);
+            setEmptyContent();
             DEBUG_LOG("All sequence items expired - cleared screen and went inactive");
         }
         else if (m_current_index >= m_sequence.size()) {
@@ -333,12 +335,6 @@ void SequenceManager::processDisplayState(const DisplayState& state)
     
     DEBUG_LOG("Processing display state");
     
-    // Handle display content
-    if (state.clear) {
-        m_display->show(std::nullopt, std::nullopt);
-        return;
-    }
-    
     // Apply visual properties
     if (state.alignment.has_value()) {
         m_display->setAlignment(state.alignment.value());
@@ -358,114 +354,7 @@ void SequenceManager::processDisplayState(const DisplayState& state)
         }
     }
     
-    // Show content with transition
-    std::string content;
-    if (state.text.has_value()) {
-        content = state.text.value();
-    }
-    
-    std::optional<std::string> time_format = state.show_time ? state.time_format : std::nullopt;
-    
-    if (!content.empty() || state.show_time) {
-        m_display->show(content, time_format, state.transition_type, state.transition_duration);
-    }
-}
-
-void SequenceManager::processDisplayStateJSON(const nlohmann::json& state)
-{
-    if (!m_display) {
-        return;
-    }
-    
-    DEBUG_LOG("Processing display state: " << state.dump());
-    
-    try {
-        // Handle display content
-        if (state.contains("clear") && state["clear"].get<bool>()) {
-            m_display->show(std::nullopt, std::nullopt);
-            return;
-        }
-        
-        // Parse transition parameters
-        transition::Type transition_type = m_default_transition_type;
-        double transition_duration = m_default_transition_duration;
-        
-        if (state.contains("transition")) {
-            auto trans_data = state["transition"];
-            
-            if (trans_data.is_string()) {
-                // Simple string format: "wipe_left", "dissolve", etc.
-                transition_type = transition::TransitionFactory::parseType(trans_data.get<std::string>());
-            } else if (trans_data.is_object()) {
-                // Object format: {"type": "wipe_left", "duration": 1.5}
-                if (trans_data.contains("type")) {
-                    transition_type = transition::TransitionFactory::parseType(trans_data["type"].get<std::string>());
-                }
-                if (trans_data.contains("duration")) {
-                    transition_duration = trans_data["duration"].get<double>();
-                }
-            }
-        }
-        
-        // Handle alignment
-        if (state.contains("alignment")) {
-            std::string alignment = state["alignment"];
-            if (alignment == "center" || alignment == "centre") {
-                m_display->setAlignment(display::Alignment::CENTER);
-                if (!state.contains("scroll")) {
-                    m_display->setScrolling(display::Scrolling::DISABLED);
-                }
-            } else if (alignment == "left") {
-                m_display->setAlignment(display::Alignment::LEFT);
-            }
-        }
-        
-        // Handle scrolling
-        if (state.contains("scroll")) {
-            std::string scroll = state["scroll"];
-            if (scroll == "enabled") {
-                m_display->setScrolling(display::Scrolling::ENABLED);
-            } else if (scroll == "disabled") {
-                m_display->setScrolling(display::Scrolling::DISABLED);
-            } else if (scroll == "reset") {
-                // Reset scroll offset - this is handled internally by setScrolling
-                m_display->setScrolling(display::Scrolling::ENABLED);
-            }
-        }
-        
-        // Handle text display
-        if (state.contains("text")) {
-            std::string text = state["text"];
-            
-            if (state.contains("show_time") && state["show_time"].get<bool>()) {
-                std::string time_format = state.contains("time_format") ? 
-                    state["time_format"].get<std::string>() : "";
-                
-                m_display->show(text, time_format, transition_type, transition_duration);
-            } else {
-                m_display->show(text, std::nullopt, transition_type, transition_duration);
-            }
-        }
-        else if (state.contains("show_time") && state["show_time"].get<bool>()) {
-            std::string time_format = state.contains("time_format") ? 
-                state["time_format"].get<std::string>() : "";
-
-            m_display->show(std::nullopt, time_format, transition_type, transition_duration);
-        }
-        
-        // Handle brightness
-        if (state.contains("brightness")) {
-            int brightness = state["brightness"];
-            if (brightness >= 0 && brightness <= 15) {
-                m_display->setBrightness(brightness);
-            }
-        }
-        
-        // Note: quit handling is application-specific and handled by clients
-        
-    } catch (const std::exception& e) {
-        std::cerr << "Error processing display state: " << e.what() << std::endl;
-    }
+    m_display->show(state.text, state.time_format, state.transition_type, state.transition_duration);
 }
 
 // Utility function to parse JSON into DisplayState (for clients)
@@ -474,24 +363,21 @@ DisplayState parseDisplayStateFromJSON(const nlohmann::json& json)
     DisplayState state;
     
     try {
-        // Handle clear
-        if (json.contains("clear") && json["clear"].get<bool>()) {
-            state.clear = true;
-            return state;
-        }
-        
-        // Parse content
+       // Handle main content
         if (json.contains("text")) {
             state.text = json["text"].get<std::string>();
-        }
-        
-        if (json.contains("show_time") && json["show_time"].get<bool>()) {
-            state.show_time = true;
-            if (json.contains("time_format")) {
-                state.time_format = json["time_format"].get<std::string>();
+            
+            if (json.contains("show_time") && json["show_time"].get<bool>()) {
+                state.time_format = json.contains("time_format")
+                    ? json["time_format"].get<std::string>()
+                    : "";
             }
+        } else if (json.contains("show_time") && json["show_time"].get<bool>()) {
+            state.time_format = json.contains("time_format")
+                ? json["time_format"].get<std::string>()
+                : "";
         }
-        
+
         // Parse visual properties
         if (json.contains("alignment")) {
             std::string alignment = json["alignment"];
@@ -536,6 +422,9 @@ DisplayState parseDisplayStateFromJSON(const nlohmann::json& json)
                     state.transition_duration = trans_data["duration"].get<double>();
                 }
             }
+        } else {
+            state.transition_type = transition::Type::NONE;
+            state.transition_duration = 0.0;
         }
         
     } catch (const std::exception& e) {

@@ -32,7 +32,14 @@ static void signal_handler(int signal) {
     }
 }
 
-// Note: process_display_state logic moved to SequenceManager::processDisplayState
+static void process_set(const json& message) {
+    if (sequence_manager) {
+        sequence_manager->clearSequence();
+
+        sequence::DisplayState state = sequence::parseDisplayStateFromJSON(message);
+        sequence_manager->addSequenceState(state, 5, 0.0, "display_set");
+    }
+}
 
 static void process_add_sequence(const json& message) {
     try {
@@ -45,7 +52,7 @@ static void process_add_sequence(const json& message) {
         double time = message["time"].get<double>();
         json state_json = message["state"];
         std::string sequence_id = message.contains("sequence_id") ? message["sequence_id"].get<std::string>() : "";
-        
+
         // Parse JSON to DisplayState
         sequence::DisplayState state = sequence::parseDisplayStateFromJSON(state_json);
         
@@ -130,25 +137,15 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
         json message_json = json::parse(payload);
         
         if (topic == "display/set") {
-            // Handle quit command before processing other display states
-            if (message_json.contains("quit") && message_json["quit"].get<bool>()) {
-                running = false;
-                return;
-            }
-            
-            // Stop any active sequence and create a single-state temporary sequence
-            if (sequence_manager) {
-                sequence_manager->clearSequence();
-                // Parse JSON to DisplayState and add as single sequence state
-                sequence::DisplayState state = sequence::parseDisplayStateFromJSON(message_json);
-                sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
-            }
+            process_set(message_json);
         } else if (topic == "display/addSequence") {
             process_add_sequence(message_json);
         } else if (topic == "display/setSequence") {
             process_set_sequence(message_json);
         } else if (topic == "display/clearSequence") {
             process_clear_sequence(message_json);
+        } else if (topic == "display/quit") {
+            running = false;
         } else {
             DEBUG_LOG("Unknown topic: " << topic);
         }
@@ -168,8 +165,9 @@ static void on_connect(struct mosquitto* mosq, void* /*userdata*/, int result) {
         mosquitto_subscribe(mosq, nullptr, "display/addSequence", 0);
         mosquitto_subscribe(mosq, nullptr, "display/setSequence", 0);
         mosquitto_subscribe(mosq, nullptr, "display/clearSequence", 0);
+        mosquitto_subscribe(mosq, nullptr, "display/quit", 0);
         
-        std::cout << "Subscribed to display topics (set, addSequence, setSequence, clearSequence)" << std::endl;
+        std::cout << "Subscribed to display topics (set, addSequence, setSequence, clearSequence, quit)" << std::endl;
     } else {
         std::cerr << "Failed to connect to MQTT broker: " << mosquitto_connack_string(result) << std::endl;
     }
@@ -249,12 +247,6 @@ int main(int argc, char** argv) {
     
     // Initialize sequence manager with display ownership
     sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display));
-    
-    // Add default sequence item to show time (sequence manager is always active)
-    sequence::DisplayState default_state;
-    default_state.show_time = true;
-    default_state.time_format = "%H:%M:%S";
-    sequence_manager->addSequenceState(default_state, 86400.0, 0.0, "default_time"); // 24 hour duration, no TTL
     
     // Main loop
     while (running) {

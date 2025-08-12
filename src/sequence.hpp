@@ -22,8 +22,6 @@ struct DisplayState {
     // Content
     std::optional<std::string> text;
     std::optional<std::string> time_format;
-    bool show_time = false;
-    bool clear = false;
     
     // Visual properties
     std::optional<display::Alignment> alignment;
@@ -81,7 +79,7 @@ public:
 private:
     void processSequence();
     void removeExpiredStates();
-    void processDisplayStateJSON(const nlohmann::json& state);  // Legacy JSON processing for internal use
+    void setEmptyContent();
     
     std::unique_ptr<display::Display> m_display;
     std::vector<SequenceState> m_sequence;
