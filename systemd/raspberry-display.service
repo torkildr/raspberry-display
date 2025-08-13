@@ -40,7 +40,7 @@ SyslogIdentifier=raspberry-display
 
 # Watchdog and health monitoring
 WatchdogSec=30
-NotifyAccess=none
+NotifyAccess=main
 
 [Install]
 WantedBy=multi-user.target
