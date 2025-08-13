@@ -68,6 +68,11 @@ namespace {
         {0x017B, 'Z'}, {0x017C, 'z'}, // Ż, ż
         {0x017D, 'Z'}, {0x017E, 'z'}, // Ž, ž
         
+        // Nordic/Scandinavian characters  
+        {0x00C6, 'A'}, {0x00E6, 'a'}, // Æ, æ (AE ligature)
+        {0x00D8, 'O'}, {0x00F8, 'o'}, // Ø, ø (O with stroke)
+        {0x00C5, 'A'}, {0x00E5, 'a'}, // Å, å (A with ring above)
+        
         // Common punctuation and symbols
         {0x2010, '-'}, {0x2011, '-'}, {0x2012, '-'}, {0x2013, '-'}, {0x2014, '-'}, // Various dashes
         {0x2018, '\''}, {0x2019, '\''}, // Left/right single quotation marks
