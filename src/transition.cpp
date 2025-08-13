@@ -205,42 +205,40 @@ std::array<uint8_t, X_MAX> ScrollTransition::animate(double progress)
             bool pixel_set = false;
             
             if (direction == Direction::UP) {
-                // SCROLL UP: Sample from source at shifted position, target comes from below
+                // SCROLL UP: Source moves up, target comes from below
                 double source_sample_pos = current_pixel + pixel_shift;
-                double target_sample_pos = current_pixel + pixel_shift - static_cast<double>(DISPLAY_HEIGHT);
                 
-                // Try to sample from source (shifted up)
+                // Check if we should sample from source (still visible after shift)
                 if (source_sample_pos < static_cast<double>(DISPLAY_HEIGHT)) {
-                    auto source_bit_idx = static_cast<size_t>(source_sample_pos + 0.5); // Round to nearest
+                    auto source_bit_idx = static_cast<size_t>(source_sample_pos);
                     if (source_bit_idx < 8) {
                         auto source_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(source_bit_idx));
                         pixel_set = (source_byte & source_bit_mask) != 0;
                     }
-                }
-                // Otherwise try to sample from target (coming from below)
-                else if (target_sample_pos >= 0.0) {
-                    auto target_bit_idx = static_cast<size_t>(target_sample_pos + 0.5); // Round to nearest  
+                } else {
+                    // Source has scrolled off screen, sample from target
+                    double target_sample_pos = current_pixel + pixel_shift - static_cast<double>(DISPLAY_HEIGHT);
+                    auto target_bit_idx = static_cast<size_t>(target_sample_pos);
                     if (target_bit_idx < 8) {
                         auto target_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(target_bit_idx));
                         pixel_set = (target_byte & target_bit_mask) != 0;
                     }
                 }
             } else {
-                // SCROLL DOWN: Sample from source at shifted position, target comes from above
+                // SCROLL DOWN: Source moves down, target comes from above
                 double source_sample_pos = current_pixel - pixel_shift;
-                double target_sample_pos = current_pixel - pixel_shift + static_cast<double>(DISPLAY_HEIGHT);
                 
-                // Try to sample from source (shifted down) 
+                // Check if we should sample from source (still visible after shift)
                 if (source_sample_pos >= 0.0) {
-                    auto source_bit_idx = static_cast<size_t>(source_sample_pos + 0.5); // Round to nearest
+                    auto source_bit_idx = static_cast<size_t>(source_sample_pos);
                     if (source_bit_idx < 8) {
                         auto source_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(source_bit_idx));
                         pixel_set = (source_byte & source_bit_mask) != 0;
                     }
-                }
-                // Otherwise try to sample from target (coming from above)
-                else if (target_sample_pos < static_cast<double>(DISPLAY_HEIGHT)) {
-                    auto target_bit_idx = static_cast<size_t>(target_sample_pos + 0.5); // Round to nearest
+                } else {
+                    // Source has scrolled off screen, sample from target
+                    double target_sample_pos = current_pixel - pixel_shift + static_cast<double>(DISPLAY_HEIGHT);
+                    auto target_bit_idx = static_cast<size_t>(target_sample_pos);
                     if (target_bit_idx < 8) {
                         auto target_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(target_bit_idx));
                         pixel_set = (target_byte & target_bit_mask) != 0;
