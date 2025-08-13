@@ -79,7 +79,7 @@ public:
 private:
     void processSequence();
     void removeExpiredStates();
-    void setEmptyContent();
+    void setDefaultContent();
     
     std::unique_ptr<display::Display> m_display;
     std::vector<SequenceState> m_sequence;
