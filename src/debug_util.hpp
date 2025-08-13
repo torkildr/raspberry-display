@@ -19,9 +19,10 @@ namespace debug {
 
 class Logger {
 public:
-    static std::unique_ptr<std::ofstream> log_file;
-    static std::mutex log_mutex;
-    static bool use_file_logging;
+    // Header-only static variables - shared across ALL compilation units
+    static inline std::unique_ptr<std::ofstream> log_file;
+    static inline std::mutex log_mutex;
+    static inline bool use_file_logging = false;
 
     static void enableFileLogging(const std::string& filename) {
         std::cout << "Enabling file logging to " << filename << std::endl;
