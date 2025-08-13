@@ -300,7 +300,7 @@ std::array<uint8_t, X_MAX> Display::createBufferWithContent(std::array<uint8_t, 
     // Render text content if provided
     if (textContent && !textContent->empty()) {
         // Handle centering for text content
-        if (alignment == Alignment::CENTER && scrollDirection == Scrolling::DISABLED) {
+        if (alignment == Alignment::CENTER) {
             size_t availableSpace = X_MAX - pos;
             if (textContent->size() < availableSpace) {
                 pos += calculateCenterOffset(textContent->size(), availableSpace);
