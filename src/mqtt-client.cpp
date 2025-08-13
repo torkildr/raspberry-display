@@ -12,7 +12,7 @@
 #include "display_impl.hpp"
 #include "transition.hpp"
 #include "sequence.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 using json = nlohmann::json;
 
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
             if (mqtt_connected) {
                 LOG("MQTT loop error: " << mosquitto_strerror(loop_result));
                 mqtt_connected = false;
-                reconnect_delay = 1; // Reset backoff on fresh disconnection
+                reconnect_delay = 1;
                 last_connection_attempt = std::chrono::steady_clock::now();
             }
             

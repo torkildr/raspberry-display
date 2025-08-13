@@ -1,5 +1,5 @@
-#ifndef debug_util_hpp
-#define debug_util_hpp
+#ifndef log_util_hpp
+#define log_util_hpp
 
 #include <iostream>
 #include <fstream>
@@ -45,10 +45,9 @@ public:
         use_file_logging = false;
     }
 
-    // Single function that handles all debug output routing
-    static void writeDebugMessage(const std::string& message) {
-        if (!DEBUG_LOG_ACTIVE) return;
-        
+private:
+    // Unified internal logging function
+    static void writeMessage(const std::string& message, bool use_stdout_fallback = false) {
         std::lock_guard<std::mutex> lock(log_mutex);
         
         // Get timestamp
@@ -60,39 +59,30 @@ public:
         std::ostringstream timestamp;
         timestamp << std::put_time(std::localtime(&time_t), "%H:%M:%S");
         timestamp << '.' << std::setfill('0') << std::setw(3) << ms.count();
-        timestamp << " DEBUG: ";
         
         // Write to appropriate destination
         if (use_file_logging && log_file && log_file->is_open()) {
-            *log_file << timestamp.str() << message << std::endl;
+            *log_file << timestamp.str() << ": " << message << std::endl;
             log_file->flush();
         } else {
-            std::cerr << timestamp.str() << message << std::endl;
+            if (use_stdout_fallback) {
+                std::cout << timestamp.str() << message << std::endl;
+            } else {
+                std::cerr << timestamp.str() << message << std::endl;
+            }
         }
     }
 
-    // Function that handles all regular log output routing (always active)
+public:
+    // Debug message function (conditional on DEBUG_LOG_ACTIVE)
+    static void writeDebugMessage(const std::string& message) {
+        if (!DEBUG_LOG_ACTIVE) return;
+        writeMessage("DEBUG: " + message, false);
+    }
+
+    // Regular log message function (always active)
     static void writeLogMessage(const std::string& message) {
-        std::lock_guard<std::mutex> lock(log_mutex);
-        
-        // Get timestamp
-        auto now = std::chrono::system_clock::now();
-        auto time_t = std::chrono::system_clock::to_time_t(now);
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-            now.time_since_epoch()) % 1000;
-        
-        std::ostringstream timestamp;
-        timestamp << std::put_time(std::localtime(&time_t), "%H:%M:%S");
-        timestamp << '.' << std::setfill('0') << std::setw(3) << ms.count();
-        timestamp << " LOG: ";
-        
-        // Write to appropriate destination
-        if (use_file_logging && log_file && log_file->is_open()) {
-            *log_file << timestamp.str() << message << std::endl;
-            log_file->flush();
-        } else {
-            std::cout << timestamp.str() << message << std::endl;
-        }
+        writeMessage(message, true);
     }
 };
 

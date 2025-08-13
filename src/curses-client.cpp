@@ -6,7 +6,7 @@
 #include "display_impl.hpp"
 #include "transition.hpp"
 #include "sequence.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 using json = nlohmann::json;
 

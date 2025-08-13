@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "sequence.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 using namespace std::chrono;
 

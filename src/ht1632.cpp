@@ -10,7 +10,7 @@
 
 #include "display_impl.hpp"
 #include "ht1632.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 namespace ht1632
 {
