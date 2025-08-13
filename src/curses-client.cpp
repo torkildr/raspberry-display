@@ -113,14 +113,14 @@ int main() {
                     sequence::DisplayState state;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
                     break;
                 }
                 case 'a': {
                     sequence::DisplayState state;
                     state.text = abc_string;
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
                     break;
                 }
                 case 'b': {
@@ -128,7 +128,7 @@ int main() {
                     state.text = abc_string;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
                     break;
                 }
                 case 's':
