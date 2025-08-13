@@ -6,6 +6,7 @@
 #include "display_impl.hpp"
 #include "transition.hpp"
 #include "sequence.hpp"
+#include "debug_util.hpp"
 
 using json = nlohmann::json;
 
@@ -71,9 +72,9 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
 std::string abc_string = "!\"#$%&'()*+,-./0123456789:;<=>?@ ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 
 int main() {
+    debug::Logger::enableFileLogging("debug.log");
     init_curses();
     
-    // We need to create the SequenceManager first, then get a raw pointer for the callback
     sequence::SequenceManager* sequence_manager_ptr = nullptr;
     
     auto preUpdate = [] { clear(); };
@@ -231,6 +232,9 @@ int main() {
     
     // SequenceManager handles display lifecycle
     endwin();
+    
+    // Disable file logging to restore normal console output
+    debug::Logger::disableFileLogging();
     
     return EXIT_SUCCESS;
 }

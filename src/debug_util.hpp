@@ -1,15 +1,87 @@
 #ifndef debug_util_hpp
 #define debug_util_hpp
 
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <mutex>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
 #ifdef DEBUG
 #define DEBUG_LOG_ACTIVE 1
 #else
 #define DEBUG_LOG_ACTIVE 0
 #endif
 
-#define DEBUG_LOG(...) \
-    if (DEBUG_LOG_ACTIVE) { \
-        std::cerr << "DEBUG:" << __VA_ARGS__ << std::endl; \
+namespace debug {
+
+class Logger {
+public:
+    static std::unique_ptr<std::ofstream> log_file;
+    static std::mutex log_mutex;
+    static bool use_file_logging;
+
+    static void enableFileLogging(const std::string& filename) {
+        std::cout << "Enabling file logging to " << filename << std::endl;
+        std::lock_guard<std::mutex> lock(log_mutex);
+        log_file = std::make_unique<std::ofstream>(filename, std::ios::app);
+        if (log_file && log_file->is_open()) {
+            use_file_logging = true;
+            std::cout << "File logging successfully enabled!" << std::endl;
+        } else {
+            std::cout << "ERROR: Failed to open log file " << filename << std::endl;
+            use_file_logging = false;
+        }
+    }
+    
+    static void disableFileLogging() {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        if (log_file) {
+            log_file->close();
+            log_file.reset();
+        }
+        use_file_logging = false;
+    }
+
+    // Single function that handles all debug output routing
+    static void writeDebugMessage(const std::string& message) {
+        if (!DEBUG_LOG_ACTIVE) return;
+        
+        std::lock_guard<std::mutex> lock(log_mutex);
+        
+        // Get timestamp
+        auto now = std::chrono::system_clock::now();
+        auto time_t = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()) % 1000;
+        
+        std::ostringstream timestamp;
+        timestamp << std::put_time(std::localtime(&time_t), "%H:%M:%S");
+        timestamp << '.' << std::setfill('0') << std::setw(3) << ms.count();
+        timestamp << " DEBUG: ";
+        
+        // Write to appropriate destination
+        if (use_file_logging && log_file && log_file->is_open()) {
+            *log_file << timestamp.str() << message << std::endl;
+            log_file->flush();
+        } else {
+            std::cerr << timestamp.str() << message << std::endl;
+        }
+    }
+};
+
+} // namespace debug
+
+// Simplified macro that creates a stringstream and calls a single function
+#define DEBUG_LOG(msg) \
+    do { \
+        if (DEBUG_LOG_ACTIVE) { \
+            std::ostringstream debug_stream; \
+            debug_stream << msg; \
+            debug::Logger::writeDebugMessage(debug_stream.str()); \
+        } \
     } while (0)
 
 #endif
