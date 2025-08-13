@@ -25,12 +25,11 @@ public:
     static inline bool use_file_logging = false;
 
     static void enableFileLogging(const std::string& filename) {
-        std::cout << "Enabling file logging to " << filename << std::endl;
+        std::cerr << "Enabling file logging to " << filename << std::endl;
         std::lock_guard<std::mutex> lock(log_mutex);
         log_file = std::make_unique<std::ofstream>(filename, std::ios::app);
         if (log_file && log_file->is_open()) {
             use_file_logging = true;
-            std::cout << "File logging successfully enabled!" << std::endl;
         } else {
             std::cout << "ERROR: Failed to open log file " << filename << std::endl;
             use_file_logging = false;
@@ -71,6 +70,30 @@ public:
             std::cerr << timestamp.str() << message << std::endl;
         }
     }
+
+    // Function that handles all regular log output routing (always active)
+    static void writeLogMessage(const std::string& message) {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        
+        // Get timestamp
+        auto now = std::chrono::system_clock::now();
+        auto time_t = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now.time_since_epoch()) % 1000;
+        
+        std::ostringstream timestamp;
+        timestamp << std::put_time(std::localtime(&time_t), "%H:%M:%S");
+        timestamp << '.' << std::setfill('0') << std::setw(3) << ms.count();
+        timestamp << " LOG: ";
+        
+        // Write to appropriate destination
+        if (use_file_logging && log_file && log_file->is_open()) {
+            *log_file << timestamp.str() << message << std::endl;
+            log_file->flush();
+        } else {
+            std::cout << timestamp.str() << message << std::endl;
+        }
+    }
 };
 
 } // namespace debug
@@ -83,6 +106,14 @@ public:
             debug_stream << msg; \
             debug::Logger::writeDebugMessage(debug_stream.str()); \
         } \
+    } while (0)
+
+// Regular logging macro (always active)
+#define LOG(msg) \
+    do { \
+        std::ostringstream log_stream; \
+        log_stream << msg; \
+        debug::Logger::writeLogMessage(log_stream.str()); \
     } while (0)
 
 #endif

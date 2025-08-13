@@ -5,6 +5,7 @@
 #include <curses.h>
 
 #include "display_impl.hpp"
+#include "debug_util.hpp"
 
 namespace display
 {
@@ -97,6 +98,8 @@ static void showAlignment(display::Alignment align)
 DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate)
     : Display(preUpdate, postUpdate)
 {
+    debug::Logger::enableFileLogging("debug.log");
+
     initscr();
     timeout(0);
     cbreak();

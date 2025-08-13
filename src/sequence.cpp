@@ -426,7 +426,7 @@ DisplayState parseDisplayStateFromJSON(const nlohmann::json& json)
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error parsing JSON to DisplayState: " << e.what() << std::endl;
+        LOG("Error parsing JSON to DisplayState: " << e.what());
     }
     
     return state;

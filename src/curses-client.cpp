@@ -72,10 +72,8 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
 std::string abc_string = "!\"#$%&'()*+,-./0123456789:;<=>?@ ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\xe6\xf8\xe5\xc6\xd8\xc5";
 
 int main() {
-    debug::Logger::enableFileLogging("debug.log");
-    init_curses();
-    
     sequence::SequenceManager* sequence_manager_ptr = nullptr;
+    init_curses();
     
     auto preUpdate = [] { clear(); };
     auto postUpdate = [&sequence_manager_ptr] { 
