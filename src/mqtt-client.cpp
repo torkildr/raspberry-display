@@ -4,7 +4,8 @@
 #include <signal.h>
 #include <thread>
 #include <chrono>
-#include <iostream>
+#include <algorithm>
+#include <cstdlib>
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
 
@@ -20,6 +21,22 @@ static bool running = true;
 static display::Display* global_display = nullptr;
 static struct mosquitto* mosq = nullptr;
 static std::unique_ptr<sequence::SequenceManager> sequence_manager;
+
+// Connection state tracking
+static bool mqtt_connected = false;
+static int reconnect_delay = 1; // Start with 1 second
+static const int max_reconnect_delay = 30; // Max 30 seconds
+static auto last_connection_attempt = std::chrono::steady_clock::now();
+
+// Configuration structure
+struct MqttConfig {
+    std::string host;
+    int port = 1883;
+    std::string client_id = "raspberry-display";
+    std::string topic_prefix = "display";
+    std::string username;
+    std::string password;
+};
 
 static void signal_handler(int signal) {
     std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
@@ -155,24 +172,32 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
     }
 }
 
-static void on_connect(struct mosquitto* mosq, void* /*userdata*/, int result) {
+static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
     if (result == 0) {
         std::cout << "Connected to MQTT broker successfully" << std::endl;
+        mqtt_connected = true;
+        reconnect_delay = 1; // Reset backoff on successful connection
         
-        // Subscribe to topics
-        mosquitto_subscribe(mosq, nullptr, "display/set", 0);
-        mosquitto_subscribe(mosq, nullptr, "display/addSequence", 0);
-        mosquitto_subscribe(mosq, nullptr, "display/setSequence", 0);
-        mosquitto_subscribe(mosq, nullptr, "display/clearSequence", 0);
-        mosquitto_subscribe(mosq, nullptr, "display/quit", 0);
+        // Get topic prefix from userdata
+        MqttConfig* config = static_cast<MqttConfig*>(userdata);
+        std::string prefix = config->topic_prefix;
         
-        std::cout << "Subscribed to display topics (set, addSequence, setSequence, clearSequence, quit)" << std::endl;
+        // Subscribe to topics with configurable prefix
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/set").c_str(), 0);
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/addSequence").c_str(), 0);
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/setSequence").c_str(), 0);
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/clearSequence").c_str(), 0);
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/quit").c_str(), 0);
+        
+        std::cout << "Subscribed to " << prefix << " topics (set, addSequence, setSequence, clearSequence, quit)" << std::endl;
     } else {
         std::cerr << "Failed to connect to MQTT broker: " << mosquitto_connack_string(result) << std::endl;
+        mqtt_connected = false;
     }
 }
 
 static void on_disconnect(struct mosquitto* /*mosq*/, void* /*userdata*/, int result) {
+    mqtt_connected = false;
     if (result != 0) {
         std::cerr << "Unexpected disconnection from MQTT broker" << std::endl;
     } else {
@@ -180,34 +205,98 @@ static void on_disconnect(struct mosquitto* /*mosq*/, void* /*userdata*/, int re
     }
 }
 
+static void print_usage(const char* prog_name) {
+    std::cerr << "Usage: " << prog_name << " [host] [port]" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Configuration priority:" << std::endl;
+    std::cerr << "  1. Command line arguments (host, port)" << std::endl;
+    std::cerr << "  2. Environment variables" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Environment Variables:" << std::endl;
+    std::cerr << "  MQTT_HOST        - MQTT broker hostname/IP (required if not in args)" << std::endl;
+    std::cerr << "  MQTT_PORT        - MQTT broker port (default: 1883)" << std::endl;
+    std::cerr << "  MQTT_USERNAME    - MQTT username (optional)" << std::endl;
+    std::cerr << "  MQTT_PASSWORD    - MQTT password (optional)" << std::endl;
+    std::cerr << "  MQTT_CLIENT_ID   - MQTT client ID (default: raspberry-display)" << std::endl;
+    std::cerr << "  MQTT_TOPIC_PREFIX- Topic prefix (default: display)" << std::endl;
+    std::cerr << std::endl;
+    std::cerr << "Examples:" << std::endl;
+    std::cerr << "  " << prog_name << " localhost 1883" << std::endl;
+    std::cerr << "  MQTT_HOST=broker.example.com " << prog_name << std::endl;
+    std::cerr << "  MQTT_HOST=localhost MQTT_USERNAME=user MQTT_PASSWORD=pass " << prog_name << std::endl;
+}
+
+static MqttConfig parse_config(int argc, char** argv) {
+    MqttConfig config;
+    
+    // Get environment variables
+    const char* env_host = std::getenv("MQTT_HOST");
+    const char* env_port = std::getenv("MQTT_PORT");
+    const char* env_username = std::getenv("MQTT_USERNAME");
+    const char* env_password = std::getenv("MQTT_PASSWORD");
+    const char* env_client_id = std::getenv("MQTT_CLIENT_ID");
+    const char* env_topic_prefix = std::getenv("MQTT_TOPIC_PREFIX");
+    
+    // Apply environment variables
+    if (env_host) config.host = env_host;
+    if (env_port) config.port = std::stoi(env_port);
+    if (env_username) config.username = env_username;
+    if (env_password) config.password = env_password;
+    if (env_client_id) config.client_id = env_client_id;
+    if (env_topic_prefix) config.topic_prefix = env_topic_prefix;
+    
+    // Command line arguments override environment variables
+    if (argc >= 2) {
+        config.host = argv[1];
+    }
+    if (argc >= 3) {
+        config.port = std::stoi(argv[2]);
+    }
+    
+    return config;
+}
+
+static bool attempt_reconnect(struct mosquitto* mosq, const MqttConfig& config) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_connection_attempt).count();
+    
+    if (elapsed >= reconnect_delay) {
+        DEBUG_LOG("Attempting to reconnect to MQTT broker (" << config.host << ":" << config.port << ")...");
+        int result = mosquitto_reconnect(mosq);
+        last_connection_attempt = now;
+        
+        if (result == MOSQ_ERR_SUCCESS) {
+            return true;
+        }
+        
+        // Exponential backoff: double delay up to max
+        reconnect_delay = std::min(reconnect_delay * 2, max_reconnect_delay);
+        DEBUG_LOG("Reconnection failed, next attempt in " << reconnect_delay << " seconds");
+    }
+    
+    return false;
+}
+
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " <mqtt_host> <mqtt_port> [client_id] [topic_prefix]" << std::endl;
+    MqttConfig config = parse_config(argc, argv);
+    
+    // Validate configuration
+    if (config.host.empty()) {
+        std::cerr << "Error: MQTT host not specified" << std::endl;
+        std::cerr << std::endl;
+        print_usage(argv[0]);
         return 1;
     }
     
-    // Parse command line arguments
-    std::string mqtt_host = argv[1];
-    int mqtt_port = std::stoi(argv[2]);
-    std::string client_id = (argc > 3) ? argv[3] : "raspberry-display";
-    std::string topic_prefix = (argc > 4) ? argv[4] : "display";
-    
-    // Environment variable overrides
-    const char* env_host = std::getenv("MQTT_HOST");
-    const char* env_port = std::getenv("MQTT_PORT");
-    const char* env_client_id = std::getenv("CLIENT_ID");
-    const char* env_topic_prefix = std::getenv("TOPIC_PREFIX");
-    
-    if (env_host) mqtt_host = env_host;
-    if (env_port) mqtt_port = std::stoi(env_port);
-    if (env_client_id) client_id = env_client_id;
-    if (env_topic_prefix) topic_prefix = env_topic_prefix;
-    
     std::cout << "MQTT Configuration:" << std::endl;
-    std::cout << "  Host: " << mqtt_host << std::endl;
-    std::cout << "  Port: " << mqtt_port << std::endl;
-    std::cout << "  Client ID: " << client_id << std::endl;
-    std::cout << "  Topic Prefix: " << topic_prefix << std::endl;
+    std::cout << "  Host: " << config.host << std::endl;
+    std::cout << "  Port: " << config.port << std::endl;
+    std::cout << "  Client ID: " << config.client_id << std::endl;
+    std::cout << "  Topic Prefix: " << config.topic_prefix << std::endl;
+    if (!config.username.empty()) {
+        std::cout << "  Username: " << config.username << std::endl;
+        std::cout << "  Password: [provided]" << std::endl;
+    }
     
     // Set up signal handling
     signal(SIGINT, signal_handler);
@@ -222,11 +311,23 @@ int main(int argc, char** argv) {
     // Initialize mosquitto library
     mosquitto_lib_init();
     
-    // Create mosquitto client (no longer needs display userdata)
-    mosq = mosquitto_new(client_id.c_str(), true, nullptr);
+    // Create mosquitto client with config as userdata
+    mosq = mosquitto_new(config.client_id.c_str(), true, &config);
     if (!mosq) {
         std::cerr << "Failed to create mosquitto client" << std::endl;
         return 1;
+    }
+    
+    // Set authentication if provided
+    if (!config.username.empty()) {
+        int auth_result = mosquitto_username_pw_set(mosq, config.username.c_str(), 
+                                                   config.password.empty() ? nullptr : config.password.c_str());
+        if (auth_result != MOSQ_ERR_SUCCESS) {
+            std::cerr << "Failed to set MQTT authentication: " << mosquitto_strerror(auth_result) << std::endl;
+            mosquitto_destroy(mosq);
+            mosquitto_lib_cleanup();
+            return 1;
+        }
     }
     
     // Set callbacks
@@ -234,29 +335,35 @@ int main(int argc, char** argv) {
     mosquitto_disconnect_callback_set(mosq, on_disconnect);
     mosquitto_message_callback_set(mosq, on_message);
     
-    // Connect to broker
-    std::cout << "Connecting to MQTT broker at " << mqtt_host << ":" << mqtt_port << std::endl;
-    int result = mosquitto_connect(mosq, mqtt_host.c_str(), mqtt_port, 60);
+    // Initial connection attempt
+    std::cout << "Connecting to MQTT broker at " << config.host << ":" << config.port << std::endl;
+    int result = mosquitto_connect(mosq, config.host.c_str(), config.port, 60);
     if (result != MOSQ_ERR_SUCCESS) {
-        std::cerr << "Failed to connect to MQTT broker: " << mosquitto_strerror(result) << std::endl;
-        mosquitto_destroy(mosq);
-        mosquitto_lib_cleanup();
-        return 1;
+        std::cout << "Initial connection failed: " << mosquitto_strerror(result) << std::endl;
+        std::cout << "Will continue trying to connect..." << std::endl;
     }
     
     // Initialize sequence manager with display ownership
     sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display));
     
-    // Main loop
+    // Main loop with exponential backoff reconnection
     while (running) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
+        
         if (loop_result != MOSQ_ERR_SUCCESS) {
-            // TODO: Consider exponential backoff, ideally with less noisy output when trying forever
-            std::cerr << "MQTT loop error: " << mosquitto_strerror(loop_result) << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-            std::cout << "Attempting to reconnect..." << std::endl;
-            mosquitto_reconnect(mosq);
+            if (mqtt_connected) {
+                std::cerr << "MQTT loop error: " << mosquitto_strerror(loop_result) << std::endl;
+                mqtt_connected = false;
+                reconnect_delay = 1; // Reset backoff on fresh disconnection
+                last_connection_attempt = std::chrono::steady_clock::now();
+            }
+            
+            // Try to reconnect with exponential backoff
+            if (attempt_reconnect(mosq, config)) {
+                DEBUG_LOG("Successfully reconnected to MQTT broker");
+            }
         }
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
