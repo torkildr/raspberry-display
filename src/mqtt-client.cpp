@@ -8,6 +8,11 @@
 #include <cstdlib>
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
+#ifdef __linux__
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#endif
 
 #include "display_impl.hpp"
 #include "transition.hpp"
@@ -21,6 +26,35 @@ static bool running = true;
 static display::Display* global_display = nullptr;
 static struct mosquitto* mosq = nullptr;
 static std::unique_ptr<sequence::SequenceManager> sequence_manager;
+
+#ifdef __linux__
+// Systemd notification helper function
+static void systemd_notify(const char* message) {
+    const char* socket_path = std::getenv("NOTIFY_SOCKET");
+    if (!socket_path) {
+        return; // Not running under systemd or notifications not enabled
+    }
+    
+    int fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) {
+        return;
+    }
+    
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    
+    if (socket_path[0] == '@') {
+        // Abstract socket
+        strncpy(addr.sun_path + 1, socket_path + 1, sizeof(addr.sun_path) - 2);
+    } else {
+        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+    }
+    
+    sendto(fd, message, strlen(message), 0, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    close(fd);
+}
+#endif
 
 // Connection state tracking
 static bool mqtt_connected = false;
@@ -334,7 +368,14 @@ int main(int argc, char** argv) {
     // Initialize sequence manager with display ownership
     sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display));
     
+    // Notify systemd that we're ready
+#ifdef __linux__
+    systemd_notify("READY=1");
+    DEBUG_LOG("Notified systemd that service is ready");
+#endif
+    
     // Main loop with exponential backoff reconnection
+    auto last_watchdog = std::chrono::steady_clock::now();
     while (running) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
         
@@ -351,6 +392,15 @@ int main(int argc, char** argv) {
                 DEBUG_LOG("Successfully reconnected to MQTT broker");
             }
         }
+        
+        // Send systemd watchdog notification every 15 seconds (half of WatchdogSec=30)
+#ifdef __linux__
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(now - last_watchdog).count() >= 15) {
+            systemd_notify("WATCHDOG=1");
+            last_watchdog = now;
+        }
+#endif
         
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
