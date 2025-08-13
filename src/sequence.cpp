@@ -4,6 +4,7 @@
 #include "display.hpp"
 #include "sequence.hpp"
 #include "log_util.hpp"
+#include "transition.hpp"
 #include "utf8_converter.hpp"
 
 using namespace std::chrono;
@@ -351,8 +352,12 @@ void SequenceManager::processDisplayState(const DisplayState& state)
             m_display->setBrightness(brightness);
         }
     }
+
+    auto transition_type= (m_sequence.size() > 1)
+        ? state.transition_type
+        : transition::Type::NONE;
     
-    m_display->show(state.text, state.time_format, state.transition_type, state.transition_duration);
+    m_display->show(state.text, state.time_format, transition_type, state.transition_duration);
 }
 
 // Utility function to parse JSON into DisplayState (for clients)
