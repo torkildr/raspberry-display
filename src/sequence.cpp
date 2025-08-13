@@ -3,6 +3,7 @@
 
 #include "sequence.hpp"
 #include "log_util.hpp"
+#include "utf8_converter.hpp"
 
 using namespace std::chrono;
 
@@ -361,18 +362,18 @@ DisplayState parseDisplayStateFromJSON(const nlohmann::json& json)
     DisplayState state;
     
     try {
-       // Handle main content
+        // Handle main content
         if (json.contains("text")) {
-            state.text = json["text"].get<std::string>();
+            state.text = utf8::toLatin1(json["text"].get<std::string>());
             
             if (json.contains("show_time") && json["show_time"].get<bool>()) {
                 state.time_format = json.contains("time_format")
-                    ? json["time_format"].get<std::string>()
+                    ? utf8::toLatin1(json["time_format"].get<std::string>())
                     : "";
             }
         } else if (json.contains("show_time") && json["show_time"].get<bool>()) {
             state.time_format = json.contains("time_format")
-                ? json["time_format"].get<std::string>()
+                ? utf8::toLatin1(json["time_format"].get<std::string>())
                 : "";
         }
 
