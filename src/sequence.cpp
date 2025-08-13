@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "display.hpp"
 #include "sequence.hpp"
 #include "log_util.hpp"
 #include "utf8_converter.hpp"
@@ -13,6 +14,7 @@ namespace sequence
 SequenceManager::SequenceManager(std::unique_ptr<display::Display> display)
     : m_display(std::move(display))
 {
+    setDefaultContent();
     // Start the processing timer
     m_timer = timer::createTimer([this]() { processSequence(); }, TIMER_INTERVAL);
     
@@ -99,14 +101,16 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
     DEBUG_LOG("Sequence size = " << m_sequence.size() << ", setSequence");
 }
 
-void SequenceManager::setEmptyContent()
+void SequenceManager::setDefaultContent()
 {
     if (m_display) {
         m_active = false;
         m_current_index = 0;
         
-        m_display->setTransition(transition::Type::DISSOLVE, 5.0);
-        m_display->show(std::nullopt, std::nullopt);
+        // TODO: enable this when we know how to stop transition after the first
+        // m_display->setTransition(transition::Type::DISSOLVE, 2.0);
+        m_display->setAlignment(display::Alignment::CENTER);
+        m_display->show(std::nullopt, "");
     }
 }
 
@@ -208,11 +212,6 @@ void SequenceManager::processSequence()
         return;
     }
     
-    // If there's only one element, don't transition to itself - just stay put
-    if (m_sequence.size() == 1) {
-        return;
-    }
-    
     // Ensure current index is valid after removal
     if (m_current_index >= m_sequence.size()) {
         m_current_index = 0;
@@ -220,7 +219,7 @@ void SequenceManager::processSequence()
         processDisplayState(m_sequence[0].state);
         return;
     }
-    
+
     const auto& current_state = m_sequence[m_current_index];
     auto now = steady_clock::now();
     auto state_elapsed = duration<double>(now - m_state_start_time).count();
@@ -260,7 +259,7 @@ void SequenceManager::removeExpiredStates()
     // Handle sequence state changes after TTL cleanup
     if (m_sequence.size() < original_size) {
         if (m_sequence.empty()) {
-            setEmptyContent();
+            setDefaultContent();
             DEBUG_LOG("All sequence items expired - cleared screen and went inactive");
         }
         else if (m_current_index >= m_sequence.size()) {

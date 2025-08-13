@@ -48,15 +48,6 @@ static void signal_handler(int signal) {
         global_display->stop();
     }
 }
- 
-static void process_set(const json& message) {
-    if (sequence_manager) {
-        sequence_manager->clearSequence();
-
-        sequence::DisplayState state = sequence::parseDisplayStateFromJSON(message);
-        sequence_manager->addSequenceState(state, 5, 0.0, "display_set");
-    }
-}
 
 static void process_add_sequence(const json& message) {
     try {
@@ -152,9 +143,7 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
     try {
         json message_json = json::parse(payload);
         
-        if (topic == "display/set") {
-            process_set(message_json);
-        } else if (topic == "display/addSequence") {
+        if (topic == "display/addSequence") {
             process_add_sequence(message_json);
         } else if (topic == "display/setSequence") {
             process_set_sequence(message_json);
@@ -183,13 +172,12 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         std::string prefix = config->topic_prefix;
         
         // Subscribe to topics with configurable prefix
-        mosquitto_subscribe(mosq, nullptr, (prefix + "/set").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/addSequence").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/setSequence").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/clearSequence").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/quit").c_str(), 0);
         
-        LOG("Subscribed to " << prefix << " topics (set, addSequence, setSequence, clearSequence, quit)");
+        LOG("Subscribed to " << prefix << " topics (addSequence, setSequence, clearSequence, quit)");
     } else {
         LOG("Failed to connect to MQTT broker: " << mosquitto_connack_string(result));
         mqtt_connected = false;

@@ -30,6 +30,7 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
     addstr("\ns: toggle scrolling enabled/disabled");
     addstr("\n+/-: change brightness");
     addstr("\nc: toggle center/left alignment");
+    addstr("\nC: clear sequence");
     addstr("\n\nTransitions:");
     addstr("\n1: wipe left    2: wipe right");
     addstr("\n3: dissolve     4: scroll up");
@@ -99,6 +100,7 @@ int main() {
     sequence_manager->setBrightness(brightness);
     sequence_manager->setScrolling(currentScrolling);
     
+    int count = 0;
     while (!done) {
         int c;
         
@@ -111,14 +113,14 @@ int main() {
                     sequence::DisplayState state;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 5.0, 0.0, "display_set");
                     break;
                 }
                 case 'a': {
                     sequence::DisplayState state;
                     state.text = abc_string;
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 5.0, 0.0, "display_set");
                     break;
                 }
                 case 'b': {
@@ -126,7 +128,7 @@ int main() {
                     state.text = abc_string;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 86400.0, 0.0, "display_set");
+                    sequence_manager->addSequenceState(state, 5.0, 0.0, "display_set");
                     break;
                 }
                 case 's':
@@ -161,9 +163,12 @@ int main() {
                     break;
                 
                 // Transition demonstrations - now using DisplayState objects!
+                case 'C':
+                    sequence_manager->clearSequence();
+                    break;
                 case '1': {
                     sequence::DisplayState state;
-                    state.text = "Lorem ipsum dolor sit amet";
+                    state.text = "Lorem ipsum dolor sit amet" + std::to_string(count++);
                     state.transition_type = transition::Type::WIPE_LEFT;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo1");
                     break;
