@@ -83,7 +83,7 @@ MOCK_OBJ = $(MOCK_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 TARGETS = $(OBJ_DIR)/raspberry-display-mqtt $(OBJ_DIR)/curses-client $(OBJ_DIR)/mock-display-mqtt $(OBJ_DIR)/mock-curses-client
 
 # Phony targets
-.PHONY: all release debug clean install uninstall test font-generate help compile_commands
+.PHONY: all release debug clean install install-service uninstall test font-generate help compile_commands
 
 # Default target
 all: release
@@ -167,31 +167,36 @@ compile_commands:
 
 install: $(OBJ_DIR)/raspberry-display-mqtt
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
-	# Install binary
-	sudo cp $(OBJ_DIR)/raspberry-display-mqtt /usr/bin/$(BINARY_NAME)
-	sudo chmod +x /usr/bin/$(BINARY_NAME)
-	# Install systemd service file
-	sudo install -m0644 systemd/$(SERVICE_NAME).service /etc/systemd/system/
-	sudo sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/$(SERVICE_NAME).service
-	# Enable and reload systemd
-	@if test -f "$(SYSTEMCTL)"; then sudo $(SYSTEMCTL) daemon-reload; fi
-	@if test -f "$(SYSTEMCTL)"; then sudo $(SYSTEMCTL) enable $(SERVICE_NAME).service; fi
-	@echo "\nInstallation complete!"
+	cp $(OBJ_DIR)/raspberry-display-mqtt /usr/bin/$(BINARY_NAME)
+	chmod +x /usr/bin/$(BINARY_NAME)
 	@echo "\nThe MQTT display client has been installed as: /usr/bin/$(BINARY_NAME)"
-	@echo "\nYou can start the service with:"
-	@echo "  sudo systemctl start $(SERVICE_NAME)"
-	@echo "\nView logs with:"
-	@echo "  sudo journalctl -f -u $(SERVICE_NAME)"
+
+install-service:
+	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, service installation will probably not work as intended !!!\n\n"; fi
+	@if test ! -f "/usr/bin/$(BINARY_NAME)"; then echo "\n\n!!! Binary not found. Run 'make install' first !!!\n\n"; exit 1; fi
+	install -m0644 systemd/$(SERVICE_NAME).service /etc/systemd/system/
+	sed -i -e s/PLACEHOLDER_USER/$(SUDO_USER)/ /etc/systemd/system/$(SERVICE_NAME).service
+	mkdir -p /etc/systemd/system/$(SERVICE_NAME).service.d/
+	@if test ! -f "/etc/systemd/system/$(SERVICE_NAME).service.d/environment.conf"; then \
+		echo "Installing default environment configuration..."; \
+		install -m0644 systemd/environment.conf /etc/systemd/system/$(SERVICE_NAME).service.d/; \
+	else \
+		echo "Environment configuration already exists, skipping to preserve user settings."; \
+	fi
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) daemon-reload; fi
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) enable $(SERVICE_NAME).service; fi
+	@echo "\nTo customize MQTT settings, edit the environment variables in:"
+	@echo "  /etc/systemd/system/$(SERVICE_NAME).service.d/environment.conf"
 
 uninstall:
 	# Stop and disable service
-	@if test -f "$(SYSTEMCTL)"; then sudo $(SYSTEMCTL) stop $(SERVICE_NAME).service; fi
-	@if test -f "$(SYSTEMCTL)"; then sudo $(SYSTEMCTL) disable $(SERVICE_NAME).service; fi
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) stop $(SERVICE_NAME).service; fi
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) disable $(SERVICE_NAME).service; fi
 	# Remove files
-	sudo rm -f /etc/systemd/system/$(SERVICE_NAME).service
-	sudo rm -f /usr/bin/$(BINARY_NAME)
-	# Reload systemd
-	@if test -f "$(SYSTEMCTL)"; then sudo $(SYSTEMCTL) daemon-reload; fi
+	rm -f /etc/systemd/system/$(SERVICE_NAME).service
+	rm -rf /etc/systemd/system/$(SERVICE_NAME).service.d/
+	rm -f /usr/bin/$(BINARY_NAME)
+	@if test -f "$(SYSTEMCTL)"; then $(SYSTEMCTL) daemon-reload; fi
 	@echo "\nUninstallation complete!"
 	@echo "Service $(SERVICE_NAME) has been stopped, disabled, and removed."
 
@@ -214,7 +219,8 @@ help:
 	@echo "  mock-display-mqtt      - MQTT client with mock display"
 	@echo "  mock-curses-client     - Interactive client with mock display"
 	@echo "  test                   - Run mock MQTT client for testing"
-	@echo "  install                - Install MQTT client and systemd service"
+	@echo "  install                - Install MQTT client binary only"
+	@echo "  install-service        - Install and configure systemd service"
 	@echo "  uninstall              - Remove installed files and service"
 	@echo "  clean                  - Remove build artifacts"
 	@echo "  font-generate          - Generate font header from ASCII art"

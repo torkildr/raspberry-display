@@ -42,11 +42,5 @@ SyslogIdentifier=raspberry-display
 WatchdogSec=30
 NotifyAccess=none
 
-# Environment variables for configuration
-Environment="MQTT_HOST=localhost"
-Environment="MQTT_PORT=1883"
-Environment="CLIENT_ID=raspberry-display"
-Environment="TOPIC_PREFIX=display"
-
 [Install]
 WantedBy=multi-user.target
