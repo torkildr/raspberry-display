@@ -365,13 +365,11 @@ size_t Display::addTimeDivider(std::array<uint8_t, X_MAX>& buffer, size_t pos) c
 {
     if (show_time_divider && pos < X_MAX) {
         // Add vertical divider line (all bits set for full height)
-        buffer[pos] = 0xFF;  // Vertical divider
-        pos++;
+        buffer[pos++] = 0xFF;  // Vertical divider
         
         // Add 1 pixel gap before text when not actively scrolling
         if (pos < X_MAX && scrollOffset == 0) {
-            buffer[pos] = 0;  // 1 pixel gap before text starts
-            pos++;
+            buffer[pos++] = 0;  // 1 pixel gap before text starts
         }
     }
     return pos;
