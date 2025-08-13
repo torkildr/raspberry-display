@@ -47,7 +47,7 @@ public:
 
 private:
     // Unified internal logging function
-    static void writeMessage(const std::string& message, bool use_stdout_fallback = false) {
+    static void writeMessage(const std::string& message, std::ostream& out_stream) {
         std::lock_guard<std::mutex> lock(log_mutex);
         
         // Get timestamp
@@ -65,11 +65,7 @@ private:
             *log_file << timestamp.str() << ": " << message << std::endl;
             log_file->flush();
         } else {
-            if (use_stdout_fallback) {
-                std::cout << timestamp.str() << ": " << message << std::endl;
-            } else {
-                std::cerr << timestamp.str() << ": " << message << std::endl;
-            }
+            out_stream << timestamp.str() << ": " << message << std::endl;
         }
     }
 
@@ -77,12 +73,12 @@ public:
     // Debug message function (conditional on DEBUG_LOG_ACTIVE)
     static void writeDebugMessage(const std::string& message) {
         if (!DEBUG_LOG_ACTIVE) return;
-        writeMessage("DEBUG: " + message, false);
+        writeMessage("DEBUG: " + message, std::cerr);
     }
 
     // Regular log message function (always active)
     static void writeLogMessage(const std::string& message) {
-        writeMessage(message, true);
+        writeMessage(message, std::cout);
     }
 };
 
