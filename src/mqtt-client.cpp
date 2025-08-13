@@ -12,7 +12,7 @@
 #include "display_impl.hpp"
 #include "transition.hpp"
 #include "sequence.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 using json = nlohmann::json;
 
@@ -39,7 +39,7 @@ struct MqttConfig {
 };
 
 static void signal_handler(int signal) {
-    std::cout << "\nReceived signal " << signal << ", shutting down gracefully..." << std::endl;
+    LOG("Received signal " << signal << ", shutting down gracefully...");
     running = false;
     if (mosq) {
         mosquitto_disconnect(mosq);
@@ -61,7 +61,7 @@ static void process_set(const json& message) {
 static void process_add_sequence(const json& message) {
     try {
         if (!message.contains("state") || !message.contains("time")) {
-            std::cerr << "addSequence requires 'state' and 'time' fields" << std::endl;
+            LOG("addSequence requires 'state' and 'time' fields");
             return;
         }
         
@@ -79,14 +79,14 @@ static void process_add_sequence(const json& message) {
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error processing addSequence: " << e.what() << std::endl;
+        LOG("Error processing addSequence: " << e.what());
     }
 }
 
 static void process_set_sequence(const json& message) {
     try {
         if (!message.is_array()) {
-            std::cerr << "setSequence requires an array of sequence states" << std::endl;
+            LOG("setSequence requires an array of sequence states");
             return;
         }
         
@@ -94,7 +94,7 @@ static void process_set_sequence(const json& message) {
         
         for (const auto& item : message) {
             if (!item.contains("state") || !item.contains("time")) {
-                std::cerr << "Each sequence item requires 'state' and 'time' fields" << std::endl;
+                LOG("Each sequence item requires 'state' and 'time' fields");
                 continue;
             }
             
@@ -115,7 +115,7 @@ static void process_set_sequence(const json& message) {
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error processing setSequence: " << e.what() << std::endl;
+        LOG("Error processing setSequence: " << e.what());
     }
 }
 
@@ -137,7 +137,7 @@ static void process_clear_sequence(const json& message) {
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error processing clearSequence: " << e.what() << std::endl;
+        LOG("Error processing clearSequence: " << e.what());
     }
 }
 
@@ -167,14 +167,14 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
             DEBUG_LOG("Unknown topic: " << topic);
         }
     } catch (const json::parse_error& e) {
-        std::cerr << "JSON parse error: " << e.what() << std::endl;
-        std::cerr << "Payload: " << payload << std::endl;
+        LOG("JSON parse error: " << e.what());
+        LOG("Payload: " << payload);
     }
 }
 
 static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
     if (result == 0) {
-        std::cout << "Connected to MQTT broker successfully" << std::endl;
+        LOG("Connected to MQTT broker successfully");
         mqtt_connected = true;
         reconnect_delay = 1; // Reset backoff on successful connection
         
@@ -189,9 +189,9 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         mosquitto_subscribe(mosq, nullptr, (prefix + "/clearSequence").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/quit").c_str(), 0);
         
-        std::cout << "Subscribed to " << prefix << " topics (set, addSequence, setSequence, clearSequence, quit)" << std::endl;
+        LOG("Subscribed to " << prefix << " topics (set, addSequence, setSequence, clearSequence, quit)");
     } else {
-        std::cerr << "Failed to connect to MQTT broker: " << mosquitto_connack_string(result) << std::endl;
+        LOG("Failed to connect to MQTT broker: " << mosquitto_connack_string(result));
         mqtt_connected = false;
     }
 }
@@ -199,31 +199,31 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
 static void on_disconnect(struct mosquitto* /*mosq*/, void* /*userdata*/, int result) {
     mqtt_connected = false;
     if (result != 0) {
-        std::cerr << "Unexpected disconnection from MQTT broker" << std::endl;
+        LOG("Unexpected disconnection from MQTT broker");
     } else {
-        std::cout << "Disconnected from MQTT broker" << std::endl;
+        LOG("Disconnected from MQTT broker");
     }
 }
 
 static void print_usage(const char* prog_name) {
-    std::cerr << "Usage: " << prog_name << " [host] [port]" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Configuration priority:" << std::endl;
-    std::cerr << "  1. Command line arguments (host, port)" << std::endl;
-    std::cerr << "  2. Environment variables" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Environment Variables:" << std::endl;
-    std::cerr << "  MQTT_HOST        - MQTT broker hostname/IP (required if not in args)" << std::endl;
-    std::cerr << "  MQTT_PORT        - MQTT broker port (default: 1883)" << std::endl;
-    std::cerr << "  MQTT_USERNAME    - MQTT username (optional)" << std::endl;
-    std::cerr << "  MQTT_PASSWORD    - MQTT password (optional)" << std::endl;
-    std::cerr << "  MQTT_CLIENT_ID   - MQTT client ID (default: raspberry-display)" << std::endl;
-    std::cerr << "  MQTT_TOPIC_PREFIX- Topic prefix (default: display)" << std::endl;
-    std::cerr << std::endl;
-    std::cerr << "Examples:" << std::endl;
-    std::cerr << "  " << prog_name << " localhost 1883" << std::endl;
-    std::cerr << "  MQTT_HOST=broker.example.com " << prog_name << std::endl;
-    std::cerr << "  MQTT_HOST=localhost MQTT_USERNAME=user MQTT_PASSWORD=pass " << prog_name << std::endl;
+    LOG("Usage: " << prog_name << " [host] [port]");
+    LOG("");
+    LOG("Configuration priority:");
+    LOG("  1. Command line arguments (host, port)");
+    LOG("  2. Environment variables");
+    LOG("");
+    LOG("Environment Variables:");
+    LOG("  MQTT_HOST        - MQTT broker hostname/IP (required if not in args)");
+    LOG("  MQTT_PORT        - MQTT broker port (default: 1883)");
+    LOG("  MQTT_USERNAME    - MQTT username (optional)");
+    LOG("  MQTT_PASSWORD    - MQTT password (optional)");
+    LOG("  MQTT_CLIENT_ID   - MQTT client ID (default: raspberry-display)");
+    LOG("  MQTT_TOPIC_PREFIX- Topic prefix (default: display)");
+    LOG("");
+    LOG("Examples:");
+    LOG("  " << prog_name << " localhost 1883");
+    LOG("  MQTT_HOST=broker.example.com " << prog_name);
+    LOG("  MQTT_HOST=localhost MQTT_USERNAME=user MQTT_PASSWORD=pass " << prog_name);
 }
 
 static MqttConfig parse_config(int argc, char** argv) {
@@ -282,20 +282,20 @@ int main(int argc, char** argv) {
     
     // Validate configuration
     if (config.host.empty()) {
-        std::cerr << "Error: MQTT host not specified" << std::endl;
-        std::cerr << std::endl;
+        LOG("Error: MQTT host not specified");
+        LOG("");
         print_usage(argv[0]);
         return 1;
     }
     
-    std::cout << "MQTT Configuration:" << std::endl;
-    std::cout << "  Host: " << config.host << std::endl;
-    std::cout << "  Port: " << config.port << std::endl;
-    std::cout << "  Client ID: " << config.client_id << std::endl;
-    std::cout << "  Topic Prefix: " << config.topic_prefix << std::endl;
+    LOG("MQTT Configuration:");
+    LOG("  Host: " << config.host);
+    LOG("  Port: " << config.port);
+    LOG("  Client ID: " << config.client_id);
+    LOG("  Topic Prefix: " << config.topic_prefix);
     if (!config.username.empty()) {
-        std::cout << "  Username: " << config.username << std::endl;
-        std::cout << "  Password: [provided]" << std::endl;
+        LOG("  Username: " << config.username);
+        LOG("  Password: [provided]");
     }
     
     // Set up signal handling
@@ -314,7 +314,7 @@ int main(int argc, char** argv) {
     // Create mosquitto client with config as userdata
     mosq = mosquitto_new(config.client_id.c_str(), true, &config);
     if (!mosq) {
-        std::cerr << "Failed to create mosquitto client" << std::endl;
+        LOG("Failed to create mosquitto client");
         return 1;
     }
     
@@ -323,7 +323,7 @@ int main(int argc, char** argv) {
         int auth_result = mosquitto_username_pw_set(mosq, config.username.c_str(), 
                                                    config.password.empty() ? nullptr : config.password.c_str());
         if (auth_result != MOSQ_ERR_SUCCESS) {
-            std::cerr << "Failed to set MQTT authentication: " << mosquitto_strerror(auth_result) << std::endl;
+            LOG("Failed to set MQTT authentication: " << mosquitto_strerror(auth_result));
             mosquitto_destroy(mosq);
             mosquitto_lib_cleanup();
             return 1;
@@ -336,11 +336,11 @@ int main(int argc, char** argv) {
     mosquitto_message_callback_set(mosq, on_message);
     
     // Initial connection attempt
-    std::cout << "Connecting to MQTT broker at " << config.host << ":" << config.port << std::endl;
+    LOG("Connecting to MQTT broker at " << config.host << ":" << config.port);
     int result = mosquitto_connect(mosq, config.host.c_str(), config.port, 60);
     if (result != MOSQ_ERR_SUCCESS) {
-        std::cout << "Initial connection failed: " << mosquitto_strerror(result) << std::endl;
-        std::cout << "Will continue trying to connect..." << std::endl;
+        LOG("Initial connection failed: " << mosquitto_strerror(result));
+        LOG("Will continue trying to connect...");
     }
     
     // Initialize sequence manager with display ownership
@@ -352,9 +352,9 @@ int main(int argc, char** argv) {
         
         if (loop_result != MOSQ_ERR_SUCCESS) {
             if (mqtt_connected) {
-                std::cerr << "MQTT loop error: " << mosquitto_strerror(loop_result) << std::endl;
+                LOG("MQTT loop error: " << mosquitto_strerror(loop_result));
                 mqtt_connected = false;
-                reconnect_delay = 1; // Reset backoff on fresh disconnection
+                reconnect_delay = 1;
                 last_connection_attempt = std::chrono::steady_clock::now();
             }
             
@@ -368,7 +368,7 @@ int main(int argc, char** argv) {
     }
     
     // Cleanup
-    std::cout << "Shutting down..." << std::endl;
+    LOG("Shutting down...");
     mosquitto_disconnect(mosq);
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();

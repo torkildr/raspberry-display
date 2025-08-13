@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include "sequence.hpp"
-#include "debug_util.hpp"
+#include "log_util.hpp"
 
 using namespace std::chrono;
 
@@ -426,7 +426,7 @@ DisplayState parseDisplayStateFromJSON(const nlohmann::json& json)
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error parsing JSON to DisplayState: " << e.what() << std::endl;
+        LOG("Error parsing JSON to DisplayState: " << e.what());
     }
     
     return state;

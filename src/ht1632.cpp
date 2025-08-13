@@ -10,6 +10,7 @@
 
 #include "display_impl.hpp"
 #include "ht1632.hpp"
+#include "log_util.hpp"
 
 namespace ht1632
 {
@@ -132,19 +133,16 @@ DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> 
 
     if (X_MAX != (HT1632_PANEL_WIDTH * ht1632::panel_count))
     {
-        printf("Display area (X_MAX) must be equal to total panel columns.\n");
-        printf("X_MAX: %d\n", X_MAX);
-        printf("Panel columns: %d, (%d * %d)\n",
-               (HT1632_PANEL_WIDTH * ht1632::panel_count),
-               HT1632_PANEL_WIDTH,
-               ht1632::panel_count);
+        LOG("Display area (X_MAX) must be equal to total panel columns.");
+        LOG("X_MAX: " << X_MAX);
+        LOG("Panel columns: " << (HT1632_PANEL_WIDTH * ht1632::panel_count) << ", (" << HT1632_PANEL_WIDTH << " * " << ht1632::panel_count << ")");
         exit(EXIT_FAILURE);
     }
 
     init();
     setBrightness(8);
 
-    printf("Display enabled\n");
+    LOG("Display enabled");
 }
 
 DisplayImpl::~DisplayImpl()
