@@ -66,9 +66,9 @@ private:
             log_file->flush();
         } else {
             if (use_stdout_fallback) {
-                std::cout << timestamp.str() << message << std::endl;
+                std::cout << timestamp.str() << ": " << message << std::endl;
             } else {
-                std::cerr << timestamp.str() << message << std::endl;
+                std::cerr << timestamp.str() << ": " << message << std::endl;
             }
         }
     }
