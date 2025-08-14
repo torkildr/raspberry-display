@@ -14,7 +14,7 @@
 
 #define X_MAX 128
 
-#define SCROLL_DELAY 1.0   // seconds
+#define SCROLL_DELAY 2.0   // Seconds
 #define REFRESH_RATE 15.0  // Hz
 
 #define TIME_FORMAT_LONG "%A, %b %d %H:%M:%S"

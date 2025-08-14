@@ -292,3 +292,6 @@ Much of the ht1632 driver is inspired by [this repo](https://github.com/DerBer/h
 ## License
 This software is licensed under the MIT license, unless specified.
 
+### TODO
+- Home assistant MQTT
+- Fix README
