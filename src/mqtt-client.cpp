@@ -190,8 +190,8 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
             DEBUG_LOG("Unknown topic: " << topic);
         }
     } catch (const json::parse_error& e) {
-        LOG("JSON parse error: " << e.what());
-        LOG("Payload: " << payload);
+        WARN_LOG("JSON parse error: " << e.what());
+        DEBUG_LOG("Payload: " << payload);
     }
 }
 
@@ -213,7 +213,7 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         
         LOG("Subscribed to " << prefix << " topics (addSequence, setSequence, clearSequence, quit)");
     } else {
-        LOG("Failed to connect to MQTT broker: " << mosquitto_connack_string(result));
+        WARN_LOG("Failed to connect to MQTT broker: " << mosquitto_connack_string(result));
         mqtt_connected = false;
     }
 }
@@ -221,9 +221,9 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
 static void on_disconnect(struct mosquitto* /*mosq*/, void* /*userdata*/, int result) {
     mqtt_connected = false;
     if (result != 0) {
-        LOG("Unexpected disconnection from MQTT broker");
+        WARN_LOG("Unexpected disconnection from MQTT broker");
     } else {
-        LOG("Disconnected from MQTT broker");
+        WARN_LOG("Disconnected from MQTT broker");
     }
 }
 
@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
     
     // Validate configuration
     if (config.host.empty()) {
-        LOG("Error: MQTT host not specified");
+        ERROR_LOG("Error: MQTT host not specified");
         LOG("");
         print_usage(argv[0]);
         return 1;
@@ -336,7 +336,7 @@ int main(int argc, char** argv) {
     // Create mosquitto client with config as userdata
     mosq = mosquitto_new(config.client_id.c_str(), true, &config);
     if (!mosq) {
-        LOG("Failed to create mosquitto client");
+        ERROR_LOG("Failed to create mosquitto client");
         return 1;
     }
     
@@ -345,7 +345,7 @@ int main(int argc, char** argv) {
         int auth_result = mosquitto_username_pw_set(mosq, config.username.c_str(), 
                                                    config.password.empty() ? nullptr : config.password.c_str());
         if (auth_result != MOSQ_ERR_SUCCESS) {
-            LOG("Failed to set MQTT authentication: " << mosquitto_strerror(auth_result));
+            ERROR_LOG("Failed to set MQTT authentication: " << mosquitto_strerror(auth_result));
             mosquitto_destroy(mosq);
             mosquitto_lib_cleanup();
             return 1;
@@ -361,8 +361,8 @@ int main(int argc, char** argv) {
     LOG("Connecting to MQTT broker at " << config.host << ":" << config.port);
     int result = mosquitto_connect(mosq, config.host.c_str(), config.port, 60);
     if (result != MOSQ_ERR_SUCCESS) {
-        LOG("Initial connection failed: " << mosquitto_strerror(result));
-        LOG("Will continue trying to connect...");
+        ERROR_LOG("Initial connection failed: " << mosquitto_strerror(result));
+        ERROR_LOG("Will continue trying to connect...");
     }
     
     // Initialize sequence manager with display ownership
@@ -381,7 +381,7 @@ int main(int argc, char** argv) {
         
         if (loop_result != MOSQ_ERR_SUCCESS) {
             if (mqtt_connected) {
-                LOG("MQTT loop error: " << mosquitto_strerror(loop_result));
+                ERROR_LOG("MQTT loop error: " << mosquitto_strerror(loop_result));
                 mqtt_connected = false;
                 reconnect_delay = 1;
                 last_connection_attempt = std::chrono::steady_clock::now();
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
             
             // Try to reconnect with exponential backoff
             if (attempt_reconnect(mosq, config)) {
-                DEBUG_LOG("Successfully reconnected to MQTT broker");
+                LOG("Successfully reconnected to MQTT broker");
             }
         }
         

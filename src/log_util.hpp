@@ -8,14 +8,18 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-
-#ifdef DEBUG
-#define DEBUG_LOG_ACTIVE 1
-#else
-#define DEBUG_LOG_ACTIVE 0
-#endif
+#include <cstdlib>
+#include <string>
 
 namespace debug {
+
+enum class LogLevel {
+    DEBUG_LEVEL = 0,
+    INFO_LEVEL = 1,
+    WARN_LEVEL = 2,
+    ERROR_LEVEL = 3,
+    OFF_LEVEL = 4
+};
 
 class Logger {
 public:
@@ -23,6 +27,38 @@ public:
     static inline std::unique_ptr<std::ofstream> log_file;
     static inline std::mutex log_mutex;
     static inline bool use_file_logging = false;
+    
+    static LogLevel getCurrentLogLevel() {
+        static LogLevel cached_level = LogLevel::OFF_LEVEL;
+        static bool initialized = false;
+        
+        if (!initialized) {
+            const char* env_level = std::getenv("RASPBERRY_DISPLAY_LOG_LEVEL");
+            if (env_level) {
+                std::string level_str(env_level);
+                if (level_str == "DEBUG" || level_str == "debug") {
+                    cached_level = LogLevel::DEBUG_LEVEL;
+                } else if (level_str == "INFO" || level_str == "info") {
+                    cached_level = LogLevel::INFO_LEVEL;
+                } else if (level_str == "WARN" || level_str == "warn") {
+                    cached_level = LogLevel::WARN_LEVEL;
+                } else if (level_str == "ERROR" || level_str == "error") {
+                    cached_level = LogLevel::ERROR_LEVEL;
+                } else if (level_str == "OFF" || level_str == "off") {
+                    cached_level = LogLevel::OFF_LEVEL;
+                }
+            } else {
+                cached_level = LogLevel::INFO_LEVEL;
+            }
+            initialized = true;
+        }
+        
+        return cached_level;
+    }
+    
+    static bool shouldLog(LogLevel level) {
+        return level >= getCurrentLogLevel();
+    }
 
     static void enableFileLogging(const std::string& filename) {
         std::cerr << "Enabling file logging to " << filename << std::endl;
@@ -70,36 +106,55 @@ private:
     }
 
 public:
-    // Debug message function (conditional on DEBUG_LOG_ACTIVE)
+    // Debug message function (conditional on log level)
     static void writeDebugMessage(const std::string& message) {
-        if (!DEBUG_LOG_ACTIVE) return;
+        if (!shouldLog(LogLevel::DEBUG_LEVEL)) return;
         writeMessage("DEBUG: " + message, std::cerr);
     }
 
-    // Regular log message function (always active)
+    // Info message function 
+    static void writeInfoMessage(const std::string& message) {
+        if (!shouldLog(LogLevel::INFO_LEVEL)) return;
+        writeMessage("INFO: " + message, std::cout);
+    }
+
+    // Warning message function
+    static void writeWarnMessage(const std::string& message) {
+        if (!shouldLog(LogLevel::WARN_LEVEL)) return;
+        writeMessage("WARN: " + message, std::cerr);
+    }
+
+    // Error message function
+    static void writeErrorMessage(const std::string& message) {
+        if (!shouldLog(LogLevel::ERROR_LEVEL)) return;
+        writeMessage("ERROR: " + message, std::cerr);
+    }
+
+    // Regular log message function (maps to INFO level)
     static void writeLogMessage(const std::string& message) {
-        writeMessage(message, std::cout);
+        writeInfoMessage(message);
     }
 };
 
 } // namespace debug
 
-// Simplified macro that creates a stringstream and calls a single function
-#define DEBUG_LOG(msg) \
+// Base logging macro - eliminates repetition
+#define LOG_BASE(level, write_func, msg) \
     do { \
-        if (DEBUG_LOG_ACTIVE) { \
-            std::ostringstream debug_stream; \
-            debug_stream << msg; \
-            debug::Logger::writeDebugMessage(debug_stream.str()); \
+        if (debug::Logger::shouldLog(debug::LogLevel::level)) { \
+            std::ostringstream log_stream; \
+            log_stream << msg; \
+            debug::Logger::write_func(log_stream.str()); \
         } \
     } while (0)
 
-// Regular logging macro (always active)
-#define LOG(msg) \
-    do { \
-        std::ostringstream log_stream; \
-        log_stream << msg; \
-        debug::Logger::writeLogMessage(log_stream.str()); \
-    } while (0)
+// Specific logging macros using the base
+#define DEBUG_LOG(msg) LOG_BASE(DEBUG_LEVEL, writeDebugMessage, msg)
+#define INFO_LOG(msg)  LOG_BASE(INFO_LEVEL, writeInfoMessage, msg)
+#define WARN_LOG(msg)  LOG_BASE(WARN_LEVEL, writeWarnMessage, msg)
+#define ERROR_LOG(msg) LOG_BASE(ERROR_LEVEL, writeErrorMessage, msg)
+
+// Regular logging macro (maps to INFO level, backward compatible)
+#define LOG(msg) INFO_LOG(msg)
 
 #endif
