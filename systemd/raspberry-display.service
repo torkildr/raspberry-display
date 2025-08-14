@@ -6,7 +6,7 @@ Wants=network-online.target
 Requires=network.target
 
 [Service]
-Type=simple
+Type=notify
 ExecStart=/usr/bin/raspberry-display-mqtt
 User=PLACEHOLDER_USER
 Group=gpio
