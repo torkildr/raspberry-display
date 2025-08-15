@@ -138,15 +138,24 @@ $(OBJ_DIR)/%.o: src/%.cpp | $(OBJ_DIR)
 # Include dependency files for header tracking
 -include $(OBJ_DIR)/*.d
 
-# Test target
-test: $(OBJ_DIR)/mock-display-mqtt
-	@echo "Running mock MQTT client for testing..."
-	@echo "Make sure you have an MQTT broker running on localhost:1883"
-	./$(OBJ_DIR)/mock-display-mqtt localhost 1883
-
 clean:
 	$(RM) -rf $(BUILD_DIR) $(DEBUG_BUILD_DIR)
 	$(RM) -f src/font_generated.h
+
+# Testing
+TEST_SRC = src/test_main.cpp
+TEST_OBJ = $(TEST_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
+TEST_LIBS = $(MQTT_LIBS) $(BASIC_LIBS) -lCatch2Main -lCatch2
+
+# Test target
+test: $(OBJ_DIR)/test_main
+	@echo "Running tests..."
+	$(OBJ_DIR)/test_main
+
+$(OBJ_DIR)/test_main: $(OBJ_DIR) $(TEST_OBJ) $(COMMON_OBJ) $(MOCK_OBJ) src/font_generated.h
+	@echo "Linking test_main..."
+	$(CXX) $(CXXFLAGS) -o $@ $(TEST_OBJ) $(COMMON_OBJ)  $(MOCK_OBJ) $(TEST_LIBS)
+
 
 # Generate compile_commands.json for LSP support
 compile_commands:
@@ -234,4 +243,4 @@ help:
 	@echo "Examples:"
 	@echo "  make                   - Build release version"
 	@echo "  make BUILD_TYPE=debug  - Build debug version"
-	@echo "  make test              - Test with mock MQTT client"
+	@echo "  make test              - Build and run tests"
