@@ -9,7 +9,8 @@ RUN apt-get update \
       mosquitto-clients \
       colormake \
       bear \
-      clangd
+      clangd \
+      libcatch2-dev
 
 RUN mkdir setup
 COPY *.sh /setup/
