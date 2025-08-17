@@ -91,7 +91,6 @@ class WipeTransition : public TransitionBase
 {
 public:
     enum class Direction { LEFT_TO_RIGHT, RIGHT_TO_LEFT };
-    
     WipeTransition(Direction dir = Direction::LEFT_TO_RIGHT, double duration = 1.0);
 
 protected:
@@ -99,9 +98,6 @@ protected:
 
 private:
     Direction direction;
-    // Wipe pattern: "||"
-    static constexpr uint8_t WIPE_PATTERN[2] = {0xff, 0xff};
-    static constexpr size_t PATTERN_WIDTH = 2;
 };
 
 /**

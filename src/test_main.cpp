@@ -1,12 +1,25 @@
+#include "display.hpp"
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <iostream>
+#include <catch2/catch_all.hpp>
+#include <cstdlib>
+#include <string>
+#include <vector>
+#include "transition.hpp"
+
 #define CATCH_CONFIG_MAIN
 
-#include <catch2/catch_all.hpp>
-
-#include "transition.hpp"
+std::string to_binary(long long);
+std::string to_binary(long long value) {
+    std::string binary_string;
+    while (value > 0) {
+        binary_string.insert(binary_string.begin(), (value % 2) ? '1' : '0');
+        value /= 2;
+    }
+    return binary_string.empty() ? "0" : binary_string;
+}
 
 TEST_CASE("scroll up", "[transition]") {
     transition::ScrollTransition scroll_transition(transition::ScrollTransition::Direction::UP, 1.0);
@@ -16,14 +29,13 @@ TEST_CASE("scroll up", "[transition]") {
     scroll_transition.start(from_buffer, to_buffer);
     REQUIRE(scroll_transition.update(0.0)[0] == 0x00);
     REQUIRE(scroll_transition.update(0.5)[0] == 0xF0);
-    REQUIRE(scroll_transition.update(1.0)[0] == 0xFF);
+    REQUIRE(scroll_transition.update(0.5)[0] == 0xFF);
 
     scroll_transition.start(from_buffer, to_buffer);
     REQUIRE(scroll_transition.update(0.0)[1] == 0xFF);
     REQUIRE(scroll_transition.update(0.5)[1] == 0x0F);
-    REQUIRE(scroll_transition.update(1.0)[1] == 0x00);
+    REQUIRE(scroll_transition.update(0.5)[1] == 0x00);
 }
-
 
 TEST_CASE("scroll down", "[transition]") {
     transition::ScrollTransition scroll_transition(transition::ScrollTransition::Direction::DOWN, 1.0);
@@ -33,18 +45,19 @@ TEST_CASE("scroll down", "[transition]") {
     scroll_transition.start(from_buffer, to_buffer);
     REQUIRE(scroll_transition.update(0.0)[0] == 0x00);
     REQUIRE(scroll_transition.update(0.5)[0] == 0x0F);
-    REQUIRE(scroll_transition.update(1.0)[0] == 0xFF);
+    REQUIRE(scroll_transition.update(0.5)[0] == 0xFF);
 
     scroll_transition.start(from_buffer, to_buffer);
     REQUIRE(scroll_transition.update(0.0)[1] == 0xFF);
     REQUIRE(scroll_transition.update(0.5)[1] == 0xF0);
-    REQUIRE(scroll_transition.update(1.0)[1] == 0x00);
+    REQUIRE(scroll_transition.update(0.5)[1] == 0x00);
 }
 
 TEST_CASE("scroll should move without gaps", "[transition]") {
+    double duration = 3.0;
     std::array<transition::ScrollTransition, 2> scroll_directions = {
-        transition::ScrollTransition(transition::ScrollTransition::Direction::UP, 1.0),
-        transition::ScrollTransition(transition::ScrollTransition::Direction::DOWN, 1.0),
+        transition::ScrollTransition(transition::ScrollTransition::Direction::UP, duration),
+        transition::ScrollTransition(transition::ScrollTransition::Direction::DOWN, duration),
     };
     std::array<uint8_t, X_MAX> from_buffer = {0x00};
     std::array<uint8_t, X_MAX> to_buffer = {0xFF};
@@ -54,11 +67,66 @@ TEST_CASE("scroll should move without gaps", "[transition]") {
         scroll_transition.start(from_buffer, to_buffer);
         
         uint8_t previous = from_buffer[0];
-        for (double t = 0.0; t <= 1.0; t += 1/100.0) {
-            INFO("Scroll direction: " << i << ", time: " << t);
-            auto result = scroll_transition.update(t);
+        double step = duration * (1.0 / REFRESH_RATE);
+        for (double t = 0.0; t < duration; t += step) {
+            INFO("Scroll direction: " << ", time: " << t);
+            auto result = scroll_transition.update(step);
+            
             REQUIRE(result[0] >= previous);
             previous = result[0];
         }
     }
+}
+
+TEST_CASE("wipe right", "[transition]") {
+    transition::WipeTransition wipe_transition(transition::WipeTransition::Direction::LEFT_TO_RIGHT, 1.0);
+    std::array<uint8_t, X_MAX> from_buffer = {{}};
+    std::array<uint8_t, X_MAX> to_buffer = {{}};
+    for (size_t i = 0; i < X_MAX; ++i) {
+        from_buffer[i] = static_cast<uint8_t>(0x00);
+        to_buffer[i] = static_cast<uint8_t>(0xFF);
+    }
+
+    wipe_transition.start(from_buffer, to_buffer);
+
+    struct VerificationData {
+        unsigned long x_cord;
+        uint8_t expected;
+    };
+
+    auto step_and_verify = [&](double step, std::vector<VerificationData> expected)   {
+        auto buffer = wipe_transition.update(step);
+        for (const auto& data : expected) {
+            INFO("Step: " << step);
+            INFO("X: " << data.x_cord);
+            REQUIRE_THAT(
+                to_binary(buffer[data.x_cord]),
+                Catch::Matchers::Equals(to_binary(data.expected))
+            );
+        }
+    };
+
+    INFO("T = 0.0");
+    step_and_verify(0.0, {
+        {0, 0xFF},
+        {1, 0x00},
+        {63, 0x00},
+        {127, 0x00},
+    });
+    INFO("T = 0.5");
+    step_and_verify(0.5, {
+        {0, 0xFF},
+        {61, 0xFF},
+        {62, 0xFF},
+        {63, 0x00},
+        {63, 0x00},
+        {127, 0x00},
+    });
+    INFO("T = 1.0");
+    step_and_verify(0.5, {
+        {0, 0xFF},
+        {63, 0xFF},
+        {127, 0xFF},
+    });
+
 }

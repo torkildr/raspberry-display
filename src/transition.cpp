@@ -53,50 +53,21 @@ WipeTransition::WipeTransition(Direction dir, double duration)
 std::array<uint8_t, X_MAX> WipeTransition::animate(double progress)
 {
     std::array<uint8_t, X_MAX> result = source_buffer;
-    
-    // Calculate wipe position based on progress
-    auto wipe_pos = static_cast<size_t>(progress * static_cast<double>(X_MAX + PATTERN_WIDTH));
+
+    auto wipe_pos = static_cast<size_t>(round(progress * static_cast<double>(X_MAX)));
     
     for (size_t x = 0; x < X_MAX; ++x) {
-        size_t pattern_offset;
-        bool should_reveal = false;
+        size_t pos = (direction == Direction::LEFT_TO_RIGHT) ? x : (X_MAX - 1 - x);
+        bool should_reveal = wipe_pos > x;
         
-        if (direction == Direction::LEFT_TO_RIGHT) {
-            if (wipe_pos > x) {
-                pattern_offset = (wipe_pos - x) % PATTERN_WIDTH;
-                should_reveal = (wipe_pos - x) <= PATTERN_WIDTH;
-            } else {
-                pattern_offset = 0;
+        if (x == wipe_pos) {
+            if (pos - 1 > 0) {
+                result[pos - 1] ^= 0xFF;
             }
-        } else {
-            if (x >= (X_MAX > wipe_pos ? X_MAX - wipe_pos : 0)) {
-                size_t offset = x - (X_MAX - wipe_pos);
-                pattern_offset = offset % PATTERN_WIDTH;
-                should_reveal = offset <= PATTERN_WIDTH;
-            } else {
-                pattern_offset = 0;
-            }
-        }
-        
-        if (should_reveal && pattern_offset < PATTERN_WIDTH) {
-            // Apply wipe pattern mask
-            uint8_t pattern_mask = WIPE_PATTERN[pattern_offset];
-            uint8_t revealed_bits = target_buffer[x] & pattern_mask;
-            uint8_t hidden_bits = source_buffer[x] & static_cast<uint8_t>(~pattern_mask);
-            result[x] = revealed_bits | hidden_bits;
-            
-            // Make wipe visible even with identical content by inverting pattern area
-            if (source_buffer[x] == target_buffer[x]) {
-                // Create visual effect by inverting pixels in the pattern area
-                uint8_t invert_mask = ~pattern_mask;
-                result[x] = static_cast<uint8_t>((result[x] & pattern_mask) | ((~source_buffer[x]) & invert_mask));
-            }
-        } else if ((direction == Direction::LEFT_TO_RIGHT && wipe_pos >= (x + PATTERN_WIDTH)) ||
-                   (direction == Direction::RIGHT_TO_LEFT && x >= (X_MAX - wipe_pos + PATTERN_WIDTH))) {
-            // Fully revealed area
-            result[x] = target_buffer[x];
-        }
-        // else: keep source_buffer content (not yet reached by wipe)
+            result[pos] ^= 0xFF;
+       } else if (should_reveal) {
+            result[pos] = target_buffer[pos];
+       }
     }
     
     return result;
@@ -191,67 +162,21 @@ std::array<uint8_t, X_MAX> ScrollTransition::animate(double progress)
 {
     std::array<uint8_t, X_MAX> result{0};
     
-    // Calculate how many pixels to shift (can be fractional)
-    double pixel_shift = progress * static_cast<double>(DISPLAY_HEIGHT);
-    
+    int pixel_shift = static_cast<int>(
+        round(progress * static_cast<double>(DISPLAY_HEIGHT))
+    );
+
     for (size_t x = 0; x < X_MAX; ++x) {
         uint8_t source_byte = source_buffer[x];
         uint8_t target_byte = target_buffer[x];
-        uint8_t result_byte = 0;
-        
-        for (size_t bit = 0; bit < 8; ++bit) {
-            auto bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(bit));
-            double current_pixel = static_cast<double>(bit);
-            bool pixel_set = false;
-            
-            if (direction == Direction::UP) {
-                // SCROLL UP: Source moves up, target comes from below
-                double source_sample_pos = current_pixel + pixel_shift;
-                
-                // Check if we should sample from source (still visible after shift)
-                if (source_sample_pos < static_cast<double>(DISPLAY_HEIGHT)) {
-                    auto source_bit_idx = static_cast<size_t>(source_sample_pos);
-                    if (source_bit_idx < 8) {
-                        auto source_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(source_bit_idx));
-                        pixel_set = (source_byte & source_bit_mask) != 0;
-                    }
-                } else {
-                    // Source has scrolled off screen, sample from target
-                    double target_sample_pos = current_pixel + pixel_shift - static_cast<double>(DISPLAY_HEIGHT);
-                    auto target_bit_idx = static_cast<size_t>(target_sample_pos);
-                    if (target_bit_idx < 8) {
-                        auto target_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(target_bit_idx));
-                        pixel_set = (target_byte & target_bit_mask) != 0;
-                    }
-                }
-            } else {
-                // SCROLL DOWN: Source moves down, target comes from above
-                double source_sample_pos = current_pixel - pixel_shift;
-                
-                // Check if we should sample from source (still visible after shift)
-                if (source_sample_pos >= 0.0) {
-                    auto source_bit_idx = static_cast<size_t>(source_sample_pos);
-                    if (source_bit_idx < 8) {
-                        auto source_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(source_bit_idx));
-                        pixel_set = (source_byte & source_bit_mask) != 0;
-                    }
-                } else {
-                    // Source has scrolled off screen, sample from target
-                    double target_sample_pos = current_pixel - pixel_shift + static_cast<double>(DISPLAY_HEIGHT);
-                    auto target_bit_idx = static_cast<size_t>(target_sample_pos);
-                    if (target_bit_idx < 8) {
-                        auto target_bit_mask = static_cast<uint8_t>(1U << static_cast<unsigned>(target_bit_idx));
-                        pixel_set = (target_byte & target_bit_mask) != 0;
-                    }
-                }
-            }
-            
-            if (pixel_set) {
-                result_byte |= bit_mask;
-            }
+
+        if (direction == Direction::UP) {
+            result[x] = ((source_byte >> pixel_shift) & 0xFF) | 
+                        ((target_byte << (DISPLAY_HEIGHT - pixel_shift)) & 0xFF);
+        } else {
+            result[x] = ((source_byte << pixel_shift) & 0xFF) | 
+                        ((target_byte >> (DISPLAY_HEIGHT - pixel_shift)) & 0xFF);
         }
-        
-        result[x] = result_byte;
     }
     
     return result;
