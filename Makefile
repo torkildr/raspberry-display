@@ -103,24 +103,24 @@ $(DEBUG_BUILD_DIR):
 	mkdir -p $@
 
 # Font generation (required before building)
-src/font_generated.h: tools/font_definitions.txt tools/font_generator.py
+src/font_generated.hpp: tools/font_definitions.txt tools/font_generator.py
 	@echo "Generating font header..."
-	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h
+	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.hpp
 
 # Executable targets with proper dependencies
-$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/font_generated.h $(COMMON_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
 	@echo "Linking raspberry-display-mqtt..."
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(MQTT_OBJ) $(HT1632_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/font_generated.h $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
 	@echo "Linking curses-client..."
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(BASIC_LIBS)
 
-$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/font_generated.h $(COMMON_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-display-mqtt..."
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(MQTT_OBJ) $(MOCK_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/font_generated.h $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-curses-client..."
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ) $(BASIC_LIBS)
 
@@ -140,7 +140,7 @@ $(OBJ_DIR)/%.o: src/%.cpp | $(OBJ_DIR)
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(DEBUG_BUILD_DIR)
-	$(RM) -f src/font_generated.h
+	$(RM) -f src/font_generated.hpp
 
 # Testing
 TEST_SRC = src/test_main.cpp
@@ -152,7 +152,7 @@ test: $(OBJ_DIR)/test_main
 	@echo "Running tests..."
 	$(OBJ_DIR)/test_main
 
-$(OBJ_DIR)/test_main: $(OBJ_DIR) $(TEST_OBJ) $(COMMON_OBJ) $(MOCK_OBJ) src/font_generated.h
+$(OBJ_DIR)/test_main: $(OBJ_DIR) src/font_generated.hpp $(TEST_OBJ) $(COMMON_OBJ) $(MOCK_OBJ) src/font_generated.hpp
 	@echo "Linking test_main..."
 	$(CXX) $(CXXFLAGS) -o $@ $(TEST_OBJ) $(COMMON_OBJ)  $(MOCK_OBJ) $(TEST_LIBS)
 
@@ -211,8 +211,8 @@ uninstall:
 
 font-generate:
 	@echo "Generating font header from ASCII art definitions..."
-	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.h
-	@echo "Generated src/font_generated.h"
+	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.hpp
+	@echo "Generated src/font_generated.hpp"
 	@echo "Font ready for build - no additional steps needed"
 
 # Help target

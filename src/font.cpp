@@ -3,38 +3,29 @@
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
+#include <iostream>
 
-#include "font_generated.h"
+#include "font_generated.hpp"
 #include "font.hpp"
 
-static uint8_t *fontCharacter(char c)
-{
-    const char *substr = strchr(charLookup, c);
-    if (substr == NULL)
-    {
-        // Return default character (space ' ') for unknown characters
-        // This prevents null pointer dereference and segmentation faults
-        substr = strchr(charLookup, ' ');
-        if (substr == NULL)
-        {
-            // Fallback: return first character if even space is not found
-            return reinterpret_cast<uint8_t*>(font_variable[0]);
-        }
-    }
 
-    return reinterpret_cast<uint8_t*>(font_variable[substr - charLookup]);
+static const font::GlyphData* fontCharacter(char c)
+{
+    return font::getGlyph(c);
 }
 
 static std::vector<uint8_t> renderChar(char c)
 {
-    uint8_t *glyph = fontCharacter(c);
-    short width = glyph[0];
+    const auto* glyph = fontCharacter(c);
+    if (!glyph) {
+        return {0}; // Return single empty column if glyph not found
+    }
+    
     std::vector<uint8_t> rendered;
-
-    short col;
-    for (col = 0; col < width; col++)
-    {
-        rendered.push_back(glyph[col + 1]);
+    
+    // Copy the actual glyph columns
+    for (uint8_t column : *glyph) {
+        rendered.push_back(column);
     }
 
     // empty row after glyph

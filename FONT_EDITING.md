@@ -5,7 +5,7 @@ The raspberry-display project uses a user-friendly font editing system that allo
 ## Font Architecture
 
 - **Source**: `tools/font_definitions.txt` - Human-readable ASCII art font definitions (version controlled)
-- **Generated**: `src/font_generated.h` - C header file generated from definitions (ignored by git)
+- **Generated**: `src/font_generated.hpp` - C++ header file generated from definitions (ignored by git)
 - **Build**: Font is automatically generated during build process
 
 ## Quick Start
@@ -27,7 +27,7 @@ The font is automatically generated from `tools/font_definitions.txt` during the
 ```bash
 make font-generate
 ```
-This manually creates `src/font_generated.h` from the font definitions.
+This manually creates `src/font_generated.hpp` from the font definitions.
 
 ## Font Definition Format
 
@@ -91,7 +91,7 @@ WIDTH: 5
 
 The font system integrates with the build system:
 
-- **Automatic regeneration**: If you modify `tools/font_definitions.txt`, the build system will automatically regenerate `src/font_generated.h` when needed
+- **Automatic regeneration**: If you modify `tools/font_definitions.txt`, the build system will automatically regenerate `src/font_generated.hpp` when needed
 - **Dependency tracking**: Changes to font definitions or the generator script trigger automatic regeneration
 
 ## Tips for Font Editing

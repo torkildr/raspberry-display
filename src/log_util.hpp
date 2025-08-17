@@ -33,7 +33,7 @@ public:
         static bool initialized = false;
         
         if (!initialized) {
-            const char* env_level = std::getenv("RASPBERRY_DISPLAY_LOG_LEVEL");
+            const char* env_level = std::getenv("LOG_LEVEL");
             if (env_level) {
                 std::string level_str(env_level);
                 if (level_str == "DEBUG" || level_str == "debug") {

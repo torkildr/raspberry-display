@@ -1,17 +1,22 @@
-#include "display.hpp"
-#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <catch2/catch_all.hpp>
 #include <cstdlib>
 #include <string>
 #include <vector>
+
+#include <catch2/catch_all.hpp>
+
+#include "display.hpp"
 #include "transition.hpp"
+#include "utf8_converter.hpp"
+#include "font.hpp"
 
 #define CATCH_CONFIG_MAIN
 
 std::string to_binary(long long);
+std::string to_hex_string(const std::string& str);
+
 std::string to_binary(long long value) {
     std::string binary_string;
     while (value > 0) {
@@ -128,5 +133,61 @@ TEST_CASE("wipe right", "[transition]") {
         {63, 0xFF},
         {127, 0xFF},
     });
+}
 
+std::string to_hex_string(const std::string& str) {
+    std::string hex_str;
+    for (size_t i = 0; i < str.length(); ++i) {
+        char hex_char[8];
+        snprintf(hex_char, sizeof(hex_char), "\\x%02x", static_cast<unsigned char>(str[i]));
+        hex_str += hex_char;
+    }
+    return hex_str;
+}
+
+TEST_CASE("UTF-8 to iso8859-1 conversion", "[utf8]") {
+    std::string actual = utf8::toLatin1("Hello, World!");
+    std::string expected = "Hello, World!";
+    INFO("Expected: " << to_hex_string(expected));
+    INFO("Actual:   " << to_hex_string(actual));
+    REQUIRE(actual == expected);
+
+    actual = utf8::toLatin1("\xc3\x86\xc3\x98\xc3\x85");
+    expected = "\xc6\xd8\xc5";
+    INFO("Expected: " << to_hex_string(expected));
+    INFO("Actual:   " << to_hex_string(actual));
+    REQUIRE(actual == expected);
+
+    actual = utf8::toLatin1("Café");
+    expected = "Caf\xe9";
+    INFO("Expected: " << to_hex_string(expected));
+    INFO("Actual:   " << to_hex_string(actual));
+    REQUIRE(actual == expected);
+
+    actual = utf8::toLatin1("\xc2\xb0\xc2\xba");
+    expected = "\xb0\xba";
+    INFO("Expected: " << to_hex_string(expected));
+    INFO("Actual:   " << to_hex_string(actual));
+    REQUIRE(actual == expected);
+}
+
+TEST_CASE("Character mapping functionality", "[font]") {
+    // Test compile-time character mapping - 0xba should map to 0xb0's glyph
+    char char_b0 = static_cast<char>(0xb0);
+    char char_ba = static_cast<char>(0xba);
+    
+    // Render both characters and verify they produce identical output
+    std::vector<uint8_t> original = font::renderString(std::string(1, char_b0));
+    std::vector<uint8_t> mapped = font::renderString(std::string(1, char_ba));
+    
+    INFO("Original (0xb0): " << to_hex_string(std::string(original.begin(), original.end())));
+    INFO("Mapped (0xba):   " << to_hex_string(std::string(mapped.begin(), mapped.end())));
+    REQUIRE(original == mapped);
+    
+    // Test that mapping works in strings
+    std::string original_str = "A" + std::string(1, char_b0) + "B";
+    std::string mapped_str = "A" + std::string(1, char_ba) + "B";
+    std::vector<uint8_t> mixed_original = font::renderString(original_str);
+    std::vector<uint8_t> mixed_mapped = font::renderString(mapped_str);
+    REQUIRE(mixed_original == mixed_mapped);
 }

@@ -10,13 +10,18 @@ RUN apt-get update \
       colormake \
       bear \
       clangd \
-      libcatch2-dev
+      cmake
 
 RUN mkdir setup
 COPY *.sh /setup/
 RUN /setup/install-prereqs-debian.sh
 RUN /setup/install-wiringPi.sh
-RUN echo 'alias make="colormake"' >> ~/.bashrc
+RUN echo 'alias make="colormake"' >> ~/.profile
 
+RUN cd /setup \
+    && git clone https://github.com/catchorg/Catch2.git \
+    && cd Catch2 \
+    && cmake -B build -S . -DBUILD_TESTING=OFF \
+    && cmake --build build/ --target install
 VOLUME /code
 WORKDIR /code
