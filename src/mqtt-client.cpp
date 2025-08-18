@@ -85,9 +85,6 @@ struct MqttConfig {
 static void signal_handler(int signal) {
     LOG("Received signal " << signal << ", shutting down gracefully...");
     running = false;
-    if (mosq) {
-        mosquitto_disconnect(mosq);
-    }
     if (global_display) {
         global_display->stop();
     }
@@ -486,6 +483,14 @@ int main(int argc, char** argv) {
         
     // Cleanup
     LOG("Shutting down...");
+    
+    // Publish offline availability before disconnecting
+    if (ha_manager && mqtt_connected) {
+        ha_manager->publishAvailability(mosq, false);
+        // Give a moment for the message to be sent
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
     mosquitto_disconnect(mosq);
     mosquitto_destroy(mosq);
     mosquitto_lib_cleanup();

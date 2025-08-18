@@ -75,7 +75,7 @@ void HADiscoveryManager::publishSensorDiscovery(struct mosquitto* mosq) const {
     std::string payload = discovery_payload.dump();
     
     int result = mosquitto_publish(mosq, nullptr, topic.c_str(),
-                                 static_cast<int>(payload.length()), payload.c_str(), 1, true);
+                                 static_cast<int>(payload.length()), payload.c_str(), 1, false);
     
     if (result == MOSQ_ERR_SUCCESS) {
         LOG("Published Home Assistant device discovery configuration");
@@ -89,7 +89,7 @@ void HADiscoveryManager::publishAvailability(struct mosquitto* mosq, bool online
     std::string payload = json(online ? "online" : "offline").dump();
     
     int result = mosquitto_publish(mosq, nullptr, availability_topic.c_str(),
-                                 static_cast<int>(payload.length()), payload.c_str(), 1, true);
+                                 static_cast<int>(payload.length()), payload.c_str(), 1, false);
     
     if (result == MOSQ_ERR_SUCCESS) {
         DEBUG_LOG("Published availability: " << payload);
