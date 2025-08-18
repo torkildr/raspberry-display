@@ -45,9 +45,10 @@ def ascii_to_hex(ascii_lines):
     # Ensure minimum width of 1 for space character
     actual_width = max(1, max_width)
     
-    hex_bytes = [0] * 7  # 7 bytes for font data (max possible width)
+    # Dynamic hex_bytes array based on actual width needed
+    hex_bytes = [0] * actual_width
     
-    for col in range(min(7, actual_width)):
+    for col in range(actual_width):
         byte_val = 0
         for row in range(8):
             if row < len(ascii_lines) and col < len(ascii_lines[row]):

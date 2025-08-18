@@ -25,24 +25,46 @@ The display uses a state-based MQTT protocol where you send JSON payloads descri
 ### Connection
 
 The MQTT client connects to your MQTT broker and subscribes to:
-- `display/set` - Primary topic for state-based commands
+- `display/set` - Set the full display sequence state
+- `display/add` - Add state to the display sequence
+- `display/clear` - Clear the display sequence
+- `display/quit` - Quit the application
 
 ### JSON State Schema
 
 All commands are JSON objects that can contain multiple state properties:
 
-```json
+```
 {
   "text": "string",           // Text to display (optional)
   "show_time": boolean,       // Show time (with or without text)
-  "time_format": "string",    // Time format (default: "%H:%M" with text, "%H:%M:%S" time-only)
+  "time_format": "string",    // Time format, strftime(3) compatible
   "brightness": number,       // 0-15
   "scroll": "string",         // "enabled"/"disabled"/"reset"
   "alignment": "string",      // "left"/"center" - text alignment (default: "left")
-  "clear": boolean,           // Clear display
-  "quit": boolean             // Quit program
+  "transition": "string" | {  // Transition effect (optional)
+    "type": "string",         // Transition type
+    "duration": number        // Duration in seconds (optional)
+  }
 }
 ```
+
+#### Transition Types
+
+Available transition effects:
+- `"none"` - No transition (default)
+- `"wipe_left"` - Wipe from right to left
+- `"wipe_right"` - Wipe from left to right
+- `"dissolve"` - Fade effect
+- `"scroll_up"` - Scroll content upward
+- `"scroll_down"` - Scroll content downward
+- `"split_center"` - Split from center outward
+- `"split_sides"` - Split from sides inward
+- `"random"` - Random transition selection
+
+Transitions can be specified as:
+- Simple string: `"transition": "dissolve"`
+- Object with duration: `"transition": {"type": "wipe_left", "duration": 1.5}`
 
 ### Display Modes
 
@@ -54,73 +76,103 @@ The display supports three main modes based on the JSON fields:
 
 ### Usage Examples
 
-#### Basic Text Display
+Here are practical examples using `mosquitto_pub` to control the display:
+
+#### Basic Display Commands
+
+**Show simple text:**
 ```bash
-mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello World!"}'
+mosquitto_pub -h localhost -t display/set -m '[{"state": {"text": "Hello World!"}, "time": 5.0}]'
 ```
 
-#### Text with Current Time
+**Show current time:**
 ```bash
-mosquitto_pub -h localhost -t "display/set" -m '{"text":"Meeting in 5 min", "show_time":true}'
+mosquitto_pub -h localhost -t display/set -m '[{"state": {"show_time": true}, "time": 10.0}]'
 ```
 
-#### Time Only Display
+**Show text with custom time format and dissolve transition:**
 ```bash
-# Default format (%H:%M:%S)
-mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true}'
-
-# Custom format
-mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true, "time_format":"%A, %b %-d %H:%M:%S"}'
+mosquitto_pub -h localhost -t display/set -m '[{"state": {"text": "Meeting at", "show_time": true, "time_format": "%H:%M", "transition": "dissolve"}, "time": 8.0}]'
 ```
 
-#### Set Brightness
+**Centered text with custom brightness and wipe transition:**
 ```bash
-mosquitto_pub -h localhost -t "display/set" -m '{"brightness":10}'
+mosquitto_pub -h localhost -t display/set -m '[{"state": {"text": "WELCOME", "alignment": "center", "brightness": 10, "transition": {"type": "wipe_left", "duration": 1.5}}, "time": 3.0}]'
 ```
 
-#### Enable/Disable Scrolling
+#### Adding to Sequence (display/add)
+
+**Add a single message to the sequence:**
 ```bash
-# Enable scrolling
-mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"enabled"}'
-
-# Disable scrolling
-mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"disabled"}'
-
-# Reset scroll position
-mosquitto_pub -h localhost -t "display/set" -m '{"scroll":"reset"}'
+mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "New Message"}, "time": 4.0}'
 ```
 
-#### Text Alignment
+**Add with TTL (auto-expire after 30 seconds):**
 ```bash
-# Center-aligned text
-mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello", "alignment":"center", "scroll":"disabled"}'
-
-# Center-aligned time display
-mosquitto_pub -h localhost -t "display/set" -m '{"show_time":true, "alignment":"center", "scroll":"disabled"}'
-
-# Left-aligned (default)
-mosquitto_pub -h localhost -t "display/set" -m '{"text":"Hello", "alignment":"left"}'
+mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Temporary Alert"}, "time": 2.0, "ttl": 30.0}'
 ```
 
-#### Complex State Changes (Atomic)
+**Add with sequence ID and split transition:**
 ```bash
-# Set multiple properties at once
-mosquitto_pub -h localhost -t "display/set" -m '{
-  "text": "System Alert!", 
-  "show_time": true, 
-  "brightness": 15, 
-  "scroll": "enabled"
-}'
+mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Meeting Room A", "transition": "split_center"}, "time": 5.0, "sequence_id": "meeting_alerts"}'
 ```
 
-#### Clear Display
+#### Setting Complete Sequences (display/set)
+
+**Multi-step sequence with transitions:**
 ```bash
-mosquitto_pub -h localhost -t "display/set" -m '{"clear":true}'
+mosquitto_pub -h localhost -t display/set -m '[
+  {"state": {"text": "Step 1", "alignment": "center", "transition": "scroll_down"}, "time": 3.0},
+  {"state": {"text": "Step 2", "brightness": 8, "transition": "wipe_right"}, "time": 3.0},
+  {"state": {"show_time": true, "transition": "dissolve"}, "time": 5.0}
+]'
 ```
 
-#### Quit Application
+**Scrolling text sequence:**
 ```bash
-mosquitto_pub -h localhost -t "display/set" -m '{"quit":true}'
+mosquitto_pub -h localhost -t display/set -m '[
+  {"state": {"text": "This is a very long message that will scroll across the display", "scroll": "enabled"}, "time": 10.0},
+  {"state": {"text": "Normal text", "scroll": "disabled"}, "time": 3.0}
+]'
+```
+
+#### Clearing Display (display/clear)
+
+**Clear all sequences:**
+```bash
+mosquitto_pub -h localhost -t display/clear -m '{}'
+```
+
+**Clear specific sequence by ID:**
+```bash
+mosquitto_pub -h localhost -t display/clear -m '{"sequence_id": "meeting_alerts"}'
+```
+
+#### Quit Application (display/quit)
+
+**Gracefully stop the MQTT client:**
+```bash
+mosquitto_pub -h localhost -t display/quit -m '{}'
+```
+
+#### Advanced Examples
+
+**Weather display with smooth transitions:**
+```bash
+mosquitto_pub -h localhost -t display/set -m '[
+  {"state": {"text": "Weather", "alignment": "center", "brightness": 12, "transition": {"type": "dissolve", "duration": 2.0}}, "time": 2.0},
+  {"state": {"text": "22°C Sunny", "show_time": true, "time_format": "%H:%M", "transition": "scroll_up"}, "time": 8.0}
+]'
+```
+
+**Status board rotation with varied transitions:**
+```bash
+mosquitto_pub -h localhost -t display/set -m '[
+  {"state": {"text": "Server: OK", "alignment": "left", "transition": "wipe_left"}, "time": 4.0},
+  {"state": {"text": "DB: OK", "alignment": "left", "transition": "wipe_right"}, "time": 4.0},
+  {"state": {"text": "API: OK", "alignment": "left", "transition": "split_sides"}, "time": 4.0},
+  {"state": {"show_time": true, "transition": "random"}, "time": 6.0}
+]'
 ```
 
 ### Error Handling
@@ -164,20 +216,6 @@ sudo make install
 
 This will install the `raspberry-display-mqtt` to `/usr/bin/raspberry-display-mqtt` and create systemd service files.
 
-### Running the MQTT Client
-
-To run the MQTT client manually:
-```bash
-# For real hardware
-./build/raspberry-display-mqtt <mqtt_host> <mqtt_port> [client_id] [topic_prefix]
-
-# For testing (mock display)
-./build/mock-display-mqtt <mqtt_host> <mqtt_port> [client_id] [topic_prefix]
-
-# Example
-./build/mock-display-mqtt localhost 1883 raspberry-display display
-```
-
 #### Environment Variable Configuration
 
 The MQTT client also supports configuration via environment variables (useful for systemd service):
@@ -202,10 +240,6 @@ To view log files, you can use the systemd journal
 sudo journalctl -f -u raspberry-display
 ```
 
-### Fault Tolerance and Production Deployment
-
-The systemd service is configured for high availability and fault tolerance:
-
 #### Automatic Restart Policies
 - **Always restart**: Service automatically restarts on any failure
 - **Restart delay**: 10-second delay between restart attempts
@@ -226,24 +260,6 @@ sudo journalctl -f -u raspberry-display
 # Check restart history
 sudo systemctl show raspberry-display -p NRestarts
 ```
-
-#### MQTT Connection Resilience
-
-**Current Behavior**: When MQTT connection is lost:
-- ✅ Service automatically restarts via systemd
-- ✅ Display continues showing last state during reconnection
-- ✅ Automatic resubscription to topics on restart
-- ✅ Configurable via environment variables
-
-**Production Recommendations**:
-1. **MQTT Broker High Availability**: Use clustered MQTT brokers
-2. **Network Monitoring**: Monitor network connectivity
-3. **Custom Restart Logic**: Consider implementing application-level reconnection for faster recovery
-
-#### Security Features
-- **Privilege dropping**: Runs as specified user, not root
-- **Resource limits**: CPU, memory, and file descriptor limits
-- **Filesystem isolation**: Private temp directory and system protection
 
 To uninstall
 ```bash
@@ -294,4 +310,3 @@ This software is licensed under the MIT license, unless specified.
 
 ### TODO
 - Home assistant MQTT
-- Fix README
