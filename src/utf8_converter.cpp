@@ -11,10 +11,8 @@ std::string toLatin1(const std::string& utf8_string) {
         return utf8_string;
     }
 
-    // Open iconv conversion descriptor - try without TRANSLIT first
-    iconv_t cd = iconv_open("ISO-8859-1", "UTF-8");
+    iconv_t cd = iconv_open("ISO-8859-1//TRANSLIT", "UTF-8");
     if (cd == reinterpret_cast<iconv_t>(-1)) {
-        // Fallback: return original string if iconv not available
         std::cerr << "Failed to open iconv descriptor" << std::endl;
         return utf8_string;
     }
