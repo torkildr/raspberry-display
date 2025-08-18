@@ -270,8 +270,6 @@ static void print_usage(const char* prog_name) {
     LOG("  MQTT_PASSWORD    - MQTT password (optional)");
     LOG("  MQTT_CLIENT_ID   - MQTT client ID (default: raspberry-display)");
     LOG("  MQTT_TOPIC_PREFIX- Topic prefix (default: display)");
-    LOG("  MQTT_DEVICE_ID   - Device ID for Home Assistant (default: raspberry_display_001)");
-    LOG("  MQTT_DEVICE_NAME - Device name for Home Assistant (default: Raspberry Display)");
     LOG("  HA_REPORTING     - Enable Home Assistant reporting (true|false) (default: false)");
     LOG("");
     LOG("Examples:");
