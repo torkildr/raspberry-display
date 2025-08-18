@@ -77,7 +77,7 @@ void HADiscoveryManager::publishSensorDiscovery(struct mosquitto* mosq) const {
 
 void HADiscoveryManager::publishAvailability(struct mosquitto* mosq, bool online) const {
     std::string availability_topic = getAvailabilityTopic();
-    std::string payload = online ? "online" : "offline";
+    std::string payload = json(online ? "online" : "offline").dump();
     
     int result = mosquitto_publish(mosq, nullptr, availability_topic.c_str(),
                                  static_cast<int>(payload.length()), payload.c_str(), 1, true);
@@ -169,7 +169,7 @@ std::string HADiscoveryManager::getLWTTopic() const {
 }
 
 std::string HADiscoveryManager::getLWTPayload() const {
-    return "offline";
+    return json("offline").dump();
 }
 
 bool HADiscoveryManager::isCommandTopic(const std::string& topic) const {
