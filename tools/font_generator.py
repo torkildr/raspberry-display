@@ -98,6 +98,8 @@ def parse_font_file(filename):
             char_info['width'] = dynamic_width  # Override manual width with calculated width
             char_info['ascii_art'] = ascii_lines
             characters.append(char_info)
+        else:
+            raise ValueError(f"Invalid font definition: {block}")
     
     return characters
 
