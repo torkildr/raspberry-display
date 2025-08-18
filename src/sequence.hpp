@@ -55,7 +55,7 @@ public:
     // Sequence management methods
     void addSequenceState(const DisplayState& state, double time, double ttl = 0.0, const std::string& sequence_id = "");
     void setSequence(const std::vector<SequenceState>& sequence);
-    void clearSequence();
+    void clearSequence(bool set_default_content = false);
     void clearSequenceById(const std::string& sequence_id);
     bool isActive() const;
     

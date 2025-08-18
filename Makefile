@@ -189,6 +189,10 @@ install-service:
 	@if test ! -f "/etc/systemd/system/$(SERVICE_NAME).service.d/environment.conf"; then \
 		echo "Installing default environment configuration..."; \
 		install -m0644 systemd/environment.conf /etc/systemd/system/$(SERVICE_NAME).service.d/; \
+		echo "Generating unique Home Assistant device ID..."; \
+		DEVICE_UUID=$$(python3 -c "import uuid; print(str(uuid.uuid4())[:8])"); \
+		echo "Environment=\"HA_DEVICE_ID=$$DEVICE_UUID\"" >> /etc/systemd/system/$(SERVICE_NAME).service.d/environment.conf; \
+		echo "Generated HA_DEVICE_ID: $$DEVICE_UUID"; \
 	else \
 		echo "Environment configuration already exists, skipping to preserve user settings."; \
 	fi

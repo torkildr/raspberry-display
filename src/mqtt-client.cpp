@@ -167,7 +167,7 @@ static void process_clear_sequence(const json& message) {
             DEBUG_LOG("Cleared sequence with id: '" << sequence_id << "'");
         } else {
             // Clear all sequences
-            sequence_manager->clearSequence();
+            sequence_manager->clearSequence(true);
             DEBUG_LOG("Cleared all sequences");
         }
         
@@ -228,14 +228,13 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         mosquitto_subscribe(mosq, nullptr, (prefix + "/set").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/clear").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/quit").c_str(), 0);
-        
-        // Subscribe to Home Assistant command topic
-        mosquitto_subscribe(mosq, nullptr, (prefix + "/command").c_str(), 0);
-        
-        LOG("Subscribed to " << prefix << " topics (add, set, clear, quit, command)");
+        LOG("Subscribed to " << prefix << " topics (add, set, clear, quit)");
         
         // Publish Home Assistant discovery and availability
         if (ha_manager) {
+            mosquitto_subscribe(mosq, nullptr, (ha_manager->getCommandTopic()).c_str(), 0);
+            LOG("Subscribed to " << ha_manager->getCommandTopic() << " topic");
+        
             ha_manager->publishDeviceDiscovery(mosq);
             ha_manager->publishAvailability(mosq, true);
             ha_manager->publishDeviceState(mosq, "", "", DEFAULT_BRIGHTNESS);
@@ -388,8 +387,15 @@ int main(int argc, char** argv) {
     }
     
     if (config.ha_reporting) {
+        // Use separate HA device ID if provided, otherwise fall back to client_id
+        std::string ha_device_id = config.client_id;
+        const char* env_ha_device_id = std::getenv("HA_DEVICE_ID");
+        if (env_ha_device_id && strlen(env_ha_device_id) > 0) {
+            ha_device_id = env_ha_device_id;
+        }
+        
         ha_discovery::HAConfig ha_config = {
-            .device_id = config.client_id,
+            .device_id = ha_device_id,
             .topic_prefix = config.topic_prefix,
         };
         ha_manager = std::make_unique<ha_discovery::HADiscoveryManager>(ha_config);
@@ -466,7 +472,8 @@ int main(int argc, char** argv) {
         
         // Publish state updates every 30 seconds if connected
         if (mqtt_connected && ha_manager && std::chrono::duration_cast<std::chrono::seconds>(now - last_state_update).count() >= 30) {
-            ha_manager->publishDeviceState(mosq, last_state.text, last_state.time_format, last_state.brightness);
+            ha_manager->publishAvailability(mosq, true);
+            //ha_manager->publishDeviceState(mosq, last_state.text, last_state.time_format, last_state.brightness);
             last_state_update = now;
         }
 #endif

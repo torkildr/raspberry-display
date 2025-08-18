@@ -108,6 +108,7 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
 
 void SequenceManager::setDefaultContent()
 {
+    DEBUG_LOG("Setting default (empty) content");
     if (m_display) {
         m_active = false;
         m_current_index = 0;
@@ -119,10 +120,13 @@ void SequenceManager::setDefaultContent()
     }
 }
 
-void SequenceManager::clearSequence()
+void SequenceManager::clearSequence(bool set_default_content)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_sequence.clear();
+    if (set_default_content) {
+        setDefaultContent();
+    }
     DEBUG_LOG("Sequence size = " << m_sequence.size() << ", clearSequence");
 }
 

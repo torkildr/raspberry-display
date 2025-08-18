@@ -22,57 +22,66 @@ void HADiscoveryManager::publishDeviceDiscovery(struct mosquitto* mosq) const {
 }
 
 void HADiscoveryManager::publishSensorDiscovery(struct mosquitto* mosq) const {
-    // Publish individual sensor configurations as per HA documentation
+    // Create single device-based discovery payload
+    json discovery_payload = {
+        {"device", {
+            {"identifiers", config_.device_id},
+            {"name", "Raspberry Display"},
+            {"manufacturer", "Raspberry Pi Foundation"},
+            {"model", "LED Display"},
+            {"sw_version", "1.0"},
+            {"serial_number", config_.device_id},
+            {"hw_version", "1.0"},
+            // TOOD: add this later
+            //{"connections", json::array({{"mac", "00:11:22:33:44:55"}})}
+        }},
+        {"origin", {
+            {"name", "raspberry-display"},
+            {"sw", "1.0"},
+            {"url", "https://github.com/torkildr/raspberry-display"}
+        }},
+        {"components", {
+            {"led_display_" + config_.device_id + "_text", {
+                {"platform", "sensor"},
+                {"name", "Display Text"},
+                {"value_template", "{{ value_json.text }}"},
+                {"icon", "mdi:monitor"},
+                {"unique_id", config_.device_id + "_text"},
+            }},
+            {"led_display_" + config_.device_id + "_brightness", {
+                {"platform", "sensor"},
+                {"name", "Display Brightness"},
+                {"value_template", "{{ value_json.brightness }}"},
+                {"unit_of_measurement", "%"},
+                {"icon", "mdi:brightness-6"},
+                {"unique_id", config_.device_id + "_brightness"},
+            }},
+            {"led_display_" + config_.device_id + "_clear", {
+                {"platform", "button"},
+                {"name", "Clear Display"},
+                {"command_topic", getCommandTopic()},
+                {"payload_press", "{\"action\": \"clear\"}"},
+                {"icon", "mdi:monitor-off"},
+                {"unique_id", config_.device_id + "_clear"},
+            }}
+        }},
+        {"state_topic", getStateTopic()},
+        {"availability_topic", getAvailabilityTopic()},
+        {"availability_template", "{{ value_json }}"},
+        {"qos", 1}
+    };
     
-    // 1. Display Text Sensor
-    {
-        json config = createTextSensorConfig();
-        std::string topic = config_.ha_discovery_prefix + "/sensor/" + config_.device_id + "_text/config";
-        std::string payload = config.dump();
-        
-        int result = mosquitto_publish(mosq, nullptr, topic.c_str(),
-                                     static_cast<int>(payload.length()), payload.c_str(), 1, true);
-        
-        if (result == MOSQ_ERR_SUCCESS) {
-            DEBUG_LOG("Published text sensor discovery");
-        } else {
-            WARN_LOG("Failed to publish text sensor discovery: " << mosquitto_strerror(result));
-        }
+    std::string topic = config_.ha_discovery_prefix + "/device/" + config_.device_id + "/config";
+    std::string payload = discovery_payload.dump();
+    
+    int result = mosquitto_publish(mosq, nullptr, topic.c_str(),
+                                 static_cast<int>(payload.length()), payload.c_str(), 1, true);
+    
+    if (result == MOSQ_ERR_SUCCESS) {
+        LOG("Published Home Assistant device discovery configuration");
+    } else {
+        WARN_LOG("Failed to publish device discovery: " << mosquitto_strerror(result));
     }
-    
-    // 2. Display Brightness Sensor
-    {
-        json config = createBrightnessSensorConfig();
-        std::string topic = config_.ha_discovery_prefix + "/sensor/" + config_.device_id + "_brightness/config";
-        std::string payload = config.dump();
-        
-        int result = mosquitto_publish(mosq, nullptr, topic.c_str(),
-                                     static_cast<int>(payload.length()), payload.c_str(), 1, true);
-        
-        if (result == MOSQ_ERR_SUCCESS) {
-            DEBUG_LOG("Published brightness sensor discovery");
-        } else {
-            WARN_LOG("Failed to publish brightness sensor discovery: " << mosquitto_strerror(result));
-        }
-    }
-    
-    // 3. Clear Display Button
-    {
-        json config = createClearButtonConfig();
-        std::string topic = config_.ha_discovery_prefix + "/button/" + config_.device_id + "_clear/config";
-        std::string payload = config.dump();
-        
-        int result = mosquitto_publish(mosq, nullptr, topic.c_str(),
-                                     static_cast<int>(payload.length()), payload.c_str(), 1, true);
-        
-        if (result == MOSQ_ERR_SUCCESS) {
-            DEBUG_LOG("Published clear button discovery");
-        } else {
-            WARN_LOG("Failed to publish clear button discovery: " << mosquitto_strerror(result));
-        }
-    }
-    
-    LOG("Published Home Assistant sensor discovery configurations");
 }
 
 void HADiscoveryManager::publishAvailability(struct mosquitto* mosq, bool online) const {
@@ -143,7 +152,7 @@ void HADiscoveryManager::publishDeviceState(struct mosquitto* mosq, const std::s
     }
     
     int result = mosquitto_publish(mosq, nullptr, state_topic.c_str(),
-                                 static_cast<int>(payload_str.length()), payload_str.c_str(), 0, false);
+                                 static_cast<int>(payload_str.length()), payload_str.c_str(), 1, false);
     
     if (result == MOSQ_ERR_SUCCESS) {
         DEBUG_LOG("Published device state");
@@ -153,15 +162,15 @@ void HADiscoveryManager::publishDeviceState(struct mosquitto* mosq, const std::s
 }
 
 std::string HADiscoveryManager::getAvailabilityTopic() const {
-    return config_.topic_prefix + "/availability";
+    return config_.topic_prefix + "/availability/" + config_.device_id;
 }
 
 std::string HADiscoveryManager::getStateTopic() const {
-    return config_.topic_prefix + "/state";
+    return config_.topic_prefix + "/state/" + config_.device_id;
 }
 
 std::string HADiscoveryManager::getCommandTopic() const {
-    return config_.topic_prefix + "/command";
+    return config_.topic_prefix + "/command/" + config_.device_id;
 }
 
 std::string HADiscoveryManager::getLWTTopic() const {
@@ -173,7 +182,7 @@ std::string HADiscoveryManager::getLWTPayload() const {
 }
 
 bool HADiscoveryManager::isCommandTopic(const std::string& topic) const {
-    return topic.find("/command") != std::string::npos;
+    return topic.find("/command/" + config_.device_id) != std::string::npos;
 }
 
 std::string HADiscoveryManager::processCommand(const std::string& payload) const {
@@ -192,68 +201,5 @@ std::string HADiscoveryManager::processCommand(const std::string& payload) const
     return "";
 }
 
-json HADiscoveryManager::createDeviceInfo() const {
-    return {
-        {"ids", {config_.device_id}},
-        {"name", "Led Display " + config_.device_id},
-        {"mf", "Raspberry Pi Foundation"},
-        {"mdl", "Raspberry Pi Display"},
-        {"sw", "1.0"},
-        {"sn", config_.device_id},
-        {"hw", "1.0"}
-    };
-}
-
-json HADiscoveryManager::createTextSensorConfig() const {
-    return {
-        {"name", "Display Text"},
-        {"unique_id", config_.device_id + "_text"},
-        {"state_topic", getStateTopic()},
-        {"availability_topic", getAvailabilityTopic()},
-        {"value_template", "{{ value_json.text }}"},
-        {"icon", "mdi:monitor"},
-        {"device", createDeviceInfo()},
-        {"origin", {
-            {"name", "raspberry-display"},
-            {"sw", "1.0"},
-            {"url", "https://github.com/torkildr/raspberry-display"}
-        }}
-    };
-}
-
-json HADiscoveryManager::createBrightnessSensorConfig() const {
-    return {
-        {"name", "Display Brightness"},
-        {"unique_id", config_.device_id + "_brightness"},
-        {"state_topic", getStateTopic()},
-        {"availability_topic", getAvailabilityTopic()},
-        {"value_template", "{{ value_json.brightness }}"},
-        {"unit_of_measurement", "%"},
-        {"icon", "mdi:brightness-6"},
-        {"device", createDeviceInfo()},
-        {"origin", {
-            {"name", "raspberry-display"},
-            {"sw", "1.0"},
-            {"url", "https://github.com/torkildr/raspberry-display"}
-        }}
-    };
-}
-
-json HADiscoveryManager::createClearButtonConfig() const {
-    return {
-        {"name", "Clear Display"},
-        {"unique_id", config_.device_id + "_clear"},
-        {"command_topic", getCommandTopic()},
-        {"availability_topic", getAvailabilityTopic()},
-        {"payload_press", "{\"action\": \"clear\"}"},
-        {"icon", "mdi:monitor-off"},
-        {"device", createDeviceInfo()},
-        {"origin", {
-            {"name", "raspberry-display"},
-            {"sw", "1.0"},
-            {"url", "https://github.com/torkildr/raspberry-display"}
-        }}
-    };
-}
 
 } // namespace ha_discovery

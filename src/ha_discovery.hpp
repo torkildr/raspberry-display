@@ -38,11 +38,7 @@ public:
 private:
     HAConfig config_;
     
-    // Helper methods
-    nlohmann::json createTextSensorConfig() const;
-    nlohmann::json createBrightnessSensorConfig() const;
-    nlohmann::json createClearButtonConfig() const;
-    nlohmann::json createDeviceInfo() const;
+    // Helper methods (removed - now using single device discovery)
 };
 
 } // namespace ha_discovery
