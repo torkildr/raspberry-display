@@ -17,6 +17,8 @@
 #define SCROLL_DELAY 2.0   // Seconds
 #define REFRESH_RATE 15.0  // Hz
 
+#define DEFAULT_BRIGHTNESS 8
+
 #define TIME_FORMAT_LONG "%A, %b %d %H:%M:%S"
 #define TIME_FORMAT_SHORT "%H:%M"
 

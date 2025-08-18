@@ -17,6 +17,9 @@
 namespace sequence
 {
 
+// Callback type for display state changes
+using DisplayStateCallback = std::function<void(const std::string& text, const std::string& time_format, int brightness)>;
+
 // Structured display state - no JSON parsing in SequenceManager
 struct DisplayState {
     // Content
@@ -46,7 +49,7 @@ class SequenceManager
 {
 public:
     // Constructor takes ownership of Display instance
-    SequenceManager(std::unique_ptr<display::Display> display);
+    SequenceManager(std::unique_ptr<display::Display> display, DisplayStateCallback callback);
     ~SequenceManager();
     
     // Sequence management methods
@@ -75,7 +78,7 @@ public:
     // Display lifecycle methods
     void start();
     void stop();
-    
+        
 private:
     void processSequence();
     void removeExpiredStates();
@@ -94,6 +97,12 @@ private:
     
     std::unique_ptr<timer::Timer> m_timer;
     static constexpr double TIMER_INTERVAL = 0.01; // 10ms timer resolution
+    
+    // Callback for display state changes
+    DisplayStateCallback m_display_state_callback;
+    
+    // Current display state tracking
+    int m_current_brightness = 15; // Default brightness
 };
 
 // Utility function to parse JSON into DisplayState (for clients)

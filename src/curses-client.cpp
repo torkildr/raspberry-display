@@ -85,7 +85,12 @@ int main() {
     };
     
     auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
-    auto sequence_manager = std::make_shared<sequence::SequenceManager>(std::move(display));
+    auto sequence_manager = std::make_shared<sequence::SequenceManager>(
+        std::move(display),
+        [](const std::string&, const std::string&, int) {
+            // No additional state handling needed for curses client
+        }
+    );
     
     // Now set the pointer for the callback
     sequence_manager_ptr = sequence_manager.get();

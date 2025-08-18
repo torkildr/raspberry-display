@@ -8,6 +8,7 @@
 #include <vector>
 #include <chrono>
 
+#include "display.hpp"
 #include "display_impl.hpp"
 #include "ht1632.hpp"
 #include "log_util.hpp"
@@ -140,7 +141,7 @@ DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> 
     }
 
     init();
-    setBrightness(8);
+    setBrightness(DEFAULT_BRIGHTNESS);
 
     LOG("Display enabled");
 }
