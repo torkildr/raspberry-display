@@ -9,7 +9,7 @@ namespace display
 class DisplayImpl : public Display
 {
 public:
-    DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate);
+    DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback = nullptr);
     virtual ~DisplayImpl();
 
     void setBrightness(int brightness);

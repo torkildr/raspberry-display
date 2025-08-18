@@ -116,8 +116,8 @@ static void init()
     ht1632::initialize_displays();
 }
 
-DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate)
-    : Display(preUpdate, postUpdate)
+DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
+    : Display(preUpdate, postUpdate, stateCallback)
 {
     if (wiringPiSetup() == -1)
     {
@@ -156,7 +156,7 @@ DisplayImpl::~DisplayImpl()
 
 void DisplayImpl::setBrightness(int brightness)
 {
-    currentBrightness = brightness & 0xF;  // Store for restoration after reinitialization
+    currentBrightness = brightness & 0xF;  // Store for restoration after reinitialization and update base class tracking
     ht1632::send_cmd(HT1632_PANEL_ALL, HT1632_CMD_PWM + static_cast<uint8_t>(currentBrightness));
 }
 

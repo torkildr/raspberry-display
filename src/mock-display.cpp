@@ -95,8 +95,8 @@ static void showAlignment(display::Alignment align)
     showInfoText(std::move(info));
 }
 
-DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate)
-    : Display(preUpdate, postUpdate)
+DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
+    : Display(preUpdate, postUpdate, stateCallback)
 {
     debug::Logger::enableFileLogging("display.log");
 
@@ -121,6 +121,7 @@ DisplayImpl::~DisplayImpl()
 void DisplayImpl::setBrightness(int brightness)
 {
     _brightness = brightness;
+    currentBrightness = brightness;  // Update base class tracking
 }
 
 void DisplayImpl::update()

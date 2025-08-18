@@ -12,8 +12,8 @@ using namespace std::chrono;
 namespace sequence
 {
 
-SequenceManager::SequenceManager(std::unique_ptr<display::Display> display, DisplayStateCallback callback)
-    : m_display(std::move(display)), m_display_state_callback(callback)
+SequenceManager::SequenceManager(std::unique_ptr<display::Display> display)
+    : m_display(std::move(display))
 {
     setDefaultContent();
     // Start the processing timer
@@ -286,6 +286,7 @@ void SequenceManager::setBrightness(int brightness)
 {
     if (m_display) {
         m_display->setBrightness(brightness);
+        m_current_brightness = brightness;
     }
 }
 
@@ -368,14 +369,6 @@ void SequenceManager::processDisplayState(const DisplayState& state)
         : transition::Type::NONE;
     
     m_display->show(state.text, state.time_format, transition_type, state.transition_duration);
-    
-    // Invoke callback if set
-    if (m_display_state_callback) {
-        std::string text = state.text.value_or("");
-        std::string time_format = state.time_format.value_or("");
-        int brightness = state.brightness.value_or(m_current_brightness);
-        m_display_state_callback(text, time_format, brightness);
-    }
 }
 
 // Utility function to parse JSON into DisplayState (for clients)

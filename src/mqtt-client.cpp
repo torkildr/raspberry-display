@@ -361,7 +361,18 @@ int main(int argc, char** argv) {
     // Initialize display with empty callbacks and transfer ownership to SequenceManager
     auto preUpdate = []() {};
     auto postUpdate = []() {};
-    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
+    
+    // Display state callback for MQTT publishing
+    auto displayStateCallback = [](const std::string& text, const std::string& time_format, int brightness) {
+        if (ha_manager && mqtt_connected) {
+            last_state.text = text;
+            last_state.time_format = time_format;
+            last_state.brightness = brightness;
+            ha_manager->publishDeviceState(mosq, text, time_format, brightness);
+        }
+    };
+    
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback);
     global_display = display.get(); // Keep pointer for signal handling
     
     // Initialize mosquitto library
@@ -424,15 +435,8 @@ int main(int argc, char** argv) {
         ERROR_LOG("Will continue trying to connect...");
     }
 
-    auto state_callback = [](const std::string& text, const std::string& time_format, int brightness) {
-        if (ha_manager && mqtt_connected) {
-            last_state.text = text;
-            last_state.time_format = time_format;
-            last_state.brightness = brightness;
-            ha_manager->publishDeviceState(mosq, text, time_format, brightness);
-        }
-    };
-    sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display), state_callback);
+    // State callback is now handled by Display class directly
+    sequence_manager = std::make_unique<sequence::SequenceManager>(std::move(display));
     
     // Notify systemd that we're ready
 #ifdef __linux__
@@ -473,7 +477,6 @@ int main(int argc, char** argv) {
         // Publish state updates every 30 seconds if connected
         if (mqtt_connected && ha_manager && std::chrono::duration_cast<std::chrono::seconds>(now - last_state_update).count() >= 30) {
             ha_manager->publishAvailability(mosq, true);
-            //ha_manager->publishDeviceState(mosq, last_state.text, last_state.time_format, last_state.brightness);
             last_state_update = now;
         }
 #endif

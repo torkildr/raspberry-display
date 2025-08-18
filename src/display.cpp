@@ -14,8 +14,8 @@ namespace display
 
 static constexpr bool show_time_divider = true;
 
-Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate)
-    : preUpdate(preUpdate), postUpdate(postUpdate)
+Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
+    : preUpdate(preUpdate), postUpdate(postUpdate), displayStateCallback(stateCallback)
 {
     // Initialize transition manager with display buffer update callback
     transition_manager = std::make_unique<transition::TransitionManager>(
@@ -412,6 +412,13 @@ void Display::show(
         transition_manager->setCurrentBuffer(displayBuffer);
         transition_manager->startTransition(newBuffer, transition_type, duration);
     }
+    
+    // Invoke display state callback if set
+    if (displayStateCallback) {
+        std::string textValue = text.value_or("");
+        std::string timeFormatValue = timeFormat.value_or("");
+        displayStateCallback(textValue, timeFormatValue, currentBrightness);
+    }
 }
 
 // Transition support methods
@@ -427,5 +434,6 @@ bool Display::isTransitioning() const
 {
     return transition_manager->isTransitioning();
 }
+
 
 } // namespace display

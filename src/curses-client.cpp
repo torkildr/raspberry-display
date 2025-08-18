@@ -84,12 +84,14 @@ int main() {
         refresh(); 
     };
     
-    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate);
+    // Display state callback for sequence manager
+    auto displayStateCallback = [](const std::string&, const std::string&, int) {
+        // Empty callback for curses client
+    };
+    
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback);
     auto sequence_manager = std::make_shared<sequence::SequenceManager>(
-        std::move(display),
-        [](const std::string&, const std::string&, int) {
-            // No additional state handling needed for curses client
-        }
+        std::move(display)
     );
     
     // Now set the pointer for the callback

@@ -49,7 +49,7 @@ class SequenceManager
 {
 public:
     // Constructor takes ownership of Display instance
-    SequenceManager(std::unique_ptr<display::Display> display, DisplayStateCallback callback);
+    SequenceManager(std::unique_ptr<display::Display> display);
     ~SequenceManager();
     
     // Sequence management methods
@@ -98,11 +98,8 @@ private:
     std::unique_ptr<timer::Timer> m_timer;
     static constexpr double TIMER_INTERVAL = 0.01; // 10ms timer resolution
     
-    // Callback for display state changes
-    DisplayStateCallback m_display_state_callback;
-    
     // Current display state tracking
-    int m_current_brightness = 15; // Default brightness
+    int m_current_brightness = DEFAULT_BRIGHTNESS; // Default brightness
 };
 
 // Utility function to parse JSON into DisplayState (for clients)
