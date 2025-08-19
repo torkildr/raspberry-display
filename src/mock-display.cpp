@@ -95,8 +95,13 @@ static void showAlignment(display::Alignment align)
     showInfoText(std::move(info));
 }
 
-DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
-    : Display(preUpdate, postUpdate, stateCallback)
+DisplayImpl::DisplayImpl(
+    std::function<void()> preUpdate,
+    std::function<void()> postUpdate,
+    DisplayStateCallback stateCallback,
+    std::function<void()> scrollCompleteCallback
+)
+    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback)
 {
     debug::Logger::enableFileLogging("display.log");
 

@@ -17,9 +17,6 @@
 namespace sequence
 {
 
-// Callback type for display state changes
-using DisplayStateCallback = std::function<void(const std::string& text, const std::string& time_format, int brightness)>;
-
 // Structured display state - no JSON parsing in SequenceManager
 struct DisplayState {
     // Content
@@ -74,13 +71,14 @@ public:
     
     // Process a display state directly (for immediate display)
     void processDisplayState(const DisplayState& state);
-    
+    void nextState();
+
     // Display lifecycle methods
     void start();
     void stop();
         
 private:
-    void processSequence();
+    void processSequence(bool skip_current = false);
     void removeExpiredStates();
     void setDefaultContent();
     

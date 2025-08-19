@@ -85,9 +85,7 @@ struct MqttConfig {
 static void signal_handler(int signal) {
     LOG("Received signal " << signal << ", shutting down gracefully...");
     running = false;
-    if (global_display) {
-        global_display->stop();
-    }
+    sequence_manager->stop();
 }
 
 static void process_add_sequence(const json& message) {
@@ -368,8 +366,13 @@ int main(int argc, char** argv) {
             ha_manager->publishDeviceState(mosq, text, time_format, brightness);
         }
     };
+
+    auto scrollCompleteCallback = []() {
+        DEBUG_LOG("Scroll complete");
+        sequence_manager->nextState();
+    };
     
-    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback);
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback, scrollCompleteCallback);
     global_display = display.get(); // Keep pointer for signal handling
     
     // Initialize mosquitto library

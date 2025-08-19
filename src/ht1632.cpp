@@ -116,8 +116,13 @@ static void init()
     ht1632::initialize_displays();
 }
 
-DisplayImpl::DisplayImpl(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
-    : Display(preUpdate, postUpdate, stateCallback)
+DisplayImpl::DisplayImpl(
+    std::function<void()> preUpdate,
+    std::function<void()> postUpdate,
+    DisplayStateCallback stateCallback,
+    std::function<void()> scrollCompleteCallback
+)
+    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback)
 {
     if (wiringPiSetup() == -1)
     {

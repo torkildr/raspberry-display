@@ -14,8 +14,16 @@ namespace display
 
 static constexpr bool show_time_divider = true;
 
-Display::Display(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback)
-    : preUpdate(preUpdate), postUpdate(postUpdate), displayStateCallback(stateCallback)
+Display::Display(
+    std::function<void()> preUpdate,
+    std::function<void()> postUpdate,
+    DisplayStateCallback stateCallback,
+    std::function<void()> scrollCompleteCallback
+)
+    : preUpdate(preUpdate),
+      postUpdate(postUpdate),
+      displayStateCallback(stateCallback),
+      scrollCompleteCallback(scrollCompleteCallback)
 {
     // Initialize transition manager with display buffer update callback
     transition_manager = std::make_unique<transition::TransitionManager>(
@@ -64,6 +72,7 @@ bool Display::prepare()
     {
         if (scrollOffset != 0)
         {
+            scrollCompleteCallback();
             // Reset to beginning and start delay before next scroll cycle
             scrollDelayTimer = 1.0 / REFRESH_RATE;  // Start timing from next cycle
             scrollOffset = 0;
@@ -72,10 +81,10 @@ bool Display::prepare()
         else
         {
             // Delay finished, start scrolling
-            scrollDelayTimer = 0.0;
+            scrollDelayTimer = -1;
         }
     }
-    else if (scrollDelayTimer > 0.0)
+    else if (scrollDelayTimer >= 0.0)
     {
         // Accumulate time for delay before starting/restarting scroll
         scrollDelayTimer += 1.0 / REFRESH_RATE;
@@ -101,7 +110,7 @@ bool Display::prepare()
             }
             
             if (reachedEnd) {
-                scrollDelayTimer = 1.0 / REFRESH_RATE;  // Start delay timer before restarting
+                scrollDelayTimer = 0;  // Start delay timer before restarting
             }
         }
         else if (scrollOffset != 0)
@@ -317,7 +326,7 @@ std::array<uint8_t, X_MAX> Display::createBufferWithContent(std::array<uint8_t, 
 void Display::setScrolling(Scrolling direction)
 {
     scrollOffset = 0;
-    scrollDelayTimer = 1.0 / REFRESH_RATE;
+    scrollDelayTimer = 0;
 
     if (direction == Scrolling::RESET)
     {

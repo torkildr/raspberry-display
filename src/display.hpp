@@ -12,11 +12,6 @@
 #include "timer.hpp"
 #include "transition.hpp"
 
-// Forward declaration to avoid circular dependency
-namespace sequence {
-    using DisplayStateCallback = std::function<void(const std::string& text, const std::string& time_format, int brightness)>;
-}
-
 #define X_MAX 128
 
 #define SCROLL_DELAY 2.0   // Seconds
@@ -50,10 +45,17 @@ enum Alignment
     CENTER,
 };
 
+using DisplayStateCallback = std::function<void(const std::string& text, const std::string& time_format, int brightness)>;
+
 class Display
 {
 public:
-    Display(std::function<void()> preUpdate, std::function<void()> postUpdate, sequence::DisplayStateCallback stateCallback = nullptr);
+    Display(
+        std::function<void()> preUpdate,
+        std::function<void()> postUpdate,
+        DisplayStateCallback stateCallback = nullptr,
+        std::function<void()> scrollCompleteCallback = nullptr
+    );
     virtual ~Display();
 
     virtual void setBrightness(int brightness) = 0;
@@ -128,8 +130,8 @@ private:
     std::function<void()> preUpdate;
     std::function<void()> postUpdate;
     
-    // Display state callback
-    sequence::DisplayStateCallback displayStateCallback;
+    DisplayStateCallback displayStateCallback;
+    std::function<void()> scrollCompleteCallback;
     
     // Transition system
     std::unique_ptr<transition::TransitionManager> transition_manager;

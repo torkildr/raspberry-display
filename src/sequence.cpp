@@ -206,7 +206,7 @@ void SequenceManager::clearSequenceById(const std::string& sequence_id)
     }
 }
 
-void SequenceManager::processSequence()
+void SequenceManager::processSequence(bool skip_current)
 {
     if (!m_active) {
         return;
@@ -234,7 +234,7 @@ void SequenceManager::processSequence()
     auto state_elapsed = duration<double>(now - m_state_start_time).count();
     
     // Check if it's time to move to the next state
-    if (state_elapsed >= current_state.time) {
+    if (skip_current || state_elapsed >= current_state.time) {
         // Move to next state
         m_current_index++;
         
@@ -246,6 +246,11 @@ void SequenceManager::processSequence()
         m_state_start_time = now;
         processDisplayState(m_sequence[m_current_index].state);
     }
+}
+
+void SequenceManager::nextState()
+{
+    processSequence(true);
 }
 
 void SequenceManager::removeExpiredStates()
@@ -337,14 +342,12 @@ void SequenceManager::stop()
     }
 }
 
-// Process display state method (moved from mqtt-client.cpp)
 void SequenceManager::processDisplayState(const DisplayState& state)
 {
     if (!m_display) {
         return;
     }
     
-    // Apply visual properties
     if (state.alignment.has_value()) {
         m_display->setAlignment(state.alignment.value());
         if (state.alignment.value() == display::Alignment::LEFT && !state.scrolling.has_value()) {

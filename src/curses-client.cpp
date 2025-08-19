@@ -25,7 +25,7 @@ static void init_curses() {
 static void print_help_text(const sequence::SequenceManager* seq_mgr) {
     addstr("\nt: time");
     addstr("\na: supported characters");
-    addstr("\nb: supported characters + time");
+    addstr("\nb: time + long text");
     addstr("\n0: reset scroll offset");
     addstr("\ns: toggle scrolling enabled/disabled");
     addstr("\n+/-: change brightness");
@@ -88,8 +88,13 @@ int main() {
     auto displayStateCallback = [](const std::string&, const std::string&, int) {
         // Empty callback for curses client
     };
+
+    auto scrollCompleteCallback = [&sequence_manager_ptr] { 
+        DEBUG_LOG("Scroll complete");
+        sequence_manager_ptr->nextState();
+    };
     
-    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback);
+    auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback, scrollCompleteCallback);
     auto sequence_manager = std::make_shared<sequence::SequenceManager>(
         std::move(display)
     );
@@ -132,7 +137,7 @@ int main() {
                 }
                 case 'b': {
                     sequence::DisplayState state;
-                    state.text = abc_string;
+                    state.text = "This is a rather long string. It will have to be scrolled.";
                     state.time_format = "";
                     sequence_manager->clearSequence();
                     sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
@@ -171,7 +176,7 @@ int main() {
                 
                 // Transition demonstrations - now using DisplayState objects!
                 case 'C':
-                    sequence_manager->clearSequence();
+                    sequence_manager->clearSequence(true);
                     break;
                 case '1': {
                     sequence::DisplayState state;
