@@ -160,19 +160,8 @@ $(OBJ_DIR)/test_main: $(OBJ_DIR) src/font_generated.hpp $(TEST_OBJ) $(COMMON_OBJ
 # Generate compile_commands.json for LSP support
 compile_commands:
 	@echo "Generating compile_commands.json..."
-	@echo '[' > compile_commands.json
-	@first=true; \
-	for src in $(COMMON_SRC) $(MQTT_SRC) $(CURSES_SRC) $(HT1632_SRC) $(MOCK_SRC); do \
-		if [ "$$first" = true ]; then first=false; else echo ',' >> compile_commands.json; fi; \
-		echo '  {' >> compile_commands.json; \
-		echo '    "directory": "$(shell pwd)",' >> compile_commands.json; \
-		echo "    \"command\": \"$(CXX) $(CXXFLAGS) $(INCLUDES) -c $$src\"," >> compile_commands.json; \
-		echo "    \"file\": \"$$src\"" >> compile_commands.json; \
-		echo -n '  }' >> compile_commands.json; \
-	done
-	@echo '' >> compile_commands.json
-	@echo ']' >> compile_commands.json
-	@echo "Generated compile_commands.json with $(shell echo $(COMMON_SRC) $(MQTT_SRC) $(CURSES_SRC) $(HT1632_SRC) $(MOCK_SRC) | wc -w) source files"
+	bear -- make -j 16 -B
+	bear --append -- make test -j 16 -B
 
 install: $(OBJ_DIR)/raspberry-display-mqtt
 	@if test -z "$(SUDO_USER)"; then echo "\n\n!!! No sudo detected, installation will probably not work as intended !!!\n\n"; fi
