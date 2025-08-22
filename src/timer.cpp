@@ -11,13 +11,14 @@ using namespace std::chrono;
 namespace timer
 {
 
-std::unique_ptr<Timer> createTimer(const std::function<void()>& callback, double seconds)
+std::unique_ptr<Timer> createTimer(
+    seconds interval,
+    const std::function<void()>& callback)
 {
     auto timer = std::make_unique<Timer>();
-    auto intervalNs = static_cast<long long>(seconds * 1e9);
-    nanoseconds interval(intervalNs);
+    auto intervalNs = std::chrono::duration_cast<std::chrono::nanoseconds>(interval);
 
-    timer->setInterval(callback, interval);
+    timer->setInterval(callback, intervalNs);
 
     return timer;
 }
@@ -30,7 +31,7 @@ Timer::~Timer()
 void Timer::setInterval(const std::function<void()>& function, nanoseconds interval)
 {
     m_clear = false;
-    m_thread = std::thread([this, function, interval]() {
+    m_thread = std::thread([this, interval, function]() {
         std::mutex mutex;
         auto next_execution = steady_clock::now() + interval;
 

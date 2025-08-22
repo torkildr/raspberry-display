@@ -1,6 +1,7 @@
 #ifndef sequence_hpp
 #define sequence_hpp
 
+#include <bits/chrono.h>
 #include <functional>
 #include <thread>
 #include <condition_variable>
@@ -16,6 +17,8 @@
 
 namespace sequence
 {
+
+using namespace std::chrono;
 
 // Structured display state - no JSON parsing in SequenceManager
 struct DisplayState {
@@ -38,7 +41,7 @@ struct SequenceState {
     DisplayState state;             // The structured display state
     double time;                    // Display time in seconds
     double ttl;                     // Time-to-live in seconds
-    std::chrono::steady_clock::time_point created_at;  // When this state was created
+    steady_clock::time_point created_at;  // When this state was created
     std::string sequence_id;        // Optional sequence identifier for replacement
 };
 
@@ -87,14 +90,14 @@ private:
     mutable std::mutex m_mutex;
     std::atomic<size_t> m_current_index{0};
     std::atomic<bool> m_active{false};
-    std::chrono::steady_clock::time_point m_state_start_time;
+    steady_clock::time_point m_state_start_time;
     
     // Default transition settings
     transition::Type m_default_transition_type = transition::Type::NONE;
     double m_default_transition_duration = 0.0;
     
     std::unique_ptr<timer::Timer> m_timer;
-    static constexpr double TIMER_INTERVAL = 0.01; // 10ms timer resolution
+    static constexpr seconds TIMER_INTERVAL = duration_cast<seconds>(10ms); // 10ms timer resolution
     
     // Current display state tracking
     int m_current_brightness = DEFAULT_BRIGHTNESS; // Default brightness

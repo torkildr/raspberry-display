@@ -16,10 +16,11 @@ SequenceManager::SequenceManager(std::unique_ptr<display::Display> display)
     : m_display(std::move(display))
 {
     setDefaultContent();
-    // Start the processing timer
-    m_timer = timer::createTimer([this]() { processSequence(); }, TIMER_INTERVAL);
+   
+    m_timer = timer::createTimer(TIMER_INTERVAL, [this]() {
+        processSequence();
+    });
     
-    // Start the display
     if (m_display) {
         m_display->start();
         m_display->setBrightness(DEFAULT_BRIGHTNESS);

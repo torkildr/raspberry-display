@@ -1,11 +1,14 @@
 #include "ha_discovery.hpp"
 #include "log_util.hpp"
 #include "utf8_converter.hpp"
+#include "display.hpp"
+#include "timer.hpp"
 #include <nlohmann/json.hpp>
 #include <mosquitto.h>
 #include <chrono>
 
 using json = nlohmann::json;
+using namespace std::chrono;
 
 namespace ha_discovery {
 
@@ -14,11 +17,66 @@ HADiscoveryManager::HADiscoveryManager(const HAConfig& config) : config_(config)
     DEBUG_LOG("  Device ID: " << config_.device_id);
     DEBUG_LOG("  Topic Prefix: " << config_.topic_prefix);
     DEBUG_LOG("  HA Discovery Prefix: " << config_.ha_discovery_prefix);
+
+    running = true;
+}
+
+HADiscoveryManager::~HADiscoveryManager() {
+    if (lifeline_timer_) {
+        lifeline_timer_->stop();
+    }
+}
+
+void HADiscoveryManager::close(struct mosquitto* mosq) {
+    if (running) {
+        publishAvailability(mosq, false);
+        // Give a moment for the message to be sent
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    running = false;
 }
 
 void HADiscoveryManager::publishDeviceDiscovery(struct mosquitto* mosq) const {
     // This method is now deprecated - use publishSensorDiscovery instead
     publishSensorDiscovery(mosq);
+}
+
+void HADiscoveryManager::on_connect(struct mosquitto* mosq) const {
+    mosquitto_subscribe(mosq, nullptr, (getCommandTopic()).c_str(), 0);
+    mosquitto_subscribe(mosq, nullptr, "homeassistant/status", 0);
+    INFO_LOG("Subscribed to homeassistant topics (homeassistant/status, " << getCommandTopic() << ")");
+
+    publishDeviceDiscovery(mosq);
+    publishAvailability(mosq, true);
+    publishDeviceState(mosq, "", "", DEFAULT_BRIGHTNESS);
+
+    const_cast<HADiscoveryManager*>(this)->lifeline_timer_ = timer::createTimer(30s, [this, mosq]() {
+        publishAvailability(mosq, true);
+    });
+
+    std::string lwt_topic = getLWTTopic();
+    std::string lwt_payload = getLWTPayload();
+    int lwt_result = mosquitto_will_set(mosq, lwt_topic.c_str(), 
+                                       static_cast<int>(lwt_payload.length()), 
+                                       lwt_payload.c_str(), 1, true);
+    if (lwt_result != MOSQ_ERR_SUCCESS) {
+        WARN_LOG("Failed to set LWT message: " << mosquitto_strerror(lwt_result));
+    } else {
+        DEBUG_LOG("Set LWT message for availability topic");
+    }
+}
+
+bool HADiscoveryManager::on_message(struct mosquitto* mosq, std::string& topic, std::string& payload, std::function<void()>& clearDisplay) const {
+    if (isCommandTopic(topic)) {
+        return handleCommand(payload, clearDisplay);
+    } else if (topic == "homeassistant/status") {
+        DEBUG_LOG("Received homeassistant/status message: " << payload);
+        if (payload == "online") {
+            on_connect(mosq);
+        }
+        return true;
+    }
+    return false;
 }
 
 void HADiscoveryManager::publishSensorDiscovery(struct mosquitto* mosq) const {
@@ -185,21 +243,21 @@ bool HADiscoveryManager::isCommandTopic(const std::string& topic) const {
     return topic.find("/command/" + config_.device_id) != std::string::npos;
 }
 
-std::string HADiscoveryManager::processCommand(const std::string& payload) const {
+bool HADiscoveryManager::handleCommand(std::string& payload, std::function<void()>& clearDisplay) const {
     try {
-        json message_json = json::parse(payload);
-        if (message_json.contains("action")) {
-            std::string action = message_json["action"];
-            if (action == "clear") {
+        json message = json::parse(payload);
+        if (message.contains("action")) {
+            if (message["action"] == "clear") {
+                clearDisplay();
                 DEBUG_LOG("Processed clear command from Home Assistant");
-                return "clear";
             }
+            return true;
         }
-    } catch (const json::parse_error& e) {
-        WARN_LOG("JSON parse error in HA command: " << e.what());
+      } catch (const json::parse_error& e) {
+        WARN_LOG("JSON parse error: " << e.what());
+        DEBUG_LOG("Payload: " << payload);
     }
-    return "";
+    return false;
 }
-
 
 } // namespace ha_discovery

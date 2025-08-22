@@ -15,7 +15,7 @@
 #define X_MAX 128
 
 #define SCROLL_DELAY 2.0   // Seconds
-#define REFRESH_RATE 15.0  // Hz
+#define REFRESH_RATE 15  // Hz
 
 #define DEFAULT_BRIGHTNESS 8
 

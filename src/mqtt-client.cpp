@@ -179,9 +179,16 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
     
     DEBUG_LOG("Received MQTT message on topic: " << topic << " with payload: " << payload);
     
+    std::function<void()> clearDisplay = [&]() {
+        process_clear_sequence({});
+    };
+    if (ha_manager && ha_manager->on_message(mosq, topic, payload, clearDisplay)) {
+        return;
+    }
+
     try {
         json message_json = json::parse(payload);
-        
+
         if (topic == "display/add") {
             process_add_sequence(message_json);
         } else if (topic == "display/set") {
@@ -191,14 +198,6 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
         } else if (topic == "display/quit") {
             DEBUG_LOG("Received quit message");
             running = false;
-        } else if (ha_manager && ha_manager->isCommandTopic(topic)) {
-            // Handle Home Assistant commands
-            std::string command = ha_manager->processCommand(payload);
-            if (command == "clear") {
-                // Clear display command from Home Assistant
-                json clear_message = {};
-                process_clear_sequence(clear_message);
-            }
         } else {
             DEBUG_LOG("Unknown topic: " << topic);
         }
@@ -227,12 +226,7 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         
         // Publish Home Assistant discovery and availability
         if (ha_manager) {
-            mosquitto_subscribe(mosq, nullptr, (ha_manager->getCommandTopic()).c_str(), 0);
-            LOG("Subscribed to " << ha_manager->getCommandTopic() << " topic");
-        
-            ha_manager->publishDeviceDiscovery(mosq);
-            ha_manager->publishAvailability(mosq, true);
-            ha_manager->publishDeviceState(mosq, "", "", DEFAULT_BRIGHTNESS);
+            ha_manager->on_connect(mosq);
         }
         
     } else {
@@ -410,16 +404,6 @@ int main(int argc, char** argv) {
             .topic_prefix = config.topic_prefix,
         };
         ha_manager = std::make_unique<ha_discovery::HADiscoveryManager>(ha_config);
-        std::string lwt_topic = ha_manager->getLWTTopic();
-        std::string lwt_payload = ha_manager->getLWTPayload();
-        int lwt_result = mosquitto_will_set(mosq, lwt_topic.c_str(), 
-                                           static_cast<int>(lwt_payload.length()), 
-                                           lwt_payload.c_str(), 1, true);
-        if (lwt_result != MOSQ_ERR_SUCCESS) {
-            WARN_LOG("Failed to set LWT message: " << mosquitto_strerror(lwt_result));
-        } else {
-            DEBUG_LOG("Set LWT message for availability topic");
-        }
     }
 
     // Set callbacks
@@ -446,7 +430,6 @@ int main(int argc, char** argv) {
     
     // Main loop with exponential backoff reconnection
     auto last_watchdog = std::chrono::steady_clock::now();
-    auto last_state_update = std::chrono::steady_clock::now();
 
     while (running) {
         int loop_result = mosquitto_loop(mosq, 100, 1);
@@ -473,12 +456,6 @@ int main(int argc, char** argv) {
             systemd_notify("WATCHDOG=1");
             last_watchdog = now;
         }
-        
-        // Publish state updates every 30 seconds if connected
-        if (mqtt_connected && ha_manager && std::chrono::duration_cast<std::chrono::seconds>(now - last_state_update).count() >= 30) {
-            ha_manager->publishAvailability(mosq, true);
-            last_state_update = now;
-        }
 #endif
         
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -489,9 +466,7 @@ int main(int argc, char** argv) {
     
     // Publish offline availability before disconnecting
     if (ha_manager && mqtt_connected) {
-        ha_manager->publishAvailability(mosq, false);
-        // Give a moment for the message to be sent
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        ha_manager->close(mosq);
     }
     
     mosquitto_disconnect(mosq);

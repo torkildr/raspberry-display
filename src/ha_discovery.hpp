@@ -1,5 +1,6 @@
 #pragma once
 
+#include "display.hpp"
 #include <string>
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
@@ -17,12 +18,27 @@ struct HAConfig {
 class HADiscoveryManager {
 public:
     explicit HADiscoveryManager(const HAConfig& config);
+    ~HADiscoveryManager();
     
+    void close(struct mosquitto* mosq);
+    void on_connect(struct mosquitto* mosq) const;
+    bool on_message(struct mosquitto* mosq, std::string& topic, std::string& payload, std::function<void()>& clearDisplay) const;
+    void publishDeviceState(
+        struct mosquitto* mosq,
+        const std::string& text = "",
+        const std::string& time_format = "",
+        int brightness = DEFAULT_BRIGHTNESS
+    ) const;
+    
+private:
+    HAConfig config_;
+    std::unique_ptr<timer::Timer> lifeline_timer_;
+    bool running;
+
     // Discovery operations
     void publishDeviceDiscovery(struct mosquitto* mosq) const;
     void publishSensorDiscovery(struct mosquitto* mosq) const;
     void publishAvailability(struct mosquitto* mosq, bool online) const;
-    void publishDeviceState(struct mosquitto* mosq, const std::string& text = "", const std::string& time_format = "", int brightness = 15) const;
     
     // Topic helpers
     std::string getAvailabilityTopic() const;
@@ -33,12 +49,8 @@ public:
     
     // Command processing
     bool isCommandTopic(const std::string& topic) const;
-    std::string processCommand(const std::string& payload) const;
-    
-private:
-    HAConfig config_;
-    
-    // Helper methods (removed - now using single device discovery)
+    bool handleCommand(std::string& payload, std::function<void()>& clearDisplay) const;
+
 };
 
 } // namespace ha_discovery

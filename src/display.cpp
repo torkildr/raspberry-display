@@ -1,3 +1,4 @@
+#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <optional>
@@ -6,11 +7,14 @@
 #include "display.hpp"
 #include "timer.hpp"
 #include "transition.hpp"
+#include "log_util.hpp"
 
 #include "font.hpp"
 
 namespace display
 {
+
+using namespace std::chrono_literals;
 
 static constexpr bool show_time_divider = true;
 
@@ -157,7 +161,9 @@ bool Display::prepare()
 
 void Display::start()
 {
-    timers.push_back(timer::createTimer([this] {
+    auto frame_time = std::chrono::duration<double, std::milli>(1000.0 / REFRESH_RATE);
+    auto timer = std::make_unique<timer::Timer>();
+    timer->setInterval([this] {
         // Check if prepare() detected any changes (including time updates)
         bool hasChanges = prepare(); // Handle transitions and buffer updates
         
@@ -168,7 +174,9 @@ void Display::start()
             update();
             postUpdate();
         }
-    }, 1.0 / REFRESH_RATE));
+    }, std::chrono::duration_cast<std::chrono::nanoseconds>(frame_time));
+    
+    timers.push_back(std::move(timer));
 }
 
 void Display::stop()

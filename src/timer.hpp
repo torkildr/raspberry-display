@@ -1,6 +1,7 @@
 #ifndef timer_hpp
 #define timer_hpp
 
+#include <chrono>
 #include <functional>
 #include <thread>
 #include <condition_variable>
@@ -23,7 +24,10 @@ private:
     std::thread m_thread;
 };
 
-std::unique_ptr<Timer> createTimer(const std::function<void()>& callback, double seconds);
+std::unique_ptr<Timer> createTimer(
+    std::chrono::seconds interval,
+    const std::function<void()>& callback
+);
 
 } // namespace timer
 
