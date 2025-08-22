@@ -1,5 +1,6 @@
 #include "transition.hpp"
 #include <algorithm>
+#include <any>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -52,15 +53,23 @@ WipeTransition::WipeTransition(Direction dir, double duration)
 {
 }
 
-void WipeTransition::set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, size_t offset)
+std::string to_binary(long long value);
+std::string to_binary(long long value) {
+    std::string binary_string;
+    while (value > 0) {
+        binary_string.insert(binary_string.begin(), (value % 2) ? '1' : '0');
+        value /= 2;
+    }
+    return binary_string.empty() ? "0" : binary_string;
+}
+
+void WipeTransition::set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, short offset)
 {
-    if (offset > pos) {
+    auto wipe_pos = static_cast<long>(pos) + offset;
+    if (wipe_pos < 0 || wipe_pos >= static_cast<long>(result.size())) {
         return;
     }
-
-    if (0 >= pos && pos < result.size()) {
-        result[pos] &= pattern;
-    }
+    result[static_cast<size_t>(wipe_pos)] &= pattern;
 }
 
 std::array<uint8_t, X_MAX> WipeTransition::animate(double progress)
@@ -78,8 +87,8 @@ std::array<uint8_t, X_MAX> WipeTransition::animate(double progress)
     }
 
     wipe_pos = (direction == Direction::LEFT_TO_RIGHT) ? wipe_pos : (X_MAX - 1 - wipe_pos);
-    set_wipe_pattern(result, 0b11011011, wipe_pos, 2);
-    set_wipe_pattern(result, 0b00100100, wipe_pos, 1);
+    set_wipe_pattern(result, 0b11011011, wipe_pos, -2);
+    set_wipe_pattern(result, 0b00100100, wipe_pos, -1);
     set_wipe_pattern(result, 0b00000000, wipe_pos);
     set_wipe_pattern(result, 0b00100100, wipe_pos, 1);
     set_wipe_pattern(result, 0b11011011, wipe_pos, 2);

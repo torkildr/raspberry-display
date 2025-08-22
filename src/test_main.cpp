@@ -89,8 +89,8 @@ TEST_CASE("wipe right", "[transition]") {
     std::array<uint8_t, X_MAX> from_buffer = {{}};
     std::array<uint8_t, X_MAX> to_buffer = {{}};
     for (size_t i = 0; i < X_MAX; ++i) {
-        from_buffer[i] = static_cast<uint8_t>(0x00);
-        to_buffer[i] = static_cast<uint8_t>(0xFF);
+        from_buffer[i] = static_cast<uint8_t>(0x0F);
+        to_buffer[i] = static_cast<uint8_t>(0xF0);
     }
 
     wipe_transition.start(from_buffer, to_buffer);
@@ -112,27 +112,28 @@ TEST_CASE("wipe right", "[transition]") {
         }
     };
 
-    INFO("T = 0.0");
     step_and_verify(0.0, {
-        {0, 0xFF},
-        {1, 0x00},
-        {63, 0x00},
-        {127, 0x00},
+        {0, 0x00},
+        {1, 0x0F & 0b00100100},
+        {63, 0x0F},
+        {127, 0x0F},
     });
-    INFO("T = 0.5");
     step_and_verify(0.5, {
-        {0, 0xFF},
-        {61, 0xFF},
-        {62, 0xFF},
-        {63, 0x00},
-        {63, 0x00},
-        {127, 0x00},
+        {0, 0xF0},
+        {61, 0xF0},
+        {62, 0xF0 & 0b11011011},
+        {63, 0xF0 & 0b00100100},
+        {64, 0x00},
+        {65, 0x0F & 0b00100100},
+        {66, 0x0F & 0b11011011},
+        {127, 0x0F},
     });
-    INFO("T = 1.0");
     step_and_verify(0.5, {
-        {0, 0xFF},
-        {63, 0xFF},
-        {127, 0xFF},
+        {0, 0xF0},
+        {1, 0xF0},
+        {2, 0xF0},
+        {63, 0xF0},
+        {127, 0xF0},
     });
 }
 

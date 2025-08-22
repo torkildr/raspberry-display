@@ -98,7 +98,7 @@ protected:
 
 private:
     Direction direction;
-    void set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, size_t offset = 0);
+    void set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, short offset = 0);
 };
 
 /**
