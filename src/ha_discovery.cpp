@@ -50,7 +50,7 @@ void HADiscoveryManager::on_connect(struct mosquitto* mosq) const {
     publishAvailability(mosq, true);
     publishDeviceState(mosq, "", "", DEFAULT_BRIGHTNESS);
 
-    const_cast<HADiscoveryManager*>(this)->lifeline_timer_ = timer::createTimer(30s, [this, mosq]() {
+    const_cast<HADiscoveryManager*>(this)->lifeline_timer_ = timer::createTimer(30000ms, [this, mosq]() {
         publishAvailability(mosq, true);
     });
 

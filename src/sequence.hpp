@@ -97,7 +97,7 @@ private:
     double m_default_transition_duration = 0.0;
     
     std::unique_ptr<timer::Timer> m_timer;
-    static constexpr seconds TIMER_INTERVAL = duration_cast<seconds>(10ms); // 10ms timer resolution
+    static constexpr milliseconds TIMER_INTERVAL = 10ms;
     
     // Current display state tracking
     int m_current_brightness = DEFAULT_BRIGHTNESS; // Default brightness

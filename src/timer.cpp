@@ -12,7 +12,7 @@ namespace timer
 {
 
 std::unique_ptr<Timer> createTimer(
-    seconds interval,
+    milliseconds interval,
     const std::function<void()>& callback)
 {
     auto timer = std::make_unique<Timer>();

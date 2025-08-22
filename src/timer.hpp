@@ -25,7 +25,7 @@ private:
 };
 
 std::unique_ptr<Timer> createTimer(
-    std::chrono::seconds interval,
+    std::chrono::milliseconds interval,
     const std::function<void()>& callback
 );
 
