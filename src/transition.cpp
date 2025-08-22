@@ -53,16 +53,6 @@ WipeTransition::WipeTransition(Direction dir, double duration)
 {
 }
 
-std::string to_binary(long long value);
-std::string to_binary(long long value) {
-    std::string binary_string;
-    while (value > 0) {
-        binary_string.insert(binary_string.begin(), (value % 2) ? '1' : '0');
-        value /= 2;
-    }
-    return binary_string.empty() ? "0" : binary_string;
-}
-
 void WipeTransition::set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, short offset)
 {
     auto wipe_pos = static_cast<long>(pos) + offset;

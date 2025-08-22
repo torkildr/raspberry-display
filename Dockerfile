@@ -16,7 +16,7 @@ RUN mkdir setup
 COPY *.sh /setup/
 RUN /setup/install-prereqs-debian.sh
 RUN /setup/install-wiringPi.sh
-RUN echo 'alias make="colormake"' >> ~/.profile
+RUN echo 'alias make="colormake -j 16"' >> ~/.bashrc
 
 RUN cd /setup \
     && git clone https://github.com/catchorg/Catch2.git \
