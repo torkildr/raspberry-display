@@ -182,6 +182,7 @@ int main() {
                     sequence::DisplayState state;
                     state.text = "Lorem ipsum dolor sit amet" + std::to_string(count++);
                     state.transition_type = transition::Type::WIPE_LEFT;
+                    state.transition_duration = 1.0;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo1");
                     break;
                 }
@@ -189,6 +190,7 @@ int main() {
                     sequence::DisplayState state;
                     state.text = "consectetur adipiscing elit";
                     state.transition_type = transition::Type::WIPE_RIGHT;
+                    state.transition_duration = 1.0;
                     sequence_manager->addSequenceState(state, 3.0, 10.0, "demo2");
                     break;
                 }

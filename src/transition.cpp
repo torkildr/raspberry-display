@@ -1,5 +1,7 @@
 #include "transition.hpp"
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <chrono>
 #include <random>
@@ -50,26 +52,38 @@ WipeTransition::WipeTransition(Direction dir, double duration)
 {
 }
 
+void WipeTransition::set_wipe_pattern(std::array<uint8_t, X_MAX>& result, uint8_t pattern, size_t pos, size_t offset)
+{
+    if (offset > pos) {
+        return;
+    }
+
+    if (0 >= pos && pos < result.size()) {
+        result[pos] &= pattern;
+    }
+}
+
 std::array<uint8_t, X_MAX> WipeTransition::animate(double progress)
 {
     std::array<uint8_t, X_MAX> result = source_buffer;
+    auto wipe_pos = static_cast<size_t>(round(progress * static_cast<double>(X_MAX - 1)));
 
-    auto wipe_pos = static_cast<size_t>(round(progress * static_cast<double>(X_MAX)));
-    
     for (size_t x = 0; x < X_MAX; ++x) {
         size_t pos = (direction == Direction::LEFT_TO_RIGHT) ? x : (X_MAX - 1 - x);
-        bool should_reveal = wipe_pos > x;
         
-        if (x == wipe_pos) {
-            if (pos - 1 > 0) {
-                result[pos - 1] ^= 0xFF;
-            }
-            result[pos] ^= 0xFF;
-       } else if (should_reveal) {
+        bool should_reveal = wipe_pos > x;
+        if (should_reveal) {
             result[pos] = target_buffer[pos];
-       }
+        }
     }
-    
+
+    wipe_pos = (direction == Direction::LEFT_TO_RIGHT) ? wipe_pos : (X_MAX - 1 - wipe_pos);
+    set_wipe_pattern(result, 0b11011011, wipe_pos, 2);
+    set_wipe_pattern(result, 0b00100100, wipe_pos, 1);
+    set_wipe_pattern(result, 0b00000000, wipe_pos);
+    set_wipe_pattern(result, 0b00100100, wipe_pos, 1);
+    set_wipe_pattern(result, 0b11011011, wipe_pos, 2);
+
     return result;
 }
 
