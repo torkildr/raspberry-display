@@ -55,7 +55,7 @@ CXXFLAGS = -std=c++20 $(OPT_FLAGS) $(ARCH_FLAGS) $(WARNING_FLAGS)
 CFLAGS = $(OPT_FLAGS) $(ARCH_FLAGS) $(WARNING_FLAGS)
 
 # Include directories
-INCLUDES = -Isrc
+INCLUDES = -Isrc -Isrc/util -Isrc/display
 
 # Library flags
 THREAD_LIBS = -lpthread
@@ -65,15 +65,17 @@ MOSQUITTO_LIBS = -lmosquitto
 MQTT_LIBS = $(MOSQUITTO_LIBS) $(THREAD_LIBS)
 BASIC_LIBS = $(NCURSES_LIBS) $(WIRINGPI_LIBS) $(THREAD_LIBS)
 
-# Source files
-COMMON_SRC = src/timer.cpp src/display.cpp src/font.cpp src/transition.cpp src/sequence.cpp src/utf8_converter.cpp
+# Source files organized by dependency layers - auto-discover with wildcards
+UTIL_SRC = $(wildcard src/util/*.cpp)
+DISPLAY_SRC = $(wildcard src/display/*.cpp)
 MQTT_SRC = src/mqtt-client.cpp src/ha_discovery.cpp
 CURSES_SRC = src/curses-client.cpp
 HT1632_SRC = src/ht1632.cpp
 MOCK_SRC = src/mock-display.cpp
 
 # Object files with proper directory structure
-COMMON_OBJ = $(COMMON_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
+UTIL_OBJ = $(UTIL_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
+DISPLAY_OBJ = $(DISPLAY_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 MQTT_OBJ = $(MQTT_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 CURSES_OBJ = $(CURSES_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 HT1632_OBJ = $(HT1632_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
@@ -103,26 +105,26 @@ $(DEBUG_BUILD_DIR):
 	mkdir -p $@
 
 # Font generation (required before building)
-src/font_generated.hpp: tools/font_definitions.txt tools/font_generator.py
+src/display/font_generated.hpp: tools/font_definitions.txt tools/font_generator.py
 	@echo "Generating font header..."
-	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.hpp
+	python3 tools/font_generator.py tools/font_definitions.txt src/display/font_generated.hpp
 
 # Executable targets with proper dependencies
-$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
 	@echo "Linking raspberry-display-mqtt..."
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(MQTT_OBJ) $(HT1632_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(HT1632_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
 	@echo "Linking curses-client..."
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(BASIC_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(BASIC_LIBS)
 
-$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-display-mqtt..."
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(MQTT_OBJ) $(MOCK_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(MOCK_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/font_generated.hpp $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-curses-client..."
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJ) $(CURSES_OBJ) $(MOCK_OBJ) $(BASIC_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(MOCK_OBJ) $(BASIC_LIBS)
 
 # Convenience targets that point to the actual binaries
 raspberry-display-mqtt: $(OBJ_DIR)/raspberry-display-mqtt
@@ -133,28 +135,52 @@ mock-curses-client: $(OBJ_DIR)/mock-curses-client
 # Object file compilation with automatic header dependency tracking
 $(OBJ_DIR)/%.o: src/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<..."
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
-# Include dependency files for header tracking
+# Handle subdirectory compilation
+$(OBJ_DIR)/util/%.o: src/util/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<..."
+	@mkdir -p $(OBJ_DIR)/util
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+
+$(OBJ_DIR)/display/%.o: src/display/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<..."
+	@mkdir -p $(OBJ_DIR)/display
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+
+# Include dependency files for header tracking - include subdirectories
 -include $(OBJ_DIR)/*.d
+-include $(OBJ_DIR)/*/*.d
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(DEBUG_BUILD_DIR)
-	$(RM) -f src/font_generated.hpp
+	$(RM) -f src/display/font_generated.hpp
 
-# Testing
-TEST_SRC = src/test_main.cpp
+# Testing - auto-discover all test files
+TEST_SRC = $(wildcard src/test/*.cpp)
 TEST_OBJ = $(TEST_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 TEST_LIBS = $(MQTT_LIBS) $(BASIC_LIBS) -lCatch2Main -lCatch2
+TEST_EXECUTABLES = $(TEST_SRC:src/test/%.cpp=$(OBJ_DIR)/test_%)
 
-# Test target
-test: $(OBJ_DIR)/test_main
-	@echo "Running tests..."
-	$(OBJ_DIR)/test_main
+# Test target - build and run all test executables
+test: $(TEST_EXECUTABLES)
+	@echo "Running all tests..."
+	@for test_exe in $(TEST_EXECUTABLES); do \
+		echo "Running $$test_exe..."; \
+		$$test_exe || exit 1; \
+	done
 
-$(OBJ_DIR)/test_main: $(OBJ_DIR) src/font_generated.hpp $(TEST_OBJ) $(COMMON_OBJ) $(MOCK_OBJ) src/font_generated.hpp
-	@echo "Linking test_main..."
-	$(CXX) $(CXXFLAGS) -o $@ $(TEST_OBJ) $(COMMON_OBJ)  $(MOCK_OBJ) $(TEST_LIBS)
+# Generic test executable rule
+$(OBJ_DIR)/test_%: $(OBJ_DIR) src/display/font_generated.hpp $(OBJ_DIR)/test/%.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(MOCK_OBJ)
+	@echo "Linking test executable $@..."
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_DIR)/test/$*.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(MOCK_OBJ) $(TEST_LIBS)
+
+# Handle test subdirectory compilation
+$(OBJ_DIR)/test/%.o: src/test/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<..."
+	@mkdir -p $(OBJ_DIR)/test
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 
 # Generate compile_commands.json for LSP support
@@ -204,8 +230,8 @@ uninstall:
 
 font-generate:
 	@echo "Generating font header from ASCII art definitions..."
-	python3 tools/font_generator.py tools/font_definitions.txt src/font_generated.hpp
-	@echo "Generated src/font_generated.hpp"
+	python3 tools/font_generator.py tools/font_definitions.txt src/display/font_generated.hpp
+	@echo "Generated src/display/font_generated.hpp"
 	@echo "Font ready for build - no additional steps needed"
 
 # Help target
