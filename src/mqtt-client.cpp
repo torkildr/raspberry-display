@@ -90,21 +90,23 @@ static void signal_handler(int signal) {
 
 static void process_add_sequence(const json& message) {
     try {
-        if (!message.contains("state") || !message.contains("time")) {
-            LOG("adding to sequence requires 'state' and 'time' fields");
+        if (!message.contains("state") || !message.contains("time") || (!message.contains("id") && !message.contains("sequence_id"))) {
+            LOG("adding to sequence requires 'id', 'state' and 'time' fields");
             return;
         }
         
         double ttl = message.contains("ttl") ? message["ttl"].get<double>() : 0.0;
         double time = message["time"].get<double>();
         json state_json = message["state"];
-        std::string sequence_id = message.contains("sequence_id") ? message["sequence_id"].get<std::string>() : "";
+        std::string sequence_id = message.contains("id")
+            ? message["id"].get<std::string>()
+            : (message.contains("sequence_id") ? message["sequence_id"].get<std::string>() : ""); // fall back to sequence_id for backwards compatability (for now)
 
         // Parse JSON to DisplayState
         sequence::DisplayState state = sequence::parseDisplayStateFromJSON(state_json);
         
         if (sequence_manager) {
-            sequence_manager->addSequenceState(state, time, ttl, sequence_id);
+            sequence_manager->addSequenceState(sequence_id, state, time, ttl);
             DEBUG_LOG("Added state to sequence with time=" << time << "s, ttl=" << ttl << "s, sequence_id='" << sequence_id << "'");
         }
         
@@ -123,21 +125,28 @@ static void process_set_sequence(const json& message) {
         std::vector<sequence::SequenceState> sequence_states;
         
         for (const auto& item : message) {
-            if (!item.contains("state") || !item.contains("time")) {
-                LOG("Each sequence item requires 'state' and 'time' fields");
+            if (!item.contains("state") || !item.contains("time") || (!item.contains("id") && !item.contains("sequence_id"))) {
+                LOG("Each sequence item requires 'id', 'state' and 'time' fields");
                 continue;
             }
             
             double ttl = item.contains("ttl") ? item["ttl"].get<double>() : 0.0;
             double time = item["time"].get<double>();
             json state_json = item["state"];
-            std::string sequence_id = item.contains("sequence_id") ? item["sequence_id"].get<std::string>() : "";
+            std::string sequence_id = item.contains("id")
+                ? item["id"].get<std::string>()
+                : (item.contains("sequence_id") ? item["sequence_id"].get<std::string>() : ""); // fall back to sequence_id for backwards compatability (for now)
             
             // Parse JSON to DisplayState
             sequence::DisplayState state = sequence::parseDisplayStateFromJSON(state_json);
             
-            // Note: created_at will be set by SequenceManager
-            sequence_states.push_back({state, time, ttl, std::chrono::steady_clock::now(), sequence_id});
+            sequence_states.push_back({
+                sequence_id,
+                std::chrono::steady_clock::now(),
+                time,
+                ttl,
+                state,
+            });
         }
         
         if (sequence_manager) {

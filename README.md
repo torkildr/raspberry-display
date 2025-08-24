@@ -114,7 +114,7 @@ mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Temporary Aler
 
 **Add with sequence ID and split transition:**
 ```bash
-mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Meeting Room A", "transition": "split_center"}, "time": 5.0, "sequence_id": "meeting_alerts"}'
+mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Meeting Room A", "transition": "split_center"}, "time": 5.0, "id": "meeting_alerts"}'
 ```
 
 #### Setting Complete Sequences (display/set)
@@ -122,17 +122,17 @@ mosquitto_pub -h localhost -t display/add -m '{"state": {"text": "Meeting Room A
 **Multi-step sequence with transitions:**
 ```bash
 mosquitto_pub -h localhost -t display/set -m '[
-  {"state": {"text": "Step 1", "alignment": "center", "transition": "scroll_down"}, "time": 3.0},
-  {"state": {"text": "Step 2", "brightness": 8, "transition": "wipe_right"}, "time": 3.0},
-  {"state": {"show_time": true, "transition": "dissolve"}, "time": 5.0}
+  {"state": {"text": "Step 1", "alignment": "center", "transition": "scroll_down"}, "time": 3.0, "id": "meeting_alerts1"},
+  {"state": {"text": "Step 2", "brightness": 8, "transition": "wipe_right"}, "time": 3.0, "id": "meeting_alerts2"},
+  {"state": {"show_time": true, "transition": "dissolve"}, "time": 5.0, "id": "meeting_alerts3"}
 ]'
 ```
 
 **Scrolling text sequence:**
 ```bash
 mosquitto_pub -h localhost -t display/set -m '[
-  {"state": {"text": "This is a very long message that will scroll across the display", "scroll": "enabled"}, "time": 10.0},
-  {"state": {"text": "Normal text", "scroll": "disabled"}, "time": 3.0}
+  {"state": {"text": "This is a very long message that will scroll across the display", "scroll": "enabled"}, "time": 10.0, "id": "meeting_alerts1"},
+  {"state": {"text": "Normal text", "scroll": "disabled"}, "time": 3.0, "id": "meeting_alerts2"}
 ]'
 ```
 
@@ -145,7 +145,7 @@ mosquitto_pub -h localhost -t display/clear -m '{}'
 
 **Clear specific sequence by ID:**
 ```bash
-mosquitto_pub -h localhost -t display/clear -m '{"sequence_id": "meeting_alerts"}'
+mosquitto_pub -h localhost -t display/clear -m '{"id": "meeting_alerts"}'
 ```
 
 #### Quit Application (display/quit)
@@ -160,18 +160,18 @@ mosquitto_pub -h localhost -t display/quit -m '{}'
 **Weather display with smooth transitions:**
 ```bash
 mosquitto_pub -h localhost -t display/set -m '[
-  {"state": {"text": "Weather", "alignment": "center", "brightness": 12, "transition": {"type": "dissolve", "duration": 2.0}}, "time": 2.0},
-  {"state": {"text": "22°C Sunny", "show_time": true, "time_format": "%H:%M", "transition": "scroll_up"}, "time": 8.0}
+  {"state": {"text": "Weather", "alignment": "center", "brightness": 12, "transition": {"type": "dissolve", "duration": 2.0}}, "time": 2.0, "id": "weather1"},
+  {"state": {"text": "22°C Sunny", "show_time": true, "time_format": "%H:%M", "transition": "scroll_up"}, "time": 8.0, "id": "weather2"}
 ]'
 ```
 
 **Status board rotation with varied transitions:**
 ```bash
 mosquitto_pub -h localhost -t display/set -m '[
-  {"state": {"text": "Server: OK", "alignment": "left", "transition": "wipe_left"}, "time": 4.0},
-  {"state": {"text": "DB: OK", "alignment": "left", "transition": "wipe_right"}, "time": 4.0},
-  {"state": {"text": "API: OK", "alignment": "left", "transition": "split_sides"}, "time": 4.0},
-  {"state": {"show_time": true, "transition": "random"}, "time": 6.0}
+  {"state": {"text": "Server: OK", "alignment": "left", "transition": "wipe_left"}, "time": 4.0, "id": "status1"},
+  {"state": {"text": "DB: OK", "alignment": "left", "transition": "wipe_right"}, "time": 4.0, "id": "status2"},
+  {"state": {"text": "API: OK", "alignment": "left", "transition": "split_sides"}, "time": 4.0, "id": "status3"},
+  {"state": {"show_time": true, "transition": "random"}, "time": 6.0, "id": "status4"}
 ]'
 ```
 
