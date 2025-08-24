@@ -43,7 +43,6 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
     if (seq_mgr && seq_mgr->isActive()) {
         // Show sequence count and current index
         std::string seq_info = "\nSequence count: " + std::to_string(seq_mgr->getSequenceCount());
-        seq_info += "  Current index: " + std::to_string(seq_mgr->getCurrentSequenceIndex());
         addstr(seq_info.c_str());
         
         // Show current sequence ID
@@ -125,14 +124,14 @@ int main() {
                     sequence::DisplayState state;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
+                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
                     break;
                 }
                 case 'a': {
                     sequence::DisplayState state;
                     state.text = abc_string;
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
+                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
                     break;
                 }
                 case 'b': {
@@ -140,7 +139,7 @@ int main() {
                     state.text = "This is a rather long string. It will have to be scrolled.";
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState(state, 30.0, 30.0, "display_set");
+                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
                     break;
                 }
                 case 's':
@@ -183,7 +182,7 @@ int main() {
                     state.text = "Lorem ipsum dolor sit amet" + std::to_string(count++);
                     state.transition_type = transition::Type::WIPE_LEFT;
                     state.transition_duration = 1.0;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo1");
+                    sequence_manager->addSequenceState("demo1", state, 3.0, 10.0);
                     break;
                 }
                 case '2': {
@@ -191,7 +190,7 @@ int main() {
                     state.text = "consectetur adipiscing elit";
                     state.transition_type = transition::Type::WIPE_RIGHT;
                     state.transition_duration = 1.0;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo2");
+                    sequence_manager->addSequenceState("demo2", state, 3.0, 10.0);
                     break;
                 }
                 case '3': {
@@ -199,7 +198,7 @@ int main() {
                     state.text = "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
                     state.transition_type = transition::Type::DISSOLVE;
                     state.transition_duration = 2.0;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo3");
+                    sequence_manager->addSequenceState("demo3", state, 3.0, 10.0);
                     break;
                 }
                 case '4': {
@@ -207,7 +206,7 @@ int main() {
                     state.text = "ut enim ad minim veniam";
                     state.time_format = "";
                     state.transition_type = transition::Type::SCROLL_UP;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo4");
+                    sequence_manager->addSequenceState("demo4", state, 3.0, 10.0);
                     break;
                 }
                 case '5': {
@@ -215,7 +214,7 @@ int main() {
                     state.text = "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat";
                     state.time_format = "";
                     state.transition_type = transition::Type::SCROLL_DOWN;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo5");
+                    sequence_manager->addSequenceState("demo5", state, 3.0, 10.0);
                     break;
                 }
                 case '6': {
@@ -224,7 +223,7 @@ int main() {
                     state.time_format = "";
                     state.transition_type = transition::Type::SPLIT_CENTER;
                     state.transition_duration = 1.2;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo6");
+                    sequence_manager->addSequenceState("demo6", state, 3.0, 10.0);
                     break;
                 }
                 case '7': {
@@ -232,7 +231,7 @@ int main() {
                     state.text = "culpa qui officia deserunt mollit";
                     state.transition_type = transition::Type::SPLIT_SIDES;
                     state.transition_duration = 1.2;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo7");
+                    sequence_manager->addSequenceState("demo7", state, 3.0, 10.0);
                     break;
                 }
                 case '8': {
@@ -240,7 +239,7 @@ int main() {
                     state.text = "labore et dolore magna aliqua";
                     state.time_format = "";
                     state.transition_type = transition::Type::RANDOM;
-                    sequence_manager->addSequenceState(state, 3.0, 10.0, "demo8");
+                    sequence_manager->addSequenceState("demo8", state, 3.0, 10.0);
                     break;
                 }
             }

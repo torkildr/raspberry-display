@@ -14,6 +14,7 @@
 
 #include "timer.hpp"
 #include "display.hpp"
+#include "snapshot_map.hpp"
 
 namespace sequence
 {
@@ -38,11 +39,11 @@ struct DisplayState {
 
 // Sequence state structure
 struct SequenceState {
-    DisplayState state;             // The structured display state
+    std::string sequence_id;        // Optional sequence identifier for replacement
+    steady_clock::time_point created_at;  // When this state was created
     double time;                    // Display time in seconds
     double ttl;                     // Time-to-live in seconds
-    steady_clock::time_point created_at;  // When this state was created
-    std::string sequence_id;        // Optional sequence identifier for replacement
+    DisplayState state;             // The structured display state
 };
 
 class SequenceManager
@@ -53,7 +54,7 @@ public:
     ~SequenceManager();
     
     // Sequence management methods
-    void addSequenceState(const DisplayState& state, double time, double ttl = 0.0, const std::string& sequence_id = "");
+    void addSequenceState(const std::string& sequence_id, const DisplayState& state, double time, double ttl = 0.0);
     void setSequence(const std::vector<SequenceState>& sequence);
     void clearSequence(bool set_default_content = false);
     void clearSequenceById(const std::string& sequence_id);
@@ -62,7 +63,6 @@ public:
     // Sequence information methods
     std::vector<std::string> getActiveSequenceIds() const;
     std::string getCurrentSequenceId() const;
-    size_t getCurrentSequenceIndex() const;
     size_t getSequenceCount() const;
     
     // Display control methods (global state management)
@@ -73,7 +73,7 @@ public:
     void setDefaultTransition(transition::Type type, double duration = 0.0);
     
     // Process a display state directly (for immediate display)
-    void processDisplayState(const DisplayState& state);
+    void processDisplayState(const std::optional<std::string> sequence_id, const DisplayState& state);
     void nextState();
 
     // Display lifecycle methods
@@ -82,15 +82,23 @@ public:
         
 private:
     void processSequence(bool skip_current = false);
-    void removeExpiredStates();
+    bool isStateExpired(const SequenceState& state);
     void setDefaultContent();
+
+    void stopSequence();
+    void startSequence();
+    
+    // Helper method for safe iterator dereferencing
+    std::optional<std::pair<std::string, SequenceState>> safeGetCurrentPair() const;
+    SnapshotMap<SequenceState> m_sequence;
+    std::optional<SnapshotMap<SequenceState>::Snapshot> m_current_snapshot;
+    std::optional<SnapshotMap<SequenceState>::Snapshot::Iterator> m_current_iterator;
     
     std::unique_ptr<display::Display> m_display;
-    std::vector<SequenceState> m_sequence;
     mutable std::mutex m_mutex;
-    std::atomic<size_t> m_current_index{0};
     std::atomic<bool> m_active{false};
     steady_clock::time_point m_state_start_time;
+    std::optional<std::string> m_last_shown_id;
     
     // Default transition settings
     transition::Type m_default_transition_type = transition::Type::NONE;

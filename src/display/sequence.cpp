@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <optional>
 
 #include "display.hpp"
 #include "sequence.hpp"
@@ -38,39 +39,71 @@ SequenceManager::~SequenceManager()
     }
 }
 
-void SequenceManager::addSequenceState(const DisplayState& state, double time, double ttl, const std::string& sequence_id)
+void SequenceManager::stopSequence()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    
-    // Remove existing states with the same sequence_id if specified
-    if (!sequence_id.empty()) {
-        m_sequence.erase(
-            std::remove_if(m_sequence.begin(), m_sequence.end(),
-                [&sequence_id](const SequenceState& s) {
-                    return s.sequence_id == sequence_id;
-                }),
-            m_sequence.end()
-        );
+    m_active = false;
+    m_current_snapshot.reset();
+    m_current_iterator.reset();
+    setDefaultContent();
+}
+
+std::optional<std::pair<std::string, SequenceState>> SequenceManager::safeGetCurrentPair() const
+{
+    if (!m_current_iterator.has_value() || !m_current_snapshot.has_value() ||
+        m_current_iterator.value() == m_current_snapshot->end()) {
+        return std::nullopt;
     }
     
-    // Add the new sequence state
+    try {
+        return *m_current_iterator.value();
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+}
+
+void SequenceManager::startSequence()
+{
+    if (m_sequence.empty()) {
+        return;
+    }
+    
+    m_active = true;
+    // Create snapshot once and store it
+    m_current_snapshot.emplace(m_sequence.snapshot());
+    m_current_iterator = m_current_snapshot->begin();
+    m_state_start_time = std::chrono::steady_clock::now();
+    
+    // Execute the first state immediately if iterator is valid
+    auto first_pair = safeGetCurrentPair();
+    if (first_pair.has_value()) {
+        processDisplayState(first_pair->first, first_pair->second.state);
+    } else {
+        stopSequence();
+    }
+}
+
+
+void SequenceManager::addSequenceState(const std::string& sequence_id, const DisplayState& state, double time, double ttl)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (sequence_id.empty()) {
+        ERROR_LOG("Sequence state must have a non-empty sequence_id");
+        return;
+    }
+    
     SequenceState seq_state;
     seq_state.state = state;
     seq_state.time = time;
     seq_state.ttl = ttl;
     seq_state.sequence_id = sequence_id;
     seq_state.created_at = std::chrono::steady_clock::now();
-    
-    m_sequence.push_back(seq_state);
+
+    m_sequence.insert_or_assign(sequence_id, seq_state);
     
     // If this is the first item and no sequence is running, start it
     if (m_sequence.size() == 1 && !m_active) {
-        m_active = true;
-        m_current_index = 0;
-        m_state_start_time = seq_state.created_at;
-        
-        // Execute the first state immediately
-        processDisplayState(m_sequence[0].state);
+        startSequence();
     }
     
     DEBUG_LOG("Added sequence state with time=" << time << ", ttl=" << ttl << ", id='" << sequence_id << "'");
@@ -83,25 +116,19 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
     
     m_sequence.clear();
     m_active = false;
-    m_current_index = 0;
     
-    // Copy all sequence states
-    m_sequence = sequence;
-    
-    // Update created_at timestamps to now for all states
     auto now = steady_clock::now();
-    for (auto& state : m_sequence) {
+    for (SequenceState state : sequence) {
+        if (state.sequence_id.empty()) {
+            ERROR_LOG("Sequence state must have a non-empty sequence_id");
+            continue;
+        }
         state.created_at = now;
+        m_sequence.insert_or_assign(state.sequence_id, state);
     }
     
-    // If we have states, start the sequence
     if (!m_sequence.empty()) {
-        m_active = true;
-        m_current_index = 0;
-        m_state_start_time = now;
-        
-        // Execute the first state immediately
-        processDisplayState(m_sequence[0].state);
+        startSequence();
     }
 
     DEBUG_LOG("Sequence size = " << m_sequence.size() << ", setSequence");
@@ -112,10 +139,8 @@ void SequenceManager::setDefaultContent()
     DEBUG_LOG("Setting default (empty) content");
     if (m_display) {
         m_active = false;
-        m_current_index = 0;
+        m_last_shown_id = std::nullopt;
         
-        // TODO: enable this when we know how to stop transition after the first
-        // m_display->setTransition(transition::Type::DISSOLVE, 2.0);
         m_display->setAlignment(display::Alignment::CENTER);
         m_display->show(std::nullopt, "");
     }
@@ -140,14 +165,9 @@ std::vector<std::string> SequenceManager::getActiveSequenceIds() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<std::string> ids;
-    
-    for (const auto& state : m_sequence) {
-        if (!state.sequence_id.empty()) {
-            // Only add if not already in the list (avoid duplicates)
-            if (std::find(ids.begin(), ids.end(), state.sequence_id) == ids.end()) {
-                ids.push_back(state.sequence_id);
-            }
-        }
+
+    for (auto [k, v] : m_sequence.snapshot()) {
+        ids.push_back(k);
     }
     
     return ids;
@@ -157,16 +177,8 @@ std::string SequenceManager::getCurrentSequenceId() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     
-    if (!m_active || m_sequence.empty() || m_current_index >= m_sequence.size()) {
-        return "";
-    }
-    
-    return m_sequence[m_current_index].sequence_id;
-}
-
-size_t SequenceManager::getCurrentSequenceIndex() const
-{
-    return m_current_index;
+    auto current_pair = safeGetCurrentPair();
+    return current_pair.has_value() ? current_pair->first : "<none>";
 }
 
 size_t SequenceManager::getSequenceCount() const
@@ -177,75 +189,94 @@ size_t SequenceManager::getSequenceCount() const
 
 void SequenceManager::clearSequenceById(const std::string& sequence_id)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     if (sequence_id.empty()) {
+        ERROR_LOG("Sequence ID is empty");
         return;
     }
     
-    std::lock_guard<std::mutex> lock(m_mutex);
+    m_sequence.erase(sequence_id);
     
-    // Remove all states with the specified sequence_id
-    m_sequence.erase(
-        std::remove_if(m_sequence.begin(), m_sequence.end(),
-            [&sequence_id](const SequenceState& s) {
-                return s.sequence_id == sequence_id;
-            }),
-        m_sequence.end()
-    );
-    
-    // If sequence is now empty, deactivate
     if (m_sequence.empty()) {
-        m_active = false;
-        m_current_index = 0;
-    }
-    // If current index is out of bounds, reset to 0
-    else if (m_current_index >= m_sequence.size()) {
-        m_current_index = 0;
-        m_state_start_time = std::chrono::steady_clock::now();
-        
-        // Execute new current state
-        processDisplayState(m_sequence[0].state);
+        stopSequence();
     }
 }
 
 void SequenceManager::processSequence(bool skip_current)
 {
-    if (!m_active) {
-        return;
-    }
-    
     std::lock_guard<std::mutex> lock(m_mutex);
-    
-    removeExpiredStates();
-    
-    if (m_sequence.empty()) {
-        m_active = false;
-        return;
-    }
-    
-    // Ensure current index is valid after removal
-    if (m_current_index >= m_sequence.size()) {
-        m_current_index = 0;
-        m_state_start_time = steady_clock::now();
-        processDisplayState(m_sequence[0].state);
+
+    if (!m_active || m_sequence.empty()) {
         return;
     }
 
-    const auto& current_state = m_sequence[m_current_index];
+    if (!m_current_snapshot.has_value() || !m_current_iterator.has_value()) {
+        startSequence();
+        return;
+    }
+
+    if (m_current_iterator.value() == m_current_snapshot->end()) {
+        m_current_snapshot.emplace(m_sequence.snapshot());
+        m_current_iterator = m_current_snapshot->begin();
+        
+        if (m_current_iterator.value() == m_current_snapshot->end()) {
+            startSequence();
+            return;
+        }
+        
+        // Display the first state of the new cycle
+        auto first_pair = safeGetCurrentPair();
+        if (first_pair.has_value()) {
+            processDisplayState(std::optional(first_pair->first), first_pair->second.state);
+        } else {
+            stopSequence();
+            return;
+        }
+    }
+
+    auto current_pair_opt = safeGetCurrentPair();
+    if (!current_pair_opt.has_value()) {
+        stopSequence();
+        return;
+    }
+    const auto& current_pair = current_pair_opt.value();
+    const auto& sequence_state = current_pair.second;
+
+    if (isStateExpired(sequence_state)) {
+        DEBUG_LOG("Erasing expired state: " << current_pair.first);
+        m_sequence.erase(current_pair.first);
+        if (m_sequence.empty()) {
+            stopSequence();
+            return;
+        }
+        skip_current = true;
+    }
+    
     auto now = steady_clock::now();
     auto state_elapsed = duration<double>(now - m_state_start_time).count();
     
     // Check if it's time to move to the next state
-    if (skip_current || state_elapsed >= current_state.time) {
+    if (skip_current || state_elapsed >= sequence_state.time) {
         // Move to next state
-        m_current_index++;
+        ++m_current_iterator.value();
         
-        if (m_current_index >= m_sequence.size()) {
-            // Loop back to beginning
-            m_current_index = 0;
+        // Check if we've reached the end, loop back to beginning
+        if (m_current_iterator.value() == m_current_snapshot->end()) {
+            // Restart sequence from beginning with fresh snapshot
+            startSequence();
+        } else {
+            // Display the new state
+            auto new_pair = safeGetCurrentPair();
+            if (new_pair.has_value()) {
+                processDisplayState(std::optional(new_pair->first), new_pair->second.state);
+            } else {
+                stopSequence();
+                return;
+            }
         }
         
         m_state_start_time = now;
-        processDisplayState(m_sequence[m_current_index].state);
     }
 }
 
@@ -254,37 +285,11 @@ void SequenceManager::nextState()
     processSequence(true);
 }
 
-void SequenceManager::removeExpiredStates()
+bool SequenceManager::isStateExpired(const SequenceState& state)
 {
     auto now = steady_clock::now();
-    size_t original_size = m_sequence.size();
-    
-    // Remove states that have exceeded their TTL
-    m_sequence.erase(
-        std::remove_if(m_sequence.begin(), m_sequence.end(),
-            [now](const SequenceState& state) {
-                if (state.ttl <= 0) {
-                    return false; // No TTL means never expire
-                }
-                auto elapsed = duration<double>(now - state.created_at).count();
-                return elapsed >= state.ttl;
-            }),
-        m_sequence.end());
-    
-    // Handle sequence state changes after TTL cleanup
-    if (m_sequence.size() < original_size) {
-        if (m_sequence.empty()) {
-            setDefaultContent();
-            DEBUG_LOG("All sequence items expired - cleared screen and went inactive");
-        }
-        else if (m_current_index >= m_sequence.size()) {
-            // Some items expired but sequence not empty - reset to first remaining item
-            m_current_index = 0;
-            m_state_start_time = now;
-            processDisplayState(m_sequence[0].state);
-            DEBUG_LOG("Reset to first state after TTL cleanup");
-        }
-    }
+    auto elapsed = duration<double>(now - state.created_at).count();
+    return elapsed >= state.ttl;
 }
 
 // Display control methods (global state management)
@@ -337,13 +342,13 @@ void SequenceManager::start()
 
 void SequenceManager::stop()
 {
-    m_active = false;
+    stopSequence();
     if (m_display) {
         m_display->stop();
     }
 }
 
-void SequenceManager::processDisplayState(const DisplayState& state)
+void SequenceManager::processDisplayState(const std::optional<std::string> sequence_id, const DisplayState& state)
 {
     if (!m_display) {
         return;
@@ -368,10 +373,12 @@ void SequenceManager::processDisplayState(const DisplayState& state)
         }
     }
 
-    auto transition_type= (m_sequence.size() > 1)
-        ? state.transition_type
-        : transition::Type::NONE;
+    auto transition_type= state.transition_type;
+    if (m_last_shown_id.has_value() && sequence_id.has_value() && m_last_shown_id.value() == sequence_id.value()) {
+        transition_type = transition::Type::NONE;
+    }
     
+    m_last_shown_id = sequence_id;
     m_display->show(state.text, state.time_format, transition_type, state.transition_duration);
 }
 
