@@ -3,6 +3,7 @@
 #include "snapshot_map.hpp"
 
 #include <catch2/catch_all.hpp>
+#include <stdexcept>
 
 static void verify_snapshot_results(const std::map<std::string, int>& actual, 
                                    const std::vector<std::pair<std::string, int>>& expected) {
