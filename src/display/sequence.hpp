@@ -14,7 +14,7 @@
 
 #include "timer.hpp"
 #include "display.hpp"
-#include "snapshot_map.hpp"
+#include "../util/cyclic_list.hpp"
 
 namespace sequence
 {
@@ -45,6 +45,8 @@ struct SequenceState {
     double ttl;                     // Time-to-live in seconds
     DisplayState state;             // The structured display state
 };
+
+typedef CyclicList<std::string, SequenceState> SequenceList;
 
 class SequenceManager
 {
@@ -88,11 +90,8 @@ private:
     void stopSequence();
     void startSequence();
     
-    // Helper method for safe iterator dereferencing
-    std::optional<std::pair<std::string, SequenceState>> safeGetCurrentPair() const;
-    SnapshotMap<SequenceState> m_sequence;
-    std::optional<SnapshotMap<SequenceState>::Snapshot> m_current_snapshot;
-    std::optional<SnapshotMap<SequenceState>::Snapshot::Iterator> m_current_iterator;
+    SequenceList m_sequence;
+    std::shared_ptr<SequenceList::Element> m_current_element;
     
     std::unique_ptr<display::Display> m_display;
     mutable std::mutex m_mutex;

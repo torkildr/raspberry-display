@@ -42,23 +42,8 @@ SequenceManager::~SequenceManager()
 void SequenceManager::stopSequence()
 {
     m_active = false;
-    m_current_snapshot.reset();
-    m_current_iterator.reset();
+    m_current_element.reset();
     setDefaultContent();
-}
-
-std::optional<std::pair<std::string, SequenceState>> SequenceManager::safeGetCurrentPair() const
-{
-    if (!m_current_iterator.has_value() || !m_current_snapshot.has_value() ||
-        m_current_iterator.value() == m_current_snapshot->end()) {
-        return std::nullopt;
-    }
-    
-    try {
-        return *m_current_iterator.value();
-    } catch (const std::exception&) {
-        return std::nullopt;
-    }
 }
 
 void SequenceManager::startSequence()
@@ -68,15 +53,12 @@ void SequenceManager::startSequence()
     }
     
     m_active = true;
-    // Create snapshot once and store it
-    m_current_snapshot.emplace(m_sequence.snapshot());
-    m_current_iterator = m_current_snapshot->begin();
+    m_current_element = m_sequence.first();
     m_state_start_time = std::chrono::steady_clock::now();
     
-    // Execute the first state immediately if iterator is valid
-    auto first_pair = safeGetCurrentPair();
-    if (first_pair.has_value()) {
-        processDisplayState(first_pair->first, first_pair->second.state);
+    // Execute the first state immediately if element is valid
+    if (m_current_element && !m_current_element->isMarkedForDeletion()) {
+        processDisplayState(m_current_element->getId(), m_current_element->getData().state);
     } else {
         stopSequence();
     }
@@ -99,7 +81,7 @@ void SequenceManager::addSequenceState(const std::string& sequence_id, const Dis
     seq_state.sequence_id = sequence_id;
     seq_state.created_at = std::chrono::steady_clock::now();
 
-    m_sequence.insert_or_assign(sequence_id, seq_state);
+    m_sequence.insert(sequence_id, seq_state);
     
     // If this is the first item and no sequence is running, start it
     if (m_sequence.size() == 1 && !m_active) {
@@ -124,7 +106,7 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
             continue;
         }
         state.created_at = now;
-        m_sequence.insert_or_assign(state.sequence_id, state);
+        m_sequence.insert(state.sequence_id, state);
     }
     
     if (!m_sequence.empty()) {
@@ -166,9 +148,9 @@ std::vector<std::string> SequenceManager::getActiveSequenceIds() const
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<std::string> ids;
 
-    for (auto [k, v] : m_sequence.snapshot()) {
-        ids.push_back(k);
-    }
+    m_sequence.forEach([&ids](const std::string& id, const SequenceState&) {
+        ids.push_back(id);
+    });
     
     return ids;
 }
@@ -176,9 +158,7 @@ std::vector<std::string> SequenceManager::getActiveSequenceIds() const
 std::string SequenceManager::getCurrentSequenceId() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    
-    auto current_pair = safeGetCurrentPair();
-    return current_pair.has_value() ? current_pair->first : "<none>";
+    return m_current_element ?  m_current_element->getId() : "<none>";
 }
 
 size_t SequenceManager::getSequenceCount() const
@@ -211,41 +191,35 @@ void SequenceManager::processSequence(bool skip_current)
         return;
     }
 
-    if (!m_current_snapshot.has_value() || !m_current_iterator.has_value()) {
+    if (!m_current_element) {
         startSequence();
         return;
     }
 
-    if (m_current_iterator.value() == m_current_snapshot->end()) {
-        m_current_snapshot.emplace(m_sequence.snapshot());
-        m_current_iterator = m_current_snapshot->begin();
-        
-        if (m_current_iterator.value() == m_current_snapshot->end()) {
-            startSequence();
+    /*
+    // Check if current element is marked for deletion or doesn't exist
+    if (m_current_element->isMarkedForDeletion()) {
+        m_current_element = m_sequence.first();
+        if (!m_current_element) {
+            stopSequence();
             return;
         }
         
         // Display the first state of the new cycle
-        auto first_pair = safeGetCurrentPair();
-        if (first_pair.has_value()) {
-            processDisplayState(std::optional(first_pair->first), first_pair->second.state);
-        } else {
-            stopSequence();
-            return;
-        }
-    }
-
-    auto current_pair_opt = safeGetCurrentPair();
-    if (!current_pair_opt.has_value()) {
-        stopSequence();
+        processDisplayState(m_current_element->getId(), m_current_element->getData().state);
+        m_state_start_time = steady_clock::now();
         return;
     }
-    const auto& current_pair = current_pair_opt.value();
-    const auto& sequence_state = current_pair.second;
+    */
+
+    const auto& sequence_state = m_current_element->getData();
 
     if (isStateExpired(sequence_state)) {
-        DEBUG_LOG("Erasing expired state: " << current_pair.first);
-        m_sequence.erase(current_pair.first);
+        DEBUG_LOG("Erasing expired state: " << m_current_element->getId());
+        auto id_to_erase = m_current_element->getId();
+        m_current_element = m_current_element->next();
+        m_sequence.erase(id_to_erase);
+        
         if (m_sequence.empty()) {
             stopSequence();
             return;
@@ -259,21 +233,15 @@ void SequenceManager::processSequence(bool skip_current)
     // Check if it's time to move to the next state
     if (skip_current || state_elapsed >= sequence_state.time) {
         // Move to next state
-        ++m_current_iterator.value();
+        m_current_element = m_current_element->next();
         
-        // Check if we've reached the end, loop back to beginning
-        if (m_current_iterator.value() == m_current_snapshot->end()) {
-            // Restart sequence from beginning with fresh snapshot
+        // Check if we've looped back or have no valid next element
+        if (!m_current_element) {
+            // Restart sequence from beginning
             startSequence();
         } else {
             // Display the new state
-            auto new_pair = safeGetCurrentPair();
-            if (new_pair.has_value()) {
-                processDisplayState(std::optional(new_pair->first), new_pair->second.state);
-            } else {
-                stopSequence();
-                return;
-            }
+            processDisplayState(m_current_element->getId(), m_current_element->getData().state);
         }
         
         m_state_start_time = now;
