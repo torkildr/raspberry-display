@@ -245,6 +245,12 @@ void SequenceManager::processSequence(bool skip_current)
             return;
         }
         
+        // If we're continuing with this state, just reset the timer
+        if (m_current_element == m_current_element->next()) {
+            m_state_start_time = now;
+            return;
+        }
+
         // Move to next state
         m_current_element = m_current_element->next();
         

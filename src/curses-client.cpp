@@ -124,14 +124,14 @@ int main() {
                     sequence::DisplayState state;
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
+                    sequence_manager->addSequenceState("display_set", state, 3.0, 30.0);
                     break;
                 }
                 case 'a': {
                     sequence::DisplayState state;
                     state.text = abc_string;
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
+                    sequence_manager->addSequenceState("display_set", state, 3.0, 30.0);
                     break;
                 }
                 case 'b': {
@@ -139,7 +139,7 @@ int main() {
                     state.text = "This is a rather long string. It will have to be scrolled.";
                     state.time_format = "";
                     sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState("display_set", state, 30.0, 30.0);
+                    sequence_manager->addSequenceState("display_set", state, 3.0, 30.0);
                     break;
                 }
                 case 's':
