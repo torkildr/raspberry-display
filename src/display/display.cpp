@@ -144,8 +144,6 @@ bool Display::prepare()
             displayBuffer = newBuffer;
             transition_manager->setCurrentBuffer(displayBuffer);
         }
-        
-        renderedTextSize = displayBuffer.size(); // This should always be X_MAX
         dirty = false;
     }
     
@@ -418,6 +416,7 @@ void Display::show(
             mode = Mode::TIME;
             this->timeFormat = timeFormat.value().empty() ? TIME_FORMAT_LONG : timeFormat.value();
             renderedText.clear();
+            renderedTextSize = 0;
         }
     } else {
         mode = Mode::TEXT;
