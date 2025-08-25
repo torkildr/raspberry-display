@@ -9,7 +9,7 @@ debug-build/
 display.log
 obj/
 src/*.o
-src/font_generated.hpp
+src/display/font_generated.hpp
 stderr.txt
 tests/
 WiringPi/
