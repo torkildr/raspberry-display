@@ -84,12 +84,13 @@ protected:
     int scrollOffset = 0;
     Scrolling scrollDirection = Scrolling::ENABLED;
     int currentBrightness = DEFAULT_BRIGHTNESS;
+    
+    bool prepare();
 
 private:
     virtual void update() = 0;
 
     void showText(std::string text);
-    bool prepare();
     std::array<uint8_t, X_MAX> createDisplayBuffer(std::vector<uint8_t> time);
     std::array<uint8_t, X_MAX> createDisplayBufferOptimized(const std::vector<uint8_t>& time);
     std::vector<uint8_t> renderTime();
