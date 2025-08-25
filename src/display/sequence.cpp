@@ -224,6 +224,13 @@ void SequenceManager::processSequence(bool skip_current)
             stopSequence();
             return;
         }
+        
+        // Check if current element is null after moving to next
+        if (!m_current_element) {
+            startSequence();
+            return;
+        }
+        
         skip_current = true;
     }
     
@@ -232,6 +239,12 @@ void SequenceManager::processSequence(bool skip_current)
     
     // Check if it's time to move to the next state
     if (skip_current || state_elapsed >= sequence_state.time) {
+        // Check if current element is still valid before calling next()
+        if (!m_current_element) {
+            startSequence();
+            return;
+        }
+        
         // Move to next state
         m_current_element = m_current_element->next();
         
