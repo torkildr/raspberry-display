@@ -231,6 +231,8 @@ void SequenceManager::processSequence(bool skip_current)
             return;
         }
         
+        // Reset state start time since we moved to a new element
+        m_state_start_time = steady_clock::now();
         skip_current = true;
     }
     
@@ -270,6 +272,25 @@ void SequenceManager::processSequence(bool skip_current)
 void SequenceManager::nextState()
 {
     processSequence(true);
+}
+
+void SequenceManager::onScrollComplete()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    
+    if (!m_active || !m_current_element) {
+        return;
+    }
+    
+    const auto& sequence_state = m_current_element->getData();
+    auto now = steady_clock::now();
+    auto state_elapsed = duration<double>(now - m_state_start_time).count();
+    
+    // Only advance if minimum display time has elapsed
+    if (state_elapsed >= sequence_state.time) {
+        processSequence(true);
+    }
+    // Otherwise, let the normal timing handle the transition
 }
 
 bool SequenceManager::isStateExpired(const SequenceState& state)

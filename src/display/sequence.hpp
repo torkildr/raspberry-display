@@ -77,6 +77,7 @@ public:
     // Process a display state directly (for immediate display)
     void processDisplayState(const std::optional<std::string> sequence_id, const DisplayState& state);
     void nextState();
+    void onScrollComplete(); // Called when scrolling completes - respects timing
 
     // Display lifecycle methods
     void start();

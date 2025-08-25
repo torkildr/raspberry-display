@@ -372,7 +372,7 @@ int main(int argc, char** argv) {
 
     auto scrollCompleteCallback = []() {
         DEBUG_LOG("Scroll complete");
-        sequence_manager->nextState();
+        sequence_manager->onScrollComplete();
     };
     
     auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback, scrollCompleteCallback);

@@ -92,7 +92,7 @@ int main() {
 
     auto scrollCompleteCallback = [&sequence_manager_ptr] { 
         DEBUG_LOG("Scroll complete");
-        sequence_manager_ptr->nextState();
+        sequence_manager_ptr->onScrollComplete();
     };
     
     auto display = std::make_unique<display::DisplayImpl>(preUpdate, postUpdate, displayStateCallback, scrollCompleteCallback);

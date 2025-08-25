@@ -72,7 +72,7 @@ bool Display::prepare()
     }
 
     // Hack to fix floating point comparison
-    if (std::round(scrollDelayTimer*10) >= std::round(SCROLL_DELAY*10))
+    if (std::round(scrollDelayTimer*100) >= std::round(SCROLL_DELAY*100) && !transition_manager->isTransitioning())
     {
         if (scrollOffset != 0)
         {
