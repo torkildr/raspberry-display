@@ -56,9 +56,11 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
         auto active_ids = seq_mgr->getActiveSequenceIds();
         if (!active_ids.empty()) {
             addstr("\nActive IDs: ");
-            for (size_t i = 0; i < active_ids.size(); ++i) {
-                if (i > 0) addstr(", ");
-                addstr(active_ids[i].c_str());
+            bool first = true;
+            for (auto& id : active_ids) {
+                if (!first) addstr(", ");
+                addstr(id.c_str());
+                first = false;
             }
         }
     } else {

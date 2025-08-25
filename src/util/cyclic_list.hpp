@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <shared_mutex>
+#include <mutex>
 #include <string>
 #include <atomic>
 #include <functional>
@@ -25,7 +26,7 @@ public:
         }
         
         void setData(const TData& data) {
-            std::shared_lock<std::shared_mutex> lock(shared_mutex_);
+            std::unique_lock<std::shared_mutex> lock(shared_mutex_);
             data_ = data;
         }
         
@@ -78,8 +79,13 @@ public:
     std::shared_ptr<Element> insert(const TId& id, const TData& data) {
         std::shared_lock<std::shared_mutex> lock(shared_mutex_);
         
-        // Remove existing element with same ID if it exists
-        eraseInternal(id);
+        // Check if element with same ID already exists
+        auto existing = findInternal(id);
+        if (existing) {
+            // Update existing element's data in-place
+            existing->setData(data);
+            return existing;
+        }
         
         auto new_element = std::shared_ptr<Element>(new Element(id, data, &shared_mutex_));
         
@@ -255,6 +261,21 @@ private:
         auto current = first_;
         do {
             if (!current->marked_for_deletion_) {
+                return current;
+            }
+            current = current->next_;
+        } while (current != first_);
+        
+        return nullptr;
+    }
+    
+    // Internal find without locking (caller must hold lock)
+    std::shared_ptr<Element> findInternal(const TId& id) const {
+        if (!first_) return nullptr;
+        
+        auto current = first_;
+        do {
+            if (current->getId() == id && !current->marked_for_deletion_) {
                 return current;
             }
             current = current->next_;

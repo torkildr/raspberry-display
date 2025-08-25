@@ -75,6 +75,34 @@ TEST_CASE("CyclicList basic operations", "[cyclic_list]") {
         REQUIRE(third->next() == first);
     }
     
+    SECTION("Ever changing, order should be correct") {
+        list.insert("a", TestData("alfa", 1));
+        list.insert("b", TestData("bravo", 2));
+        
+        REQUIRE(list.size() == 2);
+        
+        auto first = list.first();
+        REQUIRE(first->getId() == "a");
+        
+        list.insert("a", TestData("alfa v2", 2));
+        list.insert("b", TestData("bravo v2", 3));
+        list.insert("c", TestData("gamma", 3));
+        
+        auto second = first->next();
+        REQUIRE(second->getId() == "b");
+        REQUIRE(second->getData().value == "bravo v2");
+        
+        auto third = second->next();
+        REQUIRE(third->getId() == "c");
+
+        list.insert("d", TestData("delta", 4));
+        auto fourth = third->next();
+        REQUIRE(fourth->getId() == "d");
+
+        // Test cyclic behavior
+        REQUIRE(fourth->next() == first);
+    }
+    
     SECTION("Insert or replace") {
         list.insert("test", TestData("original", 1));
         REQUIRE(list.size() == 1);
