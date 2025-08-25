@@ -1,3 +1,4 @@
+#include <catch2/matchers/catch_matchers.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -48,15 +49,14 @@ public:
     Scrolling getScrollDirection() const { return scrollDirection; }
     size_t getRenderedTextSize() const { return renderedTextSize; }
     
-    // Simulate the display update cycle that would normally happen in start()
-    void simulateDisplayCycle() {
-        // Force the display to update by calling forceUpdate() and then starting/stopping
-        // This ensures the display buffer gets updated with current content
-        forceUpdate();
-        start();
-        // Give it a moment to process
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        stop();
+    void simulateDisplayCycle(int n = 1) {
+        for (int i = 0; i < n; i++) {
+            bool hasChanges = prepare();
+            if (hasChanges || isTransitioning()) {
+                update();
+            }
+
+        }
     }
 
 private:
@@ -201,10 +201,21 @@ TEST_CASE("Display scrolling functionality", "[display]") {
         REQUIRE(display.getScrollOffset() == 0);
     }
     
-    SECTION("Scrolling reset") {
+    SECTION("Scrolling starts and resets") {
         // First set some scroll state
-        display.setScrolling(Scrolling::ENABLED);
+        display.setTransition(transition::Type::NONE);
         display.show("Very long text that should definitely scroll because it exceeds display width", std::nullopt);
+        REQUIRE(display.getRenderedTextSize() > X_MAX);
+        display.simulateDisplayCycle();
+
+        display.setScrolling(Scrolling::ENABLED);
+        display.simulateDisplayCycle(static_cast<int>(ceil(REFRESH_RATE * SCROLL_DELAY)));
+
+        display.simulateDisplayCycle();
+        REQUIRE(display.getScrollOffset() == 1);
+        
+        display.simulateDisplayCycle();
+        REQUIRE(display.getScrollOffset() == 2);
         
         // Reset scrolling
         display.setScrolling(Scrolling::RESET);

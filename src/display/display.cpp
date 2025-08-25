@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <ctime>
 #include <iomanip>
 #include <optional>
@@ -57,8 +58,6 @@ bool Display::prepare()
     auto textBlock = static_cast<int>(X_MAX - time.size());
 
     bool scrollChanged = false;
-    
-    // Determine if scrolling should actually be active
     bool shouldScroll = false;
     
     if (mode == Mode::TIME) {
@@ -71,8 +70,9 @@ bool Display::prepare()
         shouldScroll = (scrollDirection == Scrolling::ENABLED) && 
                       (textSize > availableSpace);
     }
-    
-    if (scrollDelayTimer >= SCROLL_DELAY)
+
+    // Hack to fix floating point comparison
+    if (std::round(scrollDelayTimer*10) >= std::round(SCROLL_DELAY*10))
     {
         if (scrollOffset != 0)
         {
@@ -93,7 +93,8 @@ bool Display::prepare()
         // Accumulate time for delay before starting/restarting scroll
         scrollDelayTimer += 1.0 / REFRESH_RATE;
     }
-    else
+    
+    if (scrollDelayTimer == -1)
     {
         if (shouldScroll)
         {
