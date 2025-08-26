@@ -1,5 +1,4 @@
-#ifndef timer_hpp
-#define timer_hpp
+#pragma once
 
 #include <chrono>
 #include <functional>
@@ -30,5 +29,3 @@ std::unique_ptr<Timer> createTimer(
 );
 
 } // namespace timer
-
-#endif

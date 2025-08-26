@@ -1,10 +1,4 @@
-#ifndef sequence_hpp
-#define sequence_hpp
-
 #include <bits/chrono.h>
-#include <functional>
-#include <thread>
-#include <condition_variable>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -14,7 +8,7 @@
 
 #include "timer.hpp"
 #include "display.hpp"
-#include "../util/cyclic_list.hpp"
+#include "cyclic_list.hpp"
 
 namespace sequence
 {
@@ -115,5 +109,3 @@ private:
 DisplayState parseDisplayStateFromJSON(const nlohmann::json& json);
 
 } // namespace sequence
-
-#endif

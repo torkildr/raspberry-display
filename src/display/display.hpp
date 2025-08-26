@@ -1,5 +1,4 @@
-#ifndef display_hpp
-#define display_hpp
+#pragma once
 
 #include <array>
 #include <string>
@@ -141,5 +140,3 @@ private:
 };
 
 } // namespace display
-
-#endif

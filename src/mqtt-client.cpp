@@ -1,6 +1,5 @@
 #include <cstring>
 #include <iostream>
-#include <optional>
 #include <string>
 #include <signal.h>
 #include <thread>
@@ -16,7 +15,6 @@
 #endif
 
 #include "display_impl.hpp"
-#include "transition.hpp"
 #include "sequence.hpp"
 #include "log_util.hpp"
 #include "ha_discovery.hpp"

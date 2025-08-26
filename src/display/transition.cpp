@@ -1,12 +1,12 @@
-#include "transition.hpp"
 #include <algorithm>
-#include <any>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <chrono>
 #include <random>
 #include <array>
+
+#include "transition.hpp"
 
 namespace transition
 {

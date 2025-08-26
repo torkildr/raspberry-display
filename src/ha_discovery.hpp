@@ -1,9 +1,10 @@
 #pragma once
 
-#include "display.hpp"
 #include <string>
 #include <mosquitto.h>
 #include <nlohmann/json.hpp>
+
+#include "display.hpp"
 
 namespace ha_discovery {
 

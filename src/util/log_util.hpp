@@ -1,6 +1,3 @@
-#ifndef log_util_hpp
-#define log_util_hpp
-
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -156,5 +153,3 @@ public:
 
 // Regular logging macro (maps to INFO level, backward compatible)
 #define LOG(msg) INFO_LOG(msg)
-
-#endif

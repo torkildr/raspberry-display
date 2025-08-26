@@ -1,6 +1,3 @@
-#ifndef display_impl_hpp
-#define display_impl_hpp
-
 #include "display.hpp"
 
 namespace display
@@ -27,5 +24,3 @@ private:
 };
 
 } // namespace display
-
-#endif

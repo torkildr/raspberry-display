@@ -1,5 +1,4 @@
-#ifndef TRANSITION_HPP
-#define TRANSITION_HPP
+#pragma once
 
 #include <array>
 #include <cstdint>
@@ -222,5 +221,3 @@ private:
 };
 
 } // namespace transition
-
-#endif // TRANSITION_HPP

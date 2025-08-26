@@ -4,18 +4,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string>
-#include <vector>
 #include <array>
 #include <functional>
-#include <memory>
-#include <chrono>
-#include <thread>
 
 #include <catch2/catch_all.hpp>
 
 #include "display.hpp"
 #include "transition.hpp"
-#include "font.hpp"
 
 #define CATCH_CONFIG_MAIN
 

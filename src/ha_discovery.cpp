@@ -1,11 +1,12 @@
+#include <nlohmann/json.hpp>
+#include <mosquitto.h>
+#include <chrono>
+
 #include "ha_discovery.hpp"
 #include "log_util.hpp"
 #include "utf8_converter.hpp"
 #include "display.hpp"
 #include "timer.hpp"
-#include <nlohmann/json.hpp>
-#include <mosquitto.h>
-#include <chrono>
 
 using json = nlohmann::json;
 using namespace std::chrono;

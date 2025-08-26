@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
-#include <iostream>
 
 #include "font_generated.hpp"
 #include "font.hpp"

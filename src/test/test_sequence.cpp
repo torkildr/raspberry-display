@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_all.hpp>
 #include <thread>
-#include <chrono>
 #include <atomic>
 #include <vector>
 #include <memory>

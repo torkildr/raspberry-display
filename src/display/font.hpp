@@ -1,6 +1,3 @@
-#ifndef font_hpp
-#define font_hpp
-
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -28,5 +25,3 @@ public:
 };
 
 } // namespace font
-
-#endif

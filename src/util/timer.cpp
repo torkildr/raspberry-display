@@ -1,10 +1,6 @@
 #include <thread>
-#include <atomic>
 
 #include "timer.hpp"
-
-#include <iostream>
-#include <ostream>
 
 using namespace std::chrono;
 
