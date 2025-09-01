@@ -14,7 +14,7 @@
 #define PONG_BALL_SIZE 1
 #define PONG_FIELD_WIDTH X_MAX
 #define PONG_FIELD_HEIGHT 8
-#define PONG_AI_SPEED 0.8f
+#define PONG_AI_SPEED 0.4f
 #define PONG_WINNING_SCORE 3
 
 
@@ -72,6 +72,7 @@ public:
     void reset();
     int getPlayerScore() const;
     int getAIScore() const;
+    bool shouldExit() const; // Check if game should auto-exit after game over
     
 private:
     void update();
@@ -100,6 +101,8 @@ private:
     
     // Game state
     bool m_gameOver = false;
+    int m_gameOverTimer = 0;
+    static constexpr int GAME_OVER_DISPLAY_TIME = 60; // 3 seconds at 20fps
 };
 
 // Helper function to create pong display state

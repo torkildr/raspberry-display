@@ -47,6 +47,13 @@ bool Display::prepare()
 {
     // Handle pong mode separately
     if (isPongActive()) {
+        // Check if pong game should auto-exit after game over
+        if (pong_game->shouldExit()) {
+            stopPongGame();
+            dirty = true;
+            return true; // Update to clear pong display
+        }
+        
         pong_game->renderToBuffer(displayBuffer);
         return true; // Always update in pong mode
     }

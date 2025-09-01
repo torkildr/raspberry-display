@@ -63,6 +63,7 @@ void PongGame::reset()
     m_aiPaddle = Paddle();
     m_gameOver = false;
     m_controlTimeout = 0;
+    m_gameOverTimer = 0;
     
     // Randomize initial ball direction
     m_ball.dx = (std::rand() % 2 == 0) ? -1.0f : 1.0f;
@@ -81,9 +82,16 @@ int PongGame::getAIScore() const
     return m_aiPaddle.score;
 }
 
+bool PongGame::shouldExit() const
+{
+    return m_gameOver && m_gameOverTimer >= GAME_OVER_DISPLAY_TIME;
+}
+
 void PongGame::update()
 {
     if (m_gameOver) {
+        // Increment game over timer
+        m_gameOverTimer++;
         return;
     }
     
@@ -128,14 +136,33 @@ void PongGame::updateBall()
 
 void PongGame::updateAI()
 {
-    // Simple AI: move towards ball with some delay/imperfection
+    // Improved AI: slower, with occasional mistakes and reaction delay
     float paddleCenter = m_aiPaddle.y + PONG_PADDLE_HEIGHT / 2.0f;
     float ballY = m_ball.y;
     
-    if (ballY < paddleCenter - 0.5f && m_aiPaddle.y > 0) {
-        m_aiPaddle.y -= PONG_AI_SPEED;
-    } else if (ballY > paddleCenter + 0.5f && m_aiPaddle.y < PONG_FIELD_HEIGHT - PONG_PADDLE_HEIGHT) {
-        m_aiPaddle.y += PONG_AI_SPEED;
+    // Add some randomness - 15% chance to make no move (reaction delay)
+    if ((std::rand() % 100) < 15) {
+        return;
+    }
+    
+    // Add some randomness - 10% chance to move in wrong direction (mistake)
+    bool makeWrongMove = (std::rand() % 100) < 10;
+    
+    // Increase dead zone to make AI less precise
+    float deadZone = 1.2f;
+    
+    if (ballY < paddleCenter - deadZone && m_aiPaddle.y > 0) {
+        if (makeWrongMove) {
+            m_aiPaddle.y += PONG_AI_SPEED; // Wrong direction
+        } else {
+            m_aiPaddle.y -= PONG_AI_SPEED; // Correct direction
+        }
+    } else if (ballY > paddleCenter + deadZone && m_aiPaddle.y < PONG_FIELD_HEIGHT - PONG_PADDLE_HEIGHT) {
+        if (makeWrongMove) {
+            m_aiPaddle.y -= PONG_AI_SPEED; // Wrong direction
+        } else {
+            m_aiPaddle.y += PONG_AI_SPEED; // Correct direction
+        }
     }
     
     // Keep AI paddle within bounds
