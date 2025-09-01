@@ -494,6 +494,11 @@ void Display::stopPongGame()
     pong_mode = false;
     dirty = true;
     DEBUG_LOG("Pong game stopped");
+    
+    // Notify sequence system that pong stopped so it can refresh display
+    if (pong_stop_callback) {
+        pong_stop_callback();
+    }
 }
 
 bool Display::isPongActive() const
@@ -508,6 +513,11 @@ void Display::togglePongGame()
     } else {
         startPongGame();
     }
+}
+
+void Display::setPongStopCallback(std::function<void()> callback)
+{
+    pong_stop_callback = std::move(callback);
 }
 
 void Display::setPongPlayerControl(int control)

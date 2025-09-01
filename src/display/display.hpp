@@ -86,6 +86,9 @@ public:
     void togglePongGame(); // New: toggle pong on/off
     bool isPongActive() const;
     void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
+    
+    // Callback for when pong stops (to refresh sequence display)
+    void setPongStopCallback(std::function<void()> callback);
 
 protected:
     std::array<uint8_t, X_MAX> displayBuffer{0};
@@ -151,6 +154,7 @@ private:
     // Pong game
     std::unique_ptr<pong::PongGame> pong_game;
     bool pong_mode = false;
+    std::function<void()> pong_stop_callback;
 };
 
 } // namespace display
