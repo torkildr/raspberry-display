@@ -45,18 +45,8 @@ Display::~Display()
 
 bool Display::prepare()
 {
-    // Handle pong mode separately
-    if (isPongActive()) {
-        // Check if pong game should auto-exit after game over
-        if (pong_game->shouldExit()) {
-            stopPongGame();
-            dirty = true;
-            return true; // Update to clear pong display
-        }
-        
-        pong_game->renderToBuffer(displayBuffer);
-        return true; // Always update in pong mode
-    }
+    // Let sequence processing continue normally even during pong
+    // This preserves sequence state and allows new sequence elements
     
     auto textSize = static_cast<int>(renderedText.size());
     
@@ -166,6 +156,20 @@ bool Display::prepare()
         // Use a fixed delta time based on refresh rate for consistent animation
         double delta_time = 1.0 / REFRESH_RATE;
         transition_manager->update(delta_time);
+    }
+    
+    // Handle pong overlay independently of sequence processing
+    if (isPongActive()) {
+        // Check if pong game should auto-exit after game over
+        if (pong_game->shouldExit()) {
+            stopPongGame();
+            dirty = true;
+            return true; // Update to clear pong display
+        }
+        
+        // Overlay pong on top of current display buffer (preserving sequence state)
+        pong_game->renderToBuffer(displayBuffer);
+        return true; // Always update when pong is active
     }
     
     return hasChanges;
@@ -419,16 +423,9 @@ void Display::show(
     transition::Type transition_type,
     double duration)
 {
-    // Check for pong mode activation
-    if (text.has_value() && text.value() == "PONG_GAME_ACTIVE") {
-        stopPongGame(); // Stop any existing game
-        startPongGame();
-        return; // Don't process as regular text
-    }
-    
-    // Stop pong mode if we're showing other content
+    // Ignore if pong is active
     if (pong_mode) {
-        stopPongGame();
+        return;
     }
     
     if (timeFormat.has_value()) {
@@ -502,6 +499,15 @@ void Display::stopPongGame()
 bool Display::isPongActive() const
 {
     return pong_mode && pong_game && pong_game->isRunning();
+}
+
+void Display::togglePongGame()
+{
+    if (isPongActive()) {
+        stopPongGame();
+    } else {
+        startPongGame();
+    }
 }
 
 void Display::setPongPlayerControl(int control)

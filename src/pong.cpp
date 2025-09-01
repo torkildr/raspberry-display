@@ -321,8 +321,8 @@ void PongGame::setPixel(std::array<uint8_t, X_MAX>& buffer, int x, int y, bool o
 
 std::string createPongDisplayString()
 {
-    // This function creates a special string that the display system can recognize
-    // as a pong game request. We'll use a special prefix to identify it.
+    // Legacy function - no longer used since pong is independent of sequence system
+    // Kept for backwards compatibility
     return "PONG_GAME_ACTIVE";
 }
 

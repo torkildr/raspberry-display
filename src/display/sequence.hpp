@@ -77,7 +77,8 @@ public:
     void start();
     void stop();
     
-    // Pong game control methods
+    // Pong game control methods (independent of sequence system)
+    void togglePongGame(); // Toggle pong on/off without affecting sequence
     void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
         
 private:

@@ -247,10 +247,8 @@ int main() {
                     break;
                 }
                 case 'p': {
-                    sequence::DisplayState state;
-                    state.text = pong::createPongDisplayString();
-                    sequence_manager->clearSequence();
-                    sequence_manager->addSequenceState("pong", state, 60.0, 120.0); // Long duration for pong
+                    // Toggle pong mode independently of sequence system
+                    sequence_manager->togglePongGame();
                     break;
                 }
                 case KEY_UP:

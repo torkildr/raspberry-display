@@ -362,6 +362,13 @@ void SequenceManager::setPongPlayerControl(int control)
     }
 }
 
+void SequenceManager::togglePongGame()
+{
+    if (m_display) {
+        m_display->togglePongGame();
+    }
+}
+
 void SequenceManager::processDisplayState(const std::optional<std::string> sequence_id, const DisplayState& state)
 {
     if (!m_display) {

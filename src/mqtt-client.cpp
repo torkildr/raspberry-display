@@ -188,13 +188,10 @@ static void process_pong(const json& message) {
         if (message.contains("command")) {
             std::string command = message["command"].get<std::string>();
             
-            if (command == "start") {
-                // Start pong game
-                sequence::DisplayState state;
-                state.text = pong::createPongDisplayString();
-                sequence_manager->clearSequence();
-                sequence_manager->addSequenceState("pong", state, 60.0, 120.0);
-                DEBUG_LOG("Started pong game via MQTT");
+            if (command == "toggle") {
+                // Toggle pong on/off
+                sequence_manager->togglePongGame();
+                DEBUG_LOG("Toggled pong game via MQTT");
             } else if (command == "control") {
                 // Control paddle: {"command": "control", "direction": "up"/"down"/"stop"}
                 if (message.contains("direction")) {

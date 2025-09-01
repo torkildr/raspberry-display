@@ -80,9 +80,10 @@ public:
     void setTransition(transition::Type type, double duration = 0.0);
     bool isTransitioning() const;
     
-    // Pong game support
+    // Pong game support (independent of sequence system)
     void startPongGame();
     void stopPongGame();
+    void togglePongGame(); // New: toggle pong on/off
     bool isPongActive() const;
     void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
 
