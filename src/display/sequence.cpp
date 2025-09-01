@@ -25,6 +25,11 @@ SequenceManager::SequenceManager(std::unique_ptr<display::Display> display)
         m_display->start();
         m_display->setBrightness(DEFAULT_BRIGHTNESS);
         m_current_brightness = DEFAULT_BRIGHTNESS;
+        
+        // Set callback to refresh display when pong stops
+        m_display->setPongStopCallback([this]() {
+            onPongStop();
+        });
     } else {
         throw std::runtime_error("Display not initialized");
     }
@@ -117,12 +122,13 @@ void SequenceManager::setSequence(const std::vector<SequenceState>& sequence)
 
 void SequenceManager::setDefaultContent()
 {
-    DEBUG_LOG("Setting default (empty) content");
+    DEBUG_LOG("Setting default content (time display)");
     if (m_display) {
         m_active = false;
         m_last_shown_id = std::nullopt;
         
         m_display->setAlignment(display::Alignment::CENTER);
+        // Show time as default instead of empty content, "" -> default format
         m_display->show(std::nullopt, "");
     }
 }
@@ -352,6 +358,46 @@ void SequenceManager::stop()
     stopSequence();
     if (m_display) {
         m_display->stop();
+    }
+}
+
+void SequenceManager::setPongPlayerControl(int control)
+{
+    if (m_display) {
+        m_display->setPongPlayerControl(control);
+    }
+}
+
+void SequenceManager::togglePongGame()
+{
+    if (m_display) {
+        m_display->togglePongGame();
+    }
+}
+
+bool SequenceManager::isSequenceActive() const
+{
+    return m_active && !m_sequence.empty();
+}
+
+void SequenceManager::onPongStop()
+{
+    DEBUG_LOG("Pong stopped - checking for active sequences to display");
+    
+    std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // If we have active sequences, force immediate display refresh
+    if (m_active && m_current_element && m_display) {
+        DEBUG_LOG("Active sequence found - refreshing display");
+        processDisplayState(m_current_element->getId(), m_current_element->getData().state);
+    } else if (!m_sequence.empty() && m_display) {
+        // If we have sequences but none active, start the sequence
+        DEBUG_LOG("Inactive sequences found - starting sequence");
+        startSequence();
+    } else {
+        // No sequences - show default content
+        DEBUG_LOG("No sequences - showing default content");
+        setDefaultContent();
     }
 }
 

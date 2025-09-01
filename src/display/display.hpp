@@ -13,6 +13,9 @@
 
 #define X_MAX 128
 
+// Forward declaration to avoid circular dependency
+namespace pong { class PongGame; }
+
 #define SCROLL_DELAY 2.0   // Seconds
 #define REFRESH_RATE 15  // Hz
 
@@ -76,6 +79,16 @@ public:
     // Transition support
     void setTransition(transition::Type type, double duration = 0.0);
     bool isTransitioning() const;
+    
+    // Pong game support (independent of sequence system)
+    void startPongGame();
+    void stopPongGame();
+    void togglePongGame(); // New: toggle pong on/off
+    bool isPongActive() const;
+    void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
+    
+    // Callback for when pong stops (to refresh sequence display)
+    void setPongStopCallback(std::function<void()> callback);
 
 protected:
     std::array<uint8_t, X_MAX> displayBuffer{0};
@@ -137,6 +150,11 @@ private:
     std::unique_ptr<transition::TransitionManager> transition_manager;
     transition::Type default_transition_type = transition::Type::NONE;
     double default_transition_duration = 1.0;
+    
+    // Pong game
+    std::unique_ptr<pong::PongGame> pong_game;
+    bool pong_mode = false;
+    std::function<void()> pong_stop_callback;
 };
 
 } // namespace display

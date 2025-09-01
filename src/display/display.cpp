@@ -11,7 +11,7 @@
 #include "log_util.hpp"
 
 #include "font.hpp"
-
+#include "pong.hpp"
 namespace display
 {
 
@@ -45,6 +45,9 @@ Display::~Display()
 
 bool Display::prepare()
 {
+    // Let sequence processing continue normally even during pong
+    // This preserves sequence state and allows new sequence elements
+    
     auto textSize = static_cast<int>(renderedText.size());
     
     // Check if time needs update BEFORE calling renderTimeOptimized (which resets the flag)
@@ -153,6 +156,20 @@ bool Display::prepare()
         // Use a fixed delta time based on refresh rate for consistent animation
         double delta_time = 1.0 / REFRESH_RATE;
         transition_manager->update(delta_time);
+    }
+    
+    // Handle pong overlay independently of sequence processing
+    if (isPongActive()) {
+        // Check if pong game should auto-exit after game over
+        if (pong_game->shouldExit()) {
+            stopPongGame();
+            dirty = true;
+            return true; // Update to clear pong display
+        }
+        
+        // Overlay pong on top of current display buffer (preserving sequence state)
+        pong_game->renderToBuffer(displayBuffer);
+        return true; // Always update when pong is active
     }
     
     return hasChanges;
@@ -406,6 +423,11 @@ void Display::show(
     transition::Type transition_type,
     double duration)
 {
+    // Ignore if pong is active
+    if (pong_mode) {
+        return;
+    }
+    
     if (timeFormat.has_value()) {
         timeNeedsUpdate = true;
         
@@ -452,5 +474,63 @@ bool Display::isTransitioning() const
     return transition_manager->isTransitioning();
 }
 
+// Pong game support methods
+void Display::startPongGame()
+{
+    if (!pong_game) {
+        pong_game = std::make_unique<pong::PongGame>();
+    }
+    pong_game->start();
+    pong_mode = true;
+    dirty = true;
+    DEBUG_LOG("Pong game started");
+}
+
+void Display::stopPongGame()
+{
+    if (pong_game) {
+        pong_game->stop();
+    }
+    pong_mode = false;
+    dirty = true;
+    DEBUG_LOG("Pong game stopped");
+    
+    // Notify sequence system that pong stopped so it can refresh display
+    if (pong_stop_callback) {
+        pong_stop_callback();
+    }
+}
+
+bool Display::isPongActive() const
+{
+    return pong_mode && pong_game && pong_game->isRunning();
+}
+
+void Display::togglePongGame()
+{
+    if (isPongActive()) {
+        stopPongGame();
+    } else {
+        startPongGame();
+    }
+}
+
+void Display::setPongStopCallback(std::function<void()> callback)
+{
+    pong_stop_callback = std::move(callback);
+}
+
+void Display::setPongPlayerControl(int control)
+{
+    if (pong_game) {
+        pong::PaddleControl paddleControl = pong::PaddleControl::NONE;
+        if (control == -1) {
+            paddleControl = pong::PaddleControl::UP;
+        } else if (control == 1) {
+            paddleControl = pong::PaddleControl::DOWN;
+        }
+        pong_game->setPlayerControl(paddleControl);
+    }
+}
 
 } // namespace display

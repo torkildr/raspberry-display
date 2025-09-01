@@ -18,6 +18,7 @@
 #include "sequence.hpp"
 #include "log_util.hpp"
 #include "ha_discovery.hpp"
+#include "pong.hpp"
 
 using json = nlohmann::json;
 
@@ -178,6 +179,40 @@ static void process_clear_sequence(const json& message) {
     }
 }
 
+static void process_pong(const json& message) {
+    try {
+        if (!sequence_manager) {
+            return;
+        }
+        
+        if (message.contains("command")) {
+            std::string command = message["command"].get<std::string>();
+            
+            if (command == "toggle") {
+                // Toggle pong on/off
+                sequence_manager->togglePongGame();
+                DEBUG_LOG("Toggled pong game via MQTT");
+            } else if (command == "control") {
+                // Control paddle: {"command": "control", "direction": "up"/"down"/"stop"}
+                if (message.contains("direction")) {
+                    std::string direction = message["direction"].get<std::string>();
+                    int control = 0;
+                    if (direction == "up") {
+                        control = -1;
+                    } else if (direction == "down") {
+                        control = 1;
+                    }
+                    sequence_manager->setPongPlayerControl(control);
+                    DEBUG_LOG("Pong paddle control: " << direction);
+                }
+            }
+        }
+        
+    } catch (const std::exception& e) {
+        LOG("Error processing pong command: " << e.what());
+    }
+}
+
 static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const struct mosquitto_message* message) {
     if (!message->payload) return;
     
@@ -202,6 +237,8 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
             process_set_sequence(message_json);
         } else if (topic == "display/clear") {
             process_clear_sequence(message_json);
+        } else if (topic == "display/pong") {
+            process_pong(message_json);
         } else if (topic == "display/quit") {
             DEBUG_LOG("Received quit message");
             running = false;
@@ -228,8 +265,9 @@ static void on_connect(struct mosquitto* mosq, void* userdata, int result) {
         mosquitto_subscribe(mosq, nullptr, (prefix + "/add").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/set").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/clear").c_str(), 0);
+        mosquitto_subscribe(mosq, nullptr, (prefix + "/pong").c_str(), 0);
         mosquitto_subscribe(mosq, nullptr, (prefix + "/quit").c_str(), 0);
-        LOG("Subscribed to " << prefix << " topics (add, set, clear, quit)");
+        LOG("Subscribed to " << prefix << " topics (add, set, clear, pong, quit)");
         
         // Publish Home Assistant discovery and availability
         if (ha_manager) {

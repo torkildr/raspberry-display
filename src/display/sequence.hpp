@@ -76,11 +76,19 @@ public:
     // Display lifecycle methods
     void start();
     void stop();
+    
+    // Pong game control methods (independent of sequence system)
+    void togglePongGame(); // Toggle pong on/off without affecting sequence
+    void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
+    
+    // Sequence state checking
+    bool isSequenceActive() const;
         
 private:
     void processSequence(bool skip_current = false);
     bool isStateExpired(const SequenceState& state);
     void setDefaultContent();
+    void onPongStop(); // Called when pong stops to refresh display
 
     void stopSequence();
     void startSequence();

@@ -68,6 +68,7 @@ BASIC_LIBS = $(NCURSES_LIBS) $(WIRINGPI_LIBS) $(THREAD_LIBS)
 # Source files organized by dependency layers - auto-discover with wildcards
 UTIL_SRC = $(wildcard src/util/*.cpp)
 DISPLAY_SRC = $(wildcard src/display/*.cpp)
+PONG_SRC = src/pong.cpp
 MQTT_SRC = src/mqtt-client.cpp src/ha_discovery.cpp
 CURSES_SRC = src/curses-client.cpp
 HT1632_SRC = src/ht1632.cpp
@@ -76,6 +77,7 @@ MOCK_SRC = src/mock-display.cpp
 # Object files with proper directory structure
 UTIL_OBJ = $(UTIL_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 DISPLAY_OBJ = $(DISPLAY_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
+PONG_OBJ = $(PONG_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 MQTT_OBJ = $(MQTT_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 CURSES_OBJ = $(CURSES_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
 HT1632_OBJ = $(HT1632_SRC:src/%.cpp=$(OBJ_DIR)/%.o)
@@ -110,21 +112,21 @@ src/display/font_generated.hpp: tools/font_definitions.txt tools/font_generator.
 	python3 tools/font_generator.py tools/font_definitions.txt src/display/font_generated.hpp
 
 # Executable targets with proper dependencies
-$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/raspberry-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MQTT_OBJ) $(HT1632_OBJ)
 	@echo "Linking raspberry-display-mqtt..."
-	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(HT1632_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MQTT_OBJ) $(HT1632_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
+$(OBJ_DIR)/curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(CURSES_OBJ) $(HT1632_OBJ)
 	@echo "Linking curses-client..."
-	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(BASIC_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(CURSES_OBJ) $(HT1632_OBJ) $(BASIC_LIBS)
 
-$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-display-mqtt: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MQTT_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-display-mqtt..."
-	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(MQTT_OBJ) $(MOCK_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MQTT_OBJ) $(MOCK_OBJ) $(BASIC_LIBS) $(MQTT_LIBS)
 
-$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/mock-curses-client: $(OBJ_DIR) src/display/font_generated.hpp $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(CURSES_OBJ) $(MOCK_OBJ)
 	@echo "Linking mock-curses-client..."
-	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(CURSES_OBJ) $(MOCK_OBJ) $(BASIC_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(CURSES_OBJ) $(MOCK_OBJ) $(BASIC_LIBS)
 
 # Convenience targets that point to the actual binaries
 raspberry-display-mqtt: $(OBJ_DIR)/raspberry-display-mqtt

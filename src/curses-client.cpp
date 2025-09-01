@@ -7,6 +7,7 @@
 #include "transition.hpp"
 #include "sequence.hpp"
 #include "log_util.hpp"
+#include "pong.hpp"
 
 using json = nlohmann::json;
 
@@ -31,6 +32,7 @@ static void print_help_text(const sequence::SequenceManager* seq_mgr) {
     addstr("\n+/-: change brightness");
     addstr("\nc: toggle center/left alignment");
     addstr("\nC: clear sequence");
+    addstr("\np: pong game (w/s or arrows to control)");
     addstr("\n\nTransitions:");
     addstr("\n1: wipe left    2: wipe right");
     addstr("\n3: dissolve     4: scroll up");
@@ -244,6 +246,20 @@ int main() {
                     sequence_manager->addSequenceState("demo8", state, 3.0, 10.0);
                     break;
                 }
+                case 'p': {
+                    // Toggle pong mode independently of sequence system
+                    sequence_manager->togglePongGame();
+                    break;
+                }
+                case KEY_UP:
+                    sequence_manager->setPongPlayerControl(-1); // Up
+                    break;
+                case KEY_DOWN:
+                    sequence_manager->setPongPlayerControl(1); // Down
+                    break;
+                case ' ':
+                    sequence_manager->setPongPlayerControl(0); // Stop
+                    break;
             }
         }
     }
