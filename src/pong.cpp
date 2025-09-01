@@ -1,5 +1,6 @@
 #include "pong.hpp"
 #include "log_util.hpp"
+#include "font.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -189,7 +190,7 @@ void PongGame::checkScore()
     }
     
     // Check for game over
-    if (m_playerPaddle.score >= WINNING_SCORE || m_aiPaddle.score >= WINNING_SCORE) {
+    if (m_playerPaddle.score >= PONG_WINNING_SCORE || m_aiPaddle.score >= PONG_WINNING_SCORE) {
         m_gameOver = true;
         DEBUG_LOG("Pong game over! Player: " << m_playerPaddle.score << " AI: " << m_aiPaddle.score);
     }
@@ -211,29 +212,31 @@ void PongGame::renderToBuffer(std::array<uint8_t, X_MAX>& buffer)
     buffer.fill(0);
     
     if (m_gameOver) {
-        // Show final score in a simple way - just show winner
-        if (m_playerPaddle.score >= WINNING_SCORE) {
-            // Player wins - show "P" at center
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 2, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 2, 2, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 2, 3, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 2, 4, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 3, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2, 2, true);
+        // Show game over text using the font system
+        std::string winText;
+        if (m_playerPaddle.score >= PONG_WINNING_SCORE) {
+            winText = "You win!";
         } else {
-            // AI wins - show "A" at center
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 2, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 3, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 - 1, 4, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2, 3, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 + 1, 1, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 + 1, 2, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 + 1, 3, true);
-            setPixel(buffer, PONG_FIELD_WIDTH / 2 + 1, 4, true);
+            winText = "Computer wins!";
+        }
+        
+        // Render the text using the font system
+        std::vector<uint8_t> renderedText = font::FontCache::renderStringOptimized(winText);
+        
+        // Center the text horizontally on the display
+        int textWidth = static_cast<int>(renderedText.size());
+        int startX = (PONG_FIELD_WIDTH - textWidth) / 2;
+        
+        // Ensure we don't go outside buffer bounds
+        startX = std::max(0, startX);
+        int endX = std::min(PONG_FIELD_WIDTH, startX + textWidth);
+        
+        // Copy the rendered text to the buffer
+        for (int x = startX; x < endX; x++) {
+            int textIndex = x - startX;
+            if (textIndex < static_cast<int>(renderedText.size())) {
+                buffer[static_cast<size_t>(x)] = renderedText[static_cast<size_t>(textIndex)];
+            }
         }
         return;
     }

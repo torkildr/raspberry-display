@@ -9,12 +9,14 @@
 #include "timer.hpp"
 #include "display.hpp"
 
-#define PONG_PADDLE_HEIGHT 3
+#define PONG_PADDLE_HEIGHT 2
 #define PONG_PADDLE_WIDTH 1
 #define PONG_BALL_SIZE 1
 #define PONG_FIELD_WIDTH X_MAX
 #define PONG_FIELD_HEIGHT 8
 #define PONG_AI_SPEED 0.8f
+#define PONG_WINNING_SCORE 3
+
 
 namespace pong
 {
@@ -98,7 +100,6 @@ private:
     
     // Game state
     bool m_gameOver = false;
-    static constexpr int WINNING_SCORE = 5;
 };
 
 // Helper function to create pong display state
