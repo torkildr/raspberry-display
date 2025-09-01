@@ -253,11 +253,9 @@ int main() {
                     sequence_manager->addSequenceState("pong", state, 60.0, 120.0); // Long duration for pong
                     break;
                 }
-                case 'w':
                 case KEY_UP:
                     sequence_manager->setPongPlayerControl(-1); // Up
                     break;
-                case 's':
                 case KEY_DOWN:
                     sequence_manager->setPongPlayerControl(1); // Down
                     break;

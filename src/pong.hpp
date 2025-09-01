@@ -91,6 +91,7 @@ private:
     
     std::atomic<bool> m_running{false};
     std::atomic<PaddleControl> m_playerControl{PaddleControl::NONE};
+    int m_controlTimeout{0};
     
     std::unique_ptr<timer::Timer> m_gameTimer;
     static constexpr std::chrono::milliseconds GAME_UPDATE_INTERVAL{50}; // 20 FPS

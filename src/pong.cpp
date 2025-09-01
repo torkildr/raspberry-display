@@ -61,10 +61,11 @@ void PongGame::reset()
     m_playerPaddle = Paddle();
     m_aiPaddle = Paddle();
     m_gameOver = false;
+    m_controlTimeout = 0;
     
     // Randomize initial ball direction
     m_ball.dx = (std::rand() % 2 == 0) ? -1.0f : 1.0f;
-    m_ball.dy = ((std::rand() % 100) / 100.0f - 0.5f) * 2.0f; // Random Y velocity between -1 and 1
+    m_ball.dy = ((static_cast<float>(std::rand() % 100)) / 100.0f - 0.5f) * 2.0f; // Random Y velocity between -1 and 1
     
     DEBUG_LOG("Pong game reset");
 }
@@ -85,12 +86,25 @@ void PongGame::update()
         return;
     }
     
-    // Update player paddle based on input
+    // Update player paddle based on input (discrete movement with timeout)
     PaddleControl control = m_playerControl.load();
-    if (control == PaddleControl::UP && m_playerPaddle.y > 0) {
-        m_playerPaddle.y -= 1.0f;
-    } else if (control == PaddleControl::DOWN && m_playerPaddle.y < PONG_FIELD_HEIGHT - PONG_PADDLE_HEIGHT) {
-        m_playerPaddle.y += 1.0f;
+    
+    // Handle new control input
+    if (control != PaddleControl::NONE && m_controlTimeout <= 0) {
+        if (control == PaddleControl::UP && m_playerPaddle.y > 0) {
+            m_playerPaddle.y -= 1.0f; // Move 1 pixel per key press
+            m_controlTimeout = 6; // 6 updates (~300ms at 20fps) before allowing next move
+        } else if (control == PaddleControl::DOWN && m_playerPaddle.y < PONG_FIELD_HEIGHT - PONG_PADDLE_HEIGHT) {
+            m_playerPaddle.y += 1.0f; // Move 1 pixel per key press
+            m_controlTimeout = 6; // 6 updates (~300ms at 20fps) before allowing next move
+        }
+        // Reset control to prevent continuous movement
+        m_playerControl = PaddleControl::NONE;
+    }
+    
+    // Decrease timeout counter
+    if (m_controlTimeout > 0) {
+        m_controlTimeout--;
     }
     
     updateAI();
@@ -134,9 +148,9 @@ void PongGame::checkCollisions()
         if (m_ball.y >= m_playerPaddle.y && m_ball.y <= m_playerPaddle.y + PONG_PADDLE_HEIGHT) {
             m_ball.dx = -m_ball.dx;
             m_ball.x = 2;
-            // Add some spin based on where the ball hits the paddle
+            // Add some spin based on where the ball hits the paddle (reduced spin)
             float hitPos = (m_ball.y - m_playerPaddle.y) / PONG_PADDLE_HEIGHT;
-            m_ball.dy += (hitPos - 0.5f) * 0.5f;
+            m_ball.dy += (hitPos - 0.5f) * 0.3f;
         }
     }
     
@@ -145,14 +159,22 @@ void PongGame::checkCollisions()
         if (m_ball.y >= m_aiPaddle.y && m_ball.y <= m_aiPaddle.y + PONG_PADDLE_HEIGHT) {
             m_ball.dx = -m_ball.dx;
             m_ball.x = PONG_FIELD_WIDTH - 3;
-            // Add some spin based on where the ball hits the paddle
+            // Add some spin based on where the ball hits the paddle (reduced spin)
             float hitPos = (m_ball.y - m_aiPaddle.y) / PONG_PADDLE_HEIGHT;
-            m_ball.dy += (hitPos - 0.5f) * 0.5f;
+            m_ball.dy += (hitPos - 0.5f) * 0.3f;
         }
     }
     
-    // Keep ball speed reasonable
-    m_ball.dy = std::max(-2.0f, std::min(2.0f, m_ball.dy));
+    // Apply velocity dampening to prevent excessive acceleration
+    m_ball.dy *= 0.95f;
+    
+    // Keep ball speed reasonable with tighter constraints
+    m_ball.dy = std::max(-1.5f, std::min(1.5f, m_ball.dy));
+    
+    // Ensure minimum vertical speed isn't too small (prevents horizontal-only movement)
+    if (std::abs(m_ball.dy) < 0.1f) {
+        m_ball.dy = (m_ball.dy >= 0) ? 0.1f : -0.1f;
+    }
 }
 
 void PongGame::checkScore()
@@ -180,7 +202,7 @@ void PongGame::resetBall()
     
     // Random direction
     m_ball.dx = (std::rand() % 2 == 0) ? -1.0f : 1.0f;
-    m_ball.dy = ((std::rand() % 100) / 100.0f - 0.5f) * 1.0f;
+    m_ball.dy = ((static_cast<float>(std::rand() % 100)) / 100.0f - 0.5f) * 1.0f;
 }
 
 void PongGame::renderToBuffer(std::array<uint8_t, X_MAX>& buffer)
@@ -261,9 +283,9 @@ void PongGame::setPixel(std::array<uint8_t, X_MAX>& buffer, int x, int y, bool o
     }
     
     if (on) {
-        buffer[x] |= (1 << y);
+        buffer[static_cast<size_t>(x)] |= static_cast<uint8_t>(1 << y);
     } else {
-        buffer[x] &= ~(1 << y);
+        buffer[static_cast<size_t>(x)] &= static_cast<uint8_t>(~(1 << y));
     }
 }
 
