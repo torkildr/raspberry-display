@@ -76,6 +76,9 @@ public:
     // Display lifecycle methods
     void start();
     void stop();
+    
+    // Pong game control methods
+    void setPongPlayerControl(int control); // 0=none, -1=up, 1=down
         
 private:
     void processSequence(bool skip_current = false);

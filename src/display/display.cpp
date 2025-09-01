@@ -11,7 +11,7 @@
 #include "log_util.hpp"
 
 #include "font.hpp"
-
+#include "pong.hpp"
 namespace display
 {
 
@@ -45,6 +45,12 @@ Display::~Display()
 
 bool Display::prepare()
 {
+    // Handle pong mode separately
+    if (isPongActive()) {
+        pong_game->renderToBuffer(displayBuffer);
+        return true; // Always update in pong mode
+    }
+    
     auto textSize = static_cast<int>(renderedText.size());
     
     // Check if time needs update BEFORE calling renderTimeOptimized (which resets the flag)
@@ -406,6 +412,18 @@ void Display::show(
     transition::Type transition_type,
     double duration)
 {
+    // Check for pong mode activation
+    if (text.has_value() && text.value() == "PONG_GAME_ACTIVE") {
+        stopPongGame(); // Stop any existing game
+        startPongGame();
+        return; // Don't process as regular text
+    }
+    
+    // Stop pong mode if we're showing other content
+    if (pong_mode) {
+        stopPongGame();
+    }
+    
     if (timeFormat.has_value()) {
         timeNeedsUpdate = true;
         
@@ -452,5 +470,44 @@ bool Display::isTransitioning() const
     return transition_manager->isTransitioning();
 }
 
+// Pong game support methods
+void Display::startPongGame()
+{
+    if (!pong_game) {
+        pong_game = std::make_unique<pong::PongGame>();
+    }
+    pong_game->start();
+    pong_mode = true;
+    dirty = true;
+    DEBUG_LOG("Pong game started");
+}
+
+void Display::stopPongGame()
+{
+    if (pong_game) {
+        pong_game->stop();
+    }
+    pong_mode = false;
+    dirty = true;
+    DEBUG_LOG("Pong game stopped");
+}
+
+bool Display::isPongActive() const
+{
+    return pong_mode && pong_game && pong_game->isRunning();
+}
+
+void Display::setPongPlayerControl(int control)
+{
+    if (pong_game) {
+        pong::PaddleControl paddleControl = pong::PaddleControl::NONE;
+        if (control == -1) {
+            paddleControl = pong::PaddleControl::UP;
+        } else if (control == 1) {
+            paddleControl = pong::PaddleControl::DOWN;
+        }
+        pong_game->setPlayerControl(paddleControl);
+    }
+}
 
 } // namespace display
