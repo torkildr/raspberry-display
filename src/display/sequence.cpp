@@ -201,22 +201,6 @@ void SequenceManager::processSequence(bool skip_current)
         return;
     }
 
-    /*
-    // Check if current element is marked for deletion or doesn't exist
-    if (m_current_element->isMarkedForDeletion()) {
-        m_current_element = m_sequence.first();
-        if (!m_current_element) {
-            stopSequence();
-            return;
-        }
-        
-        // Display the first state of the new cycle
-        processDisplayState(m_current_element->getId(), m_current_element->getData().state);
-        m_state_start_time = steady_clock::now();
-        return;
-    }
-    */
-
     const auto& sequence_state = m_current_element->getData();
 
     if (isStateExpired(sequence_state)) {
@@ -252,8 +236,11 @@ void SequenceManager::processSequence(bool skip_current)
             return;
         }
         
+        auto next_element = m_current_element->next();
+        
         // If we're continuing with this state, just reset the timer
-        if (m_current_element == m_current_element->next()) {
+        // BUT only if we're not explicitly skipping (e.g., from scroll completion)
+        if (!skip_current && m_current_element == next_element) {
             m_state_start_time = now;
             return;
         }
@@ -281,21 +268,9 @@ void SequenceManager::nextState()
 
 void SequenceManager::onScrollComplete()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    
-    if (!m_active || !m_current_element) {
-        return;
-    }
-    
-    const auto& sequence_state = m_current_element->getData();
-    auto now = steady_clock::now();
-    auto state_elapsed = duration<double>(now - m_state_start_time).count();
-    
-    // Only advance if minimum display time has elapsed
-    if (state_elapsed >= sequence_state.time) {
-        processSequence(true);
-    }
-    // Otherwise, let the normal timing handle the transition
+    // Note: processSequence() handles its own mutex locking
+    // Adding a lock here would cause deadlock since processSequence() also locks m_mutex
+    processSequence(true);
 }
 
 bool SequenceManager::isStateExpired(const SequenceState& state)

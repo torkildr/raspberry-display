@@ -146,7 +146,7 @@ int main() {
                     sequence_manager->addSequenceState("display_set", state, 3.0, 30.0);
                     break;
                 }
-                case 's':
+                case 's': {
                     if (currentScrolling == display::Scrolling::ENABLED) {
                         currentScrolling = display::Scrolling::DISABLED;
                     } else {
@@ -154,6 +154,17 @@ int main() {
                     }
                     sequence_manager->setScrolling(currentScrolling);
                     break;
+                }
+                case 'S': {
+                    sequence_manager->clearSequence();
+                    sequence::DisplayState state1;
+                    state1.text = "This is a rather long scrolling text.";
+                    sequence_manager->addSequenceState("foo1", state1, 30.0, 60.0);
+                    sequence::DisplayState state2;
+                    state2.text = "Bla bla bla, also very long text that should be scrolled.";
+                    sequence_manager->addSequenceState("foo2", state2, 30.0, 60.0);
+                    break;
+                }
                 case '0':
                 case KEY_HOME:
                     sequence_manager->setScrolling(display::Scrolling::RESET);
