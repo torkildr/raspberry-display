@@ -224,7 +224,25 @@ static void on_message(struct mosquitto* /*mosq*/, void* /*userdata*/, const str
     std::function<void()> clearDisplay = [&]() {
         process_clear_sequence({});
     };
-    if (ha_manager && ha_manager->on_message(mosq, topic, payload, clearDisplay)) {
+    // Check if HA manager handles this message
+    bool ha_handled = ha_manager && ha_manager->on_message(mosq, topic, payload, clearDisplay);
+    
+    // If HA manager returned false, check if it's a pong command that needs processing
+    if (ha_manager && !ha_handled) {
+        try {
+            json message_json = json::parse(payload);
+            if (message_json.contains("action") && message_json["action"] == "pong") {
+                process_pong(message_json);
+                DEBUG_LOG("Processed pong command from HA topic: " << topic);
+                return; // Exit early after processing pong
+            }
+        } catch (const json::parse_error& e) {
+            // Ignore parse errors for HA commands
+        }
+    }
+    
+    // If HA fully handled the message, return early
+    if (ha_handled) {
         return;
     }
 

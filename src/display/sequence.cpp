@@ -268,8 +268,6 @@ void SequenceManager::nextState()
 
 void SequenceManager::onScrollComplete()
 {
-    // Note: processSequence() handles its own mutex locking
-    // Adding a lock here would cause deadlock since processSequence() also locks m_mutex
     processSequence(true);
 }
 

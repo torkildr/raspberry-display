@@ -122,6 +122,30 @@ void HADiscoveryManager::publishSensorDiscovery(struct mosquitto* mosq) const {
                 {"payload_press", "{\"action\": \"clear\"}"},
                 {"icon", "mdi:monitor-off"},
                 {"unique_id", config_.device_id + "_clear"},
+            }},
+            {"led_display_" + config_.device_id + "_pong", {
+                {"platform", "button"},
+                {"name", "Toggle Pong Game"},
+                {"command_topic", getCommandTopic()},
+                {"payload_press", "{\"action\": \"pong\", \"command\": \"toggle\"}"},
+                {"icon", "mdi:gamepad-variant"},
+                {"unique_id", config_.device_id + "_pong"},
+            }},
+            {"led_display_" + config_.device_id + "_pong_up", {
+                {"platform", "button"},
+                {"name", "Pong Paddle Up"},
+                {"command_topic", getCommandTopic()},
+                {"payload_press", "{\"action\": \"pong\", \"command\": \"control\", \"direction\": \"up\"}"},
+                {"icon", "mdi:arrow-up-bold"},
+                {"unique_id", config_.device_id + "_pong_up"},
+            }},
+            {"led_display_" + config_.device_id + "_pong_down", {
+                {"platform", "button"},
+                {"name", "Pong Paddle Down"},
+                {"command_topic", getCommandTopic()},
+                {"payload_press", "{\"action\": \"pong\", \"command\": \"control\", \"direction\": \"down\"}"},
+                {"icon", "mdi:arrow-down-bold"},
+                {"unique_id", config_.device_id + "_pong_down"},
             }}
         }},
         {"state_topic", getStateTopic()},
@@ -251,8 +275,12 @@ bool HADiscoveryManager::handleCommand(std::string& payload, std::function<void(
             if (message["action"] == "clear") {
                 clearDisplay();
                 DEBUG_LOG("Processed clear command from Home Assistant");
+                return true;
+            } else if (message["action"] == "pong") {
+                // Let MQTT client handle pong commands
+                DEBUG_LOG("Forwarding pong command to MQTT client");
+                return false;
             }
-            return true;
         }
       } catch (const json::parse_error& e) {
         WARN_LOG("JSON parse error: " << e.what());

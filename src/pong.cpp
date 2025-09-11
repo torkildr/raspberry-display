@@ -32,8 +32,8 @@ PongGame::~PongGame()
 void PongGame::start()
 {
     if (!m_running) {
+        reset(); // Always reset game state when starting
         m_running = true;
-        m_gameOver = false;
         DEBUG_LOG("Pong game started");
     }
 }
