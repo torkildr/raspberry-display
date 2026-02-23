@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "watcher": {
+    "ignore": [
+      "build/**",
+      "debug-build/**",
+      ".cache/**",
+      "src/display/font_generated.hpp"
+    ]
+  },
+  "command": {
+    "build": {
+      "description": "Build all release targets inside Docker",
+      "template": "Build the project (release). Here is the output:\n!`{ command -v podman &>/dev/null && _c=podman || _c=docker; } && $_c build -q -t raspberry-display . && $_c run --rm -v \"$PWD:/code\" raspberry-display make 2>&1`\n\nReport any compiler errors or warnings and suggest fixes."
+    },
+    "build-debug": {
+      "description": "Build all debug targets inside Docker",
+      "template": "Build the project (debug). Here is the output:\n!`{ command -v podman &>/dev/null && _c=podman || _c=docker; } && $_c build -q -t raspberry-display . && $_c run --rm -v \"$PWD:/code\" raspberry-display make debug 2>&1`\n\nReport any compiler errors or warnings and suggest fixes."
+    },
+    "test": {
+      "description": "Run all Catch2 tests inside Docker",
+      "template": "Run the test suite. Here is the output:\n!`{ command -v podman &>/dev/null && _c=podman || _c=docker; } && $_c build -q -t raspberry-display . && $_c run --rm -v \"$PWD:/code\" raspberry-display make test 2>&1`\n\nReport any test failures and suggest fixes."
+    },
+    "clean": {
+      "description": "Remove all build artifacts inside Docker",
+      "template": "Clean build artifacts. Here is the output:\n!`{ command -v podman &>/dev/null && _c=podman || _c=docker; } && $_c run --rm -v \"$PWD:/code\" raspberry-display make clean 2>&1`\n\nReport the result."
+    },
+    "font-generate": {
+      "description": "Regenerate font_generated.hpp from font_definitions.txt",
+      "template": "Regenerate the font header from the ASCII art definitions. Here is the output:\n!`{ command -v podman &>/dev/null && _c=podman || _c=docker; } && $_c build -q -t raspberry-display . && $_c run --rm -v \"$PWD:/code\" raspberry-display make font-generate 2>&1`\n\nReport the result."
+    }
+  }
+}
