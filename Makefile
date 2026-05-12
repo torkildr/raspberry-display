@@ -174,9 +174,9 @@ test: $(TEST_EXECUTABLES)
 	done
 
 # Generic test executable rule
-$(OBJ_DIR)/test_%: $(OBJ_DIR) src/display/font_generated.hpp $(OBJ_DIR)/test/%.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(MOCK_OBJ)
+$(OBJ_DIR)/test_%: $(OBJ_DIR) src/display/font_generated.hpp $(OBJ_DIR)/test/%.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MOCK_OBJ)
 	@echo "Linking test executable $@..."
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_DIR)/test/$*.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(MOCK_OBJ) $(TEST_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ_DIR)/test/$*.o $(UTIL_OBJ) $(DISPLAY_OBJ) $(PONG_OBJ) $(MOCK_OBJ) $(TEST_LIBS)
 
 # Handle test subdirectory compilation
 $(OBJ_DIR)/test/%.o: src/test/%.cpp | $(OBJ_DIR)

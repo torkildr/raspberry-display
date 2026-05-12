@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cstring>
 #include <sstream>
+#include <utility>
 
 #include <curses.h>
 
@@ -99,9 +100,10 @@ DisplayImpl::DisplayImpl(
     std::function<void()> preUpdate,
     std::function<void()> postUpdate,
     DisplayStateCallback stateCallback,
-    std::function<void()> scrollCompleteCallback
+    std::function<void()> scrollCompleteCallback,
+    TextRenderer textRenderer
 )
-    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback)
+    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback, std::move(textRenderer))
 {
     debug::Logger::enableFileLogging("display.log");
 

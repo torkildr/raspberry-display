@@ -48,6 +48,7 @@ enum Alignment
 };
 
 using DisplayStateCallback = std::function<void(const std::string& text, const std::string& time_format, int brightness)>;
+using TextRenderer = std::function<std::vector<uint8_t>(const std::string& text)>;
 
 class Display
 {
@@ -56,7 +57,8 @@ public:
         std::function<void()> preUpdate,
         std::function<void()> postUpdate,
         DisplayStateCallback stateCallback = nullptr,
-        std::function<void()> scrollCompleteCallback = nullptr
+        std::function<void()> scrollCompleteCallback = nullptr,
+        TextRenderer textRenderer = nullptr
     );
     virtual ~Display();
 
@@ -145,6 +147,7 @@ private:
     
     DisplayStateCallback displayStateCallback;
     std::function<void()> scrollCompleteCallback;
+    TextRenderer textRenderer;
     
     // Transition system
     std::unique_ptr<transition::TransitionManager> transition_manager;

@@ -10,7 +10,8 @@ public:
         std::function<void()> preUpdate,
         std::function<void()> postUpdate,
         DisplayStateCallback stateCallback,
-        std::function<void()> scrollCompleteCallback
+        std::function<void()> scrollCompleteCallback,
+        TextRenderer textRenderer = nullptr
     );
     virtual ~DisplayImpl();
 

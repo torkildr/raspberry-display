@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <vector>
 #include <chrono>
+#include <utility>
 
 #include "display.hpp"
 #include "display_impl.hpp"
@@ -119,9 +120,10 @@ DisplayImpl::DisplayImpl(
     std::function<void()> preUpdate,
     std::function<void()> postUpdate,
     DisplayStateCallback stateCallback,
-    std::function<void()> scrollCompleteCallback
+    std::function<void()> scrollCompleteCallback,
+    TextRenderer textRenderer
 )
-    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback)
+    : Display(preUpdate, postUpdate, stateCallback, scrollCompleteCallback, std::move(textRenderer))
 {
     if (wiringPiSetup() == -1)
     {

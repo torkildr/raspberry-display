@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <optional>
 #include <sstream>
+#include <utility>
 
 #include "display.hpp"
 #include "timer.hpp"
@@ -23,13 +24,21 @@ Display::Display(
     std::function<void()> preUpdate,
     std::function<void()> postUpdate,
     DisplayStateCallback stateCallback,
-    std::function<void()> scrollCompleteCallback
+    std::function<void()> scrollCompleteCallback,
+    TextRenderer renderer
 )
     : preUpdate(preUpdate),
       postUpdate(postUpdate),
       displayStateCallback(stateCallback),
-      scrollCompleteCallback(scrollCompleteCallback)
+      scrollCompleteCallback(scrollCompleteCallback),
+      textRenderer(std::move(renderer))
 {
+    if (!textRenderer) {
+        textRenderer = [](const std::string& text) {
+            return font::FontCache::renderStringOptimized(text);
+        };
+    }
+
     // Initialize transition manager with display buffer update callback
     transition_manager = std::make_unique<transition::TransitionManager>(
         [this](const std::array<uint8_t, X_MAX>& buffer) {
@@ -219,7 +228,7 @@ std::vector<uint8_t> Display::renderTime()
 {
     if (mode == Mode::TIME || mode == Mode::TIME_AND_TEXT)
     {
-        return font::renderString(getTime(timeFormat));
+        return textRenderer(getTime(timeFormat));
     }
     return std::vector<uint8_t>();
 }
@@ -239,7 +248,7 @@ const std::vector<uint8_t>& Display::renderTimeOptimized()
         currentTime != lastTimeRendered || 
         timeFormat != lastTimeFormat)
     {
-        cachedRenderedTime = font::FontCache::renderStringOptimized(getTime(timeFormat));
+        cachedRenderedTime = textRenderer(getTime(timeFormat));
         lastTimeRendered = currentTime;
         lastTimeFormat = timeFormat;
         timeNeedsUpdate = false;
@@ -410,7 +419,7 @@ size_t Display::addTimeDivider(std::array<uint8_t, X_MAX>& buffer, size_t pos) c
 
 void Display::showText(std::string text)
 {
-    renderedText = font::FontCache::renderStringOptimized(text);
+    renderedText = textRenderer(text);
     renderedTextSize = this->renderedText.size();
 
     setScrolling(Scrolling::RESET);
