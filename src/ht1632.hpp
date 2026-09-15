@@ -13,7 +13,7 @@
 #define HT1632_ENABLE_HEALTH_MONITORING         /* Enable periodic reinitialization */
 
 /* Define HT1632_FLIP_180 to mount the display upside down */
-#define HT1632_FLIP_180
+// #define HT1632_FLIP_180
 
 #define HT1632_PANEL_NONE       -1
 #define HT1632_PANEL_ALL        0xff
